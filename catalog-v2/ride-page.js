@@ -8,6 +8,12 @@
   let memory = null, transient = false, corrupted = false;
   function load() {
     if (transient) return memory;
+    if (version === 'v1' && !window.VP) {
+      corrupted = true;
+      note.textContent = 'Сохранение временно недоступно. Обновите страницу или откройте каталог.';
+      note.hidden = false;
+      return null;
+    }
     try {
       const raw = localStorage.getItem(key);
       const parsed = JSON.parse(raw || 'null');
