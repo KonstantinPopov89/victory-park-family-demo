@@ -19,6 +19,7 @@ jobs:
       VP_QA_OUT: checks/results
       VP_QA_SITE: checks/results/public-site
       CHROME_PATH: /usr/bin/google-chrome
+      VP_QA_FUNCTIONAL_ONLY: "1"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -37,7 +38,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: node checks/public-visual.mjs
       - name: Cold mobile performance in one comparable job
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && env.VP_QA_FUNCTIONAL_ONLY != '1' }}
         run: node checks/performance-run.mjs
       - name: Exact old and new public file readback after scenarios
         if: ${{ !cancelled() }}

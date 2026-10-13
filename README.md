@@ -27,3 +27,5 @@ gh run list --repo KonstantinPopov89/victory-park-family-demo --branch codex/cat
 ```
 
 Run evidence is uploaded as `catalog-v2-public-verification` for 14 days, including failures. Inspect the completed job and downloaded artifacts; a started run or successful tool installation is not completion.
+
+This verification revision repeats browser/readback checks only on unchanged published site commit 6aad97b327f2cc57843e7fcdb690c37d056f8eba. Run 38451616380 passed performance and rendering, but recorded one HTTP 503 for home.js during browser scenarios. That failure remains evidence. VP_QA_FUNCTIONAL_ONLY=1 skips redundant performance measurements for this bounded recheck; no browser assertion, HTTP error criterion or performance threshold is relaxed. Combine its performance report only with the matching 59-file SHA manifest.
