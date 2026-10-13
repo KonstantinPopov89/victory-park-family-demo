@@ -11,13 +11,12 @@
   let returnFocus = null, returnScroll = 0, openedRide = null;
   const escape = text => String(text).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   const bookmark = '<svg viewBox="0 0 18 22" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 2h12v18l-6-4-6 4z"/></svg>';
-  const info = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><circle cx="8" cy="8" r="6.3"/><path d="M8 7v4M8 4.2v1"/></svg>';
   function saveButton(ride, selected) {
     return `<button type="button" class="catalog-save" data-save="${ride.id}" aria-pressed="${selected}" aria-label="${selected ? 'Убрать из сохранённого' : 'Сохранить'}: ${escape(ride.name)}">${bookmark}<span>${selected ? 'Сохранено' : 'Сохранить'}</span></button>`;
   }
-  grid.innerHTML = api.rides.map((ride, index) => `<article class="catalog-card" id="ride-${ride.id}" data-card="${ride.id}">
-    <button type="button" class="catalog-photo-link" data-details="${ride.id}" aria-label="Подробнее: ${escape(ride.name)}"><img src="${ride.photo}" width="640" height="420" alt="${escape(ride.name)} в Парке Победы" loading="${index === 0 ? 'eager' : 'lazy'}" ${index === 0 ? 'fetchpriority="high"' : ''}><span class="catalog-photo-mark">${escape(ride.kind)}</span></button>
-    <div class="catalog-card-body"><h3>${escape(ride.name)}</h3><p class="catalog-card-copy">${escape(ride.description)}</p><p class="catalog-conditions">${info}Условия допуска уточняются</p><div class="catalog-card-actions">${saveButton(ride, api.getSaved().includes(ride.id))}<button type="button" class="catalog-details" data-details="${ride.id}" aria-label="Подробности: ${escape(ride.name)}">Подробности <span aria-hidden="true">↗</span></button></div></div></article>`).join('');
+  // Cards are already present in the document, including their photos and copy.
+  // Enhance the static catalogue without moving its following sections.
+
   function update() {
     const selected = api.getSaved();
     document.querySelectorAll('[data-catalog-count]').forEach(el => { el.textContent = selected.length; });
@@ -84,6 +83,7 @@
   window.addEventListener('popstate', () => { if (openedRide) closeDetails(); setView(location.hash === '#saved', false); });
   window.addEventListener('vp:catalog-change', update);
   update();
+  document.querySelectorAll('#catalog-grid button:disabled, .catalog-filters button:disabled').forEach(button => { button.disabled = false; });
   const requestedRide = new URLSearchParams(location.search).get('ride');
   if (requestedRide && api.rides.some(ride => ride.id === requestedRide)) openDetails(requestedRide);
 })();
