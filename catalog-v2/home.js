@@ -15,13 +15,13 @@
     document.querySelector('#dialog-copy').textContent = data.copy;
     document.querySelector('#dialog-note').textContent = data.note;
     const link = document.querySelector('#dialog-primary');
-    link.href = data.ride ? 'attractions.html?ride=' + encodeURIComponent(data.ride) : 'attractions.html';
-    link.textContent = data.ride ? 'Открыть в каталоге ↗' : 'Открыть каталог ↗';
+    link.href = data.ride ? 'rides/' + encodeURIComponent(data.ride) + '.html' : 'attractions.html';
+    link.textContent = data.ride ? 'Об аттракционе ↗' : 'Открыть каталог ↗';
     dialog.showModal();
     document.body.classList.add('dialog-open');
   }
   document.querySelectorAll('[data-experience]').forEach(button => {
-    button.addEventListener('click', () => showDetail(experiences[button.dataset.experience], 'Впечатления в парке', button));
+    button.addEventListener('click', () => { location.href = 'rides/' + experiences[button.dataset.experience].ride + '.html'; });
   });
   dialog.querySelectorAll('[data-close-dialog], .dialog-close').forEach(button => button.addEventListener('click', () => dialog.close()));
   dialog.addEventListener('close', () => {

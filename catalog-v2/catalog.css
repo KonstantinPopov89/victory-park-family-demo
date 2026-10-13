@@ -10,3 +10,6 @@
 
 /* Static content remains readable while optional interactions are loading. */
 .catalog-grid button:disabled,.catalog-filters button:disabled{cursor:default}
+
+/* Details remain real links even before JavaScript loads. */
+a.catalog-photo-link{display:block;color:inherit;text-decoration:none}a.catalog-details{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}

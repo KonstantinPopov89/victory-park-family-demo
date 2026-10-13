@@ -11,9 +11,6 @@ document.querySelectorAll('[data-vp-about]').forEach(el=>el.addEventListener('cl
 info?.querySelector('button')?.addEventListener('click',()=>info.close());info?.addEventListener('close',()=>returnFocus?.focus());
 if(document.body.dataset.page==='picker'&&window.VP){
  const rid=new URLSearchParams(location.search).get('ride');
- if(VP.realRides.some(r=>r.id===rid)){
-  try{const state=VP.sanitizeState(JSON.parse(localStorage.getItem('vp.integrated.v1')||'null'));state.mode='real';localStorage.setItem('vp.integrated.v1',JSON.stringify(state));}catch{}
-  document.addEventListener('DOMContentLoaded',()=>{const b=[...document.querySelectorAll('[data-action=ride-details]')].find(b=>b.dataset.ride===rid);b?.click();},{once:true});
- }
+ if(VP.realRides.some(r=>r.id===rid)) location.replace('rides/'+encodeURIComponent(rid)+'.html');
 }
 })();

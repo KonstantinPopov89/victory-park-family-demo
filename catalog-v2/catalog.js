@@ -43,6 +43,7 @@
   }
   function closeDetails() { if (dialog.open) dialog.close(); }
   function openDetails(id, trigger) {
+    if (api.rides.some(ride => ride.id === id)) { location.replace(`rides/${encodeURIComponent(id)}.html`); return; }
     const ride = api.rides.find(item => item.id === id);
     if (!ride) return;
     returnFocus = trigger || grid.querySelector(`[data-details="${id}"]`);
