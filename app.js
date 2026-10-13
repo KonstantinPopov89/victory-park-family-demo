@@ -3,7 +3,7 @@
 'use strict';
 const KEY='vp.integrated.v1', ORDER='vp.integrated.order.v1';
 const $=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const money=n=>new Intl.NumberFormat('ru-RU').format(n)+' ֏';
+const money=n=>new Intl.NumberFormat('ru-RU').format(n)+' AMD';
 let warning='', state, order=null, familyOpen=false, focusPerson='', selectedTab='plan', undoCart=null, busy=false, storageAvailable=true, quantityTarget='', activeProduct='single';
 const clone=v=>JSON.parse(JSON.stringify(v));
 try { const saved=localStorage.getItem(KEY); state=VP.sanitizeState(JSON.parse(saved||'null')); if(!saved)state.mode='demo'; } catch { storageAvailable=false; state=VP.emptyState(); state.mode='demo'; warning='Сохранённые данные недоступны. Можно продолжить в этой вкладке.'; }

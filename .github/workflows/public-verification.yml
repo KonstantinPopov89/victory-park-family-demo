@@ -53,6 +53,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: public-repaired
+          name: public-currency
           path: checks/
           retention-days: 14

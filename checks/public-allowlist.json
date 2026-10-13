@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "files": 53,
-  "bytes": 2312871,
+  "bytes": 2312872,
   "errors": [],
   "allowlist": [
     {
@@ -16,8 +16,8 @@
     },
     {
       "path": "app.js",
-      "bytes": 61174,
-      "sha256": "544bab90f24138d146bc88e5426a179b052ba51fb7fbd32d66188a1cb6270733"
+      "bytes": 61175,
+      "sha256": "1a3276928cc11aa12505313d0a6b7aa66f755228e87e1e34ad735a79cd420733"
     },
     {
       "path": "assets/Montserrat-NOTICE.txt",
