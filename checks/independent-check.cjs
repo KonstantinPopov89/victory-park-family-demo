@@ -205,9 +205,15 @@ async function coreChecks(browser) {
     const sameAge = await readState(page); assert.equal(sameAge.party.find(p => p.id === 'child-1').age, 11);
     assert.ok(sameAge.party.every(p => p.height === null), 'Age input invented a height');
     await page.locator('#plan a[href="tickets.html"]').click();
+    await page.waitForURL(url('tickets.html'));
+    // allTextContents reads immediately; wait for both visible offers after navigation.
+    const prices = page.locator('.offers .offer-price');
+    await prices.nth(0).waitFor({ state: 'visible' });
+    await prices.nth(1).waitFor({ state: 'visible' });
+    assert.equal(await prices.count(), 2, 'Expected both complete purchase alternatives');
     const bought = await readState(page);
     assert.deepEqual(bought.party, sameAge.party); assert.deepEqual(bought.wishes, sameAge.wishes);
-    const totals = await page.locator('.offers .offer-price').allTextContents();
+    const totals = await prices.allTextContents();
     assert.match(totals[0].replace(/\s/g, ''), /^9900/); assert.match(totals[1].replace(/\s/g, ''), /^11800/);
     assert.match(await page.locator('#recommendations').innerText(), /возможность катания|возможность.*провер|условн/i);
     return 'Четыре участника, желания и неизвестный рост сохранены; 9900/11800, без вычисления роста из возраста';

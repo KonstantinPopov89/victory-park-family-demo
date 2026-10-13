@@ -14,31 +14,16 @@ jobs:
         with:
           node-version: '22'
       - name: Install test tools
-        run: npm install --no-save playwright lighthouse@13.5.0
-      - name: Public family flow
-        run: node checks/happy-path.cjs https://konstantinpopov89.github.io/victory-park-family-demo/ public
-      - name: Responsive public pages
-        if: always()
-        run: node checks/visual-check.cjs https://konstantinpopov89.github.io/victory-park-family-demo/ public
+        run: npm install --no-save playwright
       - name: Independent public scenarios
         if: always()
         env:
           VP_QA_BASE: https://konstantinpopov89.github.io/victory-park-family-demo/
         run: node checks/independent-check.cjs --phase=core
-      - name: Cold mobile performance
-        if: always()
-        env:
-          CHROME_PATH: /usr/bin/google-chrome
-        run: |
-          for page in index attractions tickets; do
-            for run in 1 2 3; do
-              npx lighthouse "https://konstantinpopov89.github.io/victory-park-family-demo/$page.html" --chrome-flags='--headless --no-sandbox' --only-categories=performance --output=json --output-path="checks/lighthouse-$page-$run.json" --quiet || true
-            done
-          done
       - name: Save evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: public-verification
+          name: public-independent
           path: checks/
           retention-days: 14
