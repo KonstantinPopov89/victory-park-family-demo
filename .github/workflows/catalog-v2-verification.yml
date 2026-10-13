@@ -1,0 +1,52 @@
+name: Separate catalog prototype verification
+on:
+  push:
+    branches: [codex/catalog-v2-verification]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: catalog-v2-public-verification
+  cancel-in-progress: false
+jobs:
+  public-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      VP_QA_OLD_BASE: https://konstantinpopov89.github.io/victory-park-family-demo/
+      VP_QA_OLD: https://konstantinpopov89.github.io/victory-park-family-demo/
+      VP_QA_BASE: https://konstantinpopov89.github.io/victory-park-family-demo/catalog-v2/
+      VP_QA_OUT: checks/results
+      VP_QA_SITE: checks/results/public-site
+      CHROME_PATH: /usr/bin/google-chrome
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify complete public-only check inputs
+        run: node checks/preflight.mjs
+      - name: Install pinned performance tools and browser driver
+        run: npm install --no-save --no-package-lock playwright@1.56.1 lighthouse@13.5.0
+      - name: Exact old and new public file readback before scenarios
+        run: node checks/public-readback.mjs before
+      - name: Independent public browser scenarios
+        if: ${{ !cancelled() }}
+        run: node checks/independent-check.cjs
+      - name: Public responsive screenshots
+        if: ${{ !cancelled() }}
+        run: node checks/public-visual.mjs
+      - name: Cold mobile performance in one comparable job
+        if: ${{ !cancelled() }}
+        run: node checks/performance-run.mjs
+      - name: Exact old and new public file readback after scenarios
+        if: ${{ !cancelled() }}
+        run: node checks/public-readback.mjs after
+      - name: Save complete evidence including failures
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog-v2-public-verification
+          path: checks/results/
+          if-no-files-found: error
+          retention-days: 14
