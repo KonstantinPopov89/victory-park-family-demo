@@ -7,7 +7,8 @@
   document.addEventListener('click', event => {
     const link = event.target.closest('a[data-ride-link]');
     if (!link || event.metaKey || event.ctrlKey || event.shiftKey) return;
-    try { sessionStorage.setItem(returnKey, JSON.stringify({url:location.href,y:window.scrollY,id:link.dataset.rideLink})); } catch {}
+    const peers = [...document.querySelectorAll('a[data-ride-link]')].filter(a=>a.dataset.rideLink===link.dataset.rideLink);
+    try { sessionStorage.setItem(returnKey, JSON.stringify({url:location.href,y:window.scrollY,id:link.dataset.rideLink,linkIndex:peers.indexOf(link)})); } catch {}
   });
   function restore(event) {
     try {
@@ -18,7 +19,8 @@
       if (value.url !== location.href) return;
       sessionStorage.removeItem(returnKey);
       requestAnimationFrame(() => requestAnimationFrame(() => {
-        const target = [...document.querySelectorAll('[data-ride-link]')].find(a=>a.dataset.rideLink===value.id);
+        const peers = [...document.querySelectorAll('a[data-ride-link]')].filter(a=>a.dataset.rideLink===value.id);
+        const target = peers[value.linkIndex] || peers[0];
         if (target && target.getClientRects().length) {
           target.focus({preventScroll:true});
           window.scrollTo({top:value.y,behavior:'instant'});
