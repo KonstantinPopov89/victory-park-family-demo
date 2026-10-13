@@ -1,7 +1,7 @@
 {
   "status": "PASS",
   "files": 53,
-  "bytes": 2312150,
+  "bytes": 2312871,
   "errors": [],
   "allowlist": [
     {
@@ -126,8 +126,8 @@
     },
     {
       "path": "attractions.html",
-      "bytes": 4588,
-      "sha256": "16bfc3712b1190f9acdb0e43f0622978c89c38d2d1c57de0f27e5969976eb4ae"
+      "bytes": 4877,
+      "sha256": "c0894fd950349e58f96b4858b1b221ef077446af199421d99d886c97e9aaff94"
     },
     {
       "path": "common.css",
@@ -261,13 +261,13 @@
     },
     {
       "path": "styles.css",
-      "bytes": 23965,
-      "sha256": "9e0182ebcdd4a9c9b6bc5ec12ed2825cca466df9dade13b839ef661fad524c2c"
+      "bytes": 24108,
+      "sha256": "5497b0e7f3f6fac09fc2dbb4c8bcedcc070a8446b1dbc77a570cd14942db65ad"
     },
     {
       "path": "tickets.html",
-      "bytes": 4639,
-      "sha256": "b540a4f687530d9387994da8f158676db14f21781acf9b2e45d349ddffe1d977"
+      "bytes": 4928,
+      "sha256": "95d8613e0f36d293359f47a3fb0021d4053d505c96689d7a145ca08d46adb42e"
     }
   ]
 }
