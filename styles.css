@@ -400,3 +400,6 @@ dialog::backdrop { background: #15133699; }
   .ride-card, .offer, .person, .product { break-inside: avoid; }
   .footer { padding-bottom: 0; }
 }
+
+/* Reserve the first viewport before the interactive content is rendered. */
+body[data-page] #main { min-height: 100vh; min-height: 100svh; }
