@@ -16,6 +16,14 @@
   base.demoRides.forEach(function (ride) { rides[ride.id] = ride; });
   var exclusive = 'В одном заказе выбирается только одно предложение. С другими акциями, бонусами и льготами не суммируется.';
   var ticketOnly = 'Только отдельные билеты. Пакет на 5 катаний и личный безлимит не участвуют.';
+  function includedRideNames(productId) {
+    return base.products[productId].includedRideIds.map(function (id) { return rides[id].name; }).join(', ');
+  }
+  function productTerms(productId) {
+    var result = base.products[productId].terms.slice();
+    if (productId === 'package5') result[0] = '5 катаний на аттракционах: ' + includedRideNames(productId) + '.';
+    return result;
+  }
   // Fictional teaching conditions. These are not commercial claims about Victory Park.
   var offers = freeze([
     {
@@ -31,10 +39,10 @@
     },
     {
       id: 'package5', kind: 'package', title: '5 катаний на компанию', benefit: '5 катаний за 4 000 ֏',
-      summary: 'Пять катаний на четырёх аттракционах. Можно делить с близкими и кататься повторно.',
+      summary: 'Входят: ' + includedRideNames('package5') + '. Можно делить с близкими и кататься повторно.',
       when: 'Один день первого использования', important: 'Выгода зависит от выбранных катаний.',
       cta: 'Выбрать пакет', status: 'active', start: null, end: null, productIds: ['package5'], requiresVisitDate: false,
-      terms: base.products.package5.terms.concat([
+      terms: productTerms('package5').concat([
         'Цена пакета 4 000 ֏. Например, пять билетов на Американские горки стоят 7 000 ֏, а пять билетов на Детскую карусель 3 000 ֏. Пакет выгоден не для любого выбора.',
         'Это цена самого пакета, отдельная скидка в заказе не начисляется.', exclusive
       ])
@@ -44,7 +52,7 @@
       summary: 'Для одного человека: Детский паровозик, Американские горки и Чайные чашки.',
       when: 'Один день первого использования', important: 'Детская и Цепочная карусели не входят. Выгоден не всегда.',
       cta: 'Выбрать безлимит', status: 'active', start: null, end: null, productIds: ['unlimited'], requiresVisitDate: false,
-      terms: base.products.unlimited.terms.concat([
+      terms: productTerms('unlimited').concat([
         'Цена личного безлимита 5 900 ֏. Например, пять билетов на Американские горки стоят 7 000 ֏, а четыре билета 5 600 ֏. Выгода зависит от количества и выбранных катаний.',
         'Это цена самого безлимита, отдельная скидка в заказе не начисляется.', exclusive
       ])
@@ -125,7 +133,7 @@
     var selectedRide = product && product.id === 'ticket' && has(rides, raw.rideId) ? rides[raw.rideId] : null;
     var order = {
       offerId: offerId, productId: product ? product.id : null, rideId: selectedRide ? selectedRide.id : null,
-      quantity: quantity, visitDate: typeof raw.visitDate === 'string' ? raw.visitDate : null,
+      quantity: quantity, visitDate: typeof raw.visitDate === 'string' && raw.visitDate ? raw.visitDate : null,
       studentAcknowledged: raw.studentAcknowledged === true
     };
     if (!product) issue('invalid-product', 'Выберите известный учебный товар.');
@@ -146,7 +154,7 @@
           name: selectedRide ? 'Билет: ' + selectedRide.name : product.name,
           quantity: lineQuantity, unitPrice: unitPrice, total: lineQuantity * unitPrice,
           personal: product.personal, unitsPerItem: product.id === 'package5' ? 5 : product.id === 'ticket' ? 1 : null,
-          includedRideIds: selectedRide ? [selectedRide.id] : product.includedRideIds.slice(), terms: product.terms.slice(),
+          includedRideIds: selectedRide ? [selectedRide.id] : product.includedRideIds.slice(), terms: productTerms(product.id),
           recipientLabel: product.id === 'unlimited' ? 'Получатель ' + (index + 1) + ': назначить перед использованием' : product.id === 'package5' ? 'Общий пакет для компании' : selectedOffer && selectedOffer.id === 'student15' ? 'Владелец студенческого документа' : 'Получатель определяется перед использованием'
         });
       }

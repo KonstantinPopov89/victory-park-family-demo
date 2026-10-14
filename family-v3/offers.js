@@ -31,6 +31,59 @@
   function renderReference() {
     return '<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Условия предложений: текстовый список</title><link rel="stylesheet" href="offers.css"><body class="plain-reference"><h1>Акции и выгода</h1><p>Все предложения и цены учебные. Предложения не действуют в парке.</p><p>Текстовый список содержит те же условия. Для интерактивного выбора <a href="offers.html">откройте страницу акций</a>.</p>' + M.offers.map(function (o) { return '<article id="reference-' + esc(o.id) + '"><h2>' + esc(o.title) + '</h2><p>' + esc(kinds[o.kind] + '. ' + o.benefit) + '</p><p>' + esc(o.summary) + '</p><p>' + esc(o.when + '. ' + o.important) + '</p>' + terms(o) + (o.status === 'active' ? '<a href="offer-checkout.html?offer=' + o.id + '">' + esc(o.cta) + '</a>' : '<p>' + (o.status === 'unknown' ? 'Актуальность не подтверждена' : 'Завершено') + '</p>') + '</article>'; }).join('') + '</body></html>';
   }
+  function normalizeVisitDate(value) { return value === '' || value == null ? null : value; }
+  function normalizeOrder(order) { return Object.assign({}, order, { visitDate: normalizeVisitDate(order.visitDate) }); }
+  function ordersMatch(first, second) {
+    if (!first || !second || typeof first !== 'object' || typeof second !== 'object' || Array.isArray(first) || Array.isArray(second)) return false;
+    var a = normalizeOrder(first), b = normalizeOrder(second);
+    var keys = Object.keys(a).sort();
+    return JSON.stringify(keys) === JSON.stringify(Object.keys(b).sort()) && keys.every(function (key) { return JSON.stringify(a[key]) === JSON.stringify(b[key]); });
+  }
+  function switchMessage(productId) {
+    return 'Выбран ' + { ticket: 'разовый билет', package5: 'пакет на 5 катаний', unlimited: 'личный безлимит' }[productId] + '. Количество: 1. Предыдущий выбор заменён.';
+  }
+  // Only call for a deliberate offer choice, never to repair an incoming deep link or a manual product change.
+  function chooseOffer(previous, offerId) {
+    var order = normalizeOrder(previous), offer = M.getOffer(offerId), switched = false;
+    if (order.offerId !== (offerId || null)) order.studentAcknowledged = false;
+    order.offerId = offerId || null;
+    if (offer && offer.productIds.length && !offer.productIds.includes(order.productId)) {
+      order.productId = offer.productIds[0];
+      order.quantity = 1;
+      order.studentAcknowledged = false;
+      switched = true;
+    }
+    return { order: order, switched: switched, notice: switched ? switchMessage(order.productId) : 'Предложение заменено. Проверьте условия и сумму.' };
+  }
+  function issueGroup(code) {
+    if (/^visit-/.test(code)) return 'date';
+    if (code === 'student-acknowledgement-required') return 'student';
+    if (code === 'invalid-quantity' || code === 'bonus-threshold') return 'quantity';
+    if (code === 'invalid-product' || code === 'incompatible-product' || code === 'invalid-order') return 'product';
+    if (code === 'invalid-ride') return 'ride';
+    if (code === 'unknown-offer' || /^offer-/.test(code)) return 'offer';
+    return 'summary';
+  }
+  function issueAction(result) {
+    var issue = result.issues[0];
+    if (!issue) return null;
+    var group = issueGroup(issue.code);
+    var actions = {
+      date: { label: 'Выбрать дату', focusId: 'date-today', scrollId: 'date-field' },
+      student: { label: 'Подтвердить льготу', focusId: 'student-ack', scrollId: 'student-field' },
+      quantity: { label: 'Изменить количество', focusId: 'quantity-field', scrollId: 'quantity-field' },
+      product: { label: 'Выбрать билеты', focusId: 'product-' + (result.offer && result.offer.productIds[0] || 'ticket'), scrollId: 'product-field' },
+      ride: { label: 'Выбрать аттракцион', focusId: 'ride', scrollId: 'ride-field' },
+      offer: { label: 'Выбрать предложение', focusId: 'selected-offer', scrollId: 'offer-field' },
+      summary: { label: 'Проверить условия', focusId: 'order-issues', scrollId: 'order-issues' }
+    };
+    return Object.assign({ group: group, message: issue.message }, actions[group]);
+  }
+  function fieldIssue(result, group) {
+    var issues = result.issues.filter(function (issue) { return issueGroup(issue.code) === group; });
+    return issues.length ? '<p class="field-issue" id="issue-' + group + '">' + issues.map(function (issue) { return esc(issue.message); }).join('<br>') + '</p>' : '';
+  }
+  function describedIssue(result, group) { return result.issues.some(function (issue) { return issueGroup(issue.code) === group; }) ? ' aria-describedby="issue-' + group + '"' : ''; }
   function start() {
     var app = document.getElementById('offers-app');
     if (!app) return;
@@ -43,26 +96,28 @@
     if (params.has('product')) order.productId = params.get('product');
     if (params.has('ride')) order.rideId = params.get('ride');
     if (params.has('qty')) order.quantity = Number(params.get('qty'));
-    if (params.has('date')) order.visitDate = params.get('date');
+    if (params.has('date')) order.visitDate = normalizeVisitDate(params.get('date'));
     if (params.has('student')) order.studentAcknowledged = params.get('student') === '1';
     if (!isList && !['product', 'ride', 'qty', 'date', 'student'].some(function (key) { return params.has(key); }) && location.hash !== '#receipt') {
       try {
         var draft = JSON.parse(sessionStorage.getItem(storageKey));
         if (draft && draft.version === M.VERSION && draft.order && M.products[draft.order.productId] && Number.isInteger(draft.order.quantity) && draft.order.quantity >= 1 && draft.order.quantity <= M.MAX_QUANTITY) {
           var requestedOffer = order.offerId;
-          if (initial && initial.kind === 'package' && draft.order.productId !== initial.productIds[0]) {
-            notice = 'Выбран ' + initial.title.toLowerCase() + '. Количество: 1. Предыдущие отдельные билеты в этот выбор не входят.';
+          if (requestedOffer !== draft.order.offerId) {
+            var restoredChoice = chooseOffer(draft.order, requestedOffer);
+            order = restoredChoice.order;
+            notice = restoredChoice.switched ? restoredChoice.notice : 'Билеты сохранены. ' + restoredChoice.notice;
           } else {
-          order = Object.assign({}, draft.order, { offerId: requestedOffer });
-          if (requestedOffer !== draft.order.offerId) { order.studentAcknowledged = false; notice = 'Билеты сохранены. Предложение заменено: проверьте, подходит ли оно к вашему выбору.'; }
-          else notice = 'Ваш предыдущий выбор сохранён.';
+            order = normalizeOrder(draft.order);
+            notice = 'Ваш предыдущий выбор сохранён.';
           }
         }
       } catch (_) {}
     }
-    if (params.get('switched') === '1' && initial) notice = 'Выбран ' + initial.title.toLowerCase() + '. Количество: 1. Предыдущие билеты в этот выбор не входят.';
-    function selectionQuery(id) {
-      return new URLSearchParams({ offer: id || 'none', product: order.productId || '', ride: order.rideId || '', qty: String(order.quantity), date: order.visitDate || '', student: order.studentAcknowledged ? '1' : '0' }).toString();
+    if (params.get('switched') === '1' && initial) notice = switchMessage(order.productId);
+    function selectionQuery(id, choice) {
+      choice = choice || order;
+      return new URLSearchParams({ offer: id || 'none', product: choice.productId || '', ride: choice.rideId || '', qty: String(choice.quantity), date: choice.visitDate || '', student: choice.studentAcknowledged ? '1' : '0' }).toString();
     }
     function announce(message) { document.getElementById('announcement').textContent = message; }
     function persist() {
@@ -73,7 +128,7 @@
       try { sessionStorage.setItem(storageKey, JSON.stringify({ version: M.VERSION, order: order, receipt: receipt })); } catch (_) {}
     }
     if (!isList && location.hash === '#receipt') {
-      try { var saved = JSON.parse(sessionStorage.getItem(storageKey)); if (saved && saved.version === M.VERSION && saved.receipt && saved.receipt.result && saved.receipt.result.canCheckout && JSON.stringify(saved.order) === JSON.stringify(order)) receipt = saved.receipt; } catch (_) {}
+      try { var saved = JSON.parse(sessionStorage.getItem(storageKey)); if (saved && saved.version === M.VERSION && saved.receipt && saved.receipt.result && saved.receipt.result.canCheckout && ordersMatch(saved.order, order)) receipt = saved.receipt; } catch (_) {}
       if (!receipt) notice = 'Образец заказа не сохранился. Проверьте выбор и оформите учебный заказ ещё раз.';
     }
     function totals(r) {
@@ -83,14 +138,14 @@
       return '<div class="product-info"><p><strong>Что входит:</strong> ' + product.includedRideIds.map(function (id) { return esc(M.demoRides.find(function (r) { return r.id === id; }).name); }).join(', ') + '.</p>' + product.terms.map(function (term) { return '<p>' + esc(term) + '</p>'; }).join('') + '</div>';
     }
     function renderCheckout() {
-      var r = M.calculate(order), product = M.products[order.productId];
+      var r = M.calculate(order), product = M.products[order.productId], nextAction = issueAction(r);
       var selected = r.offer, ride = M.demoRides.find(function (a) { return a.id === order.rideId; });
       var today = M.getToday(), tomorrow = addDays(today, 1);
       var currentOptions = M.offers.filter(function (o) { return stateOf(o, today) === 'active' || o.id === order.offerId; });
       var invalid = order.offerId && !selected;
       var quantityLabel = order.productId === 'package5' ? 'Количество пакетов' : order.productId === 'unlimited' ? 'Сколько личных безлимитов' : 'Количество билетов';
       document.body.classList.add('has-mobile-checkout');
-      app.innerHTML = '<a class="crumb" id="back-to-offers" href="offers.html?' + esc(selectionQuery(order.offerId)) + (selected ? '#offer-' + esc(selected.id) : '') + '">← Все предложения</a><div class="checkout-head"><h1>Ваши билеты</h1><p>Выберите билеты и проверьте сумму. Учебный заказ без оплаты.</p></div>' + (notice ? '<p class="notice" role="status">' + esc(notice) + '</p>' : '') + '<div class="checkout-grid"><div><section class="selection-panel" aria-labelledby="selection-heading"><h2 id="selection-heading" tabindex="-1">Ваш выбор</h2><div class="active-offer"><strong>' + esc(selected ? selected.title : invalid ? 'Предложение не распознано' : 'Без предложения, по обычной цене') + '</strong><p>' + esc(selected ? selected.important : invalid ? 'Выберите другое предложение или уберите это из заказа.' : 'Цена зависит от выбранного билета.') + '</p></div><div class="product-types" role="group" aria-label="Тип билета">' + ['ticket', 'package5', 'unlimited'].map(function (id) { return '<button class="choice" id="product-' + id + '" data-product="' + id + '" aria-pressed="' + (order.productId === id) + '">' + { ticket: 'Разовые билеты', package5: 'Пакет на 5', unlimited: 'Безлимит' }[id] + '</button>'; }).join('') + '</div>' + (order.productId === 'ticket' ? '<label class="field" for="ride"><span class="field-label">Аттракцион</span><select id="ride">' + M.demoRides.map(function (a) { return '<option value="' + a.id + '"' + (order.rideId === a.id ? ' selected' : '') + '>' + esc(a.name) + ' · ' + money(a.price) + '</option>'; }).join('') + '</select></label>' + (ride ? '<div class="product-preview"><img src="' + esc(ride.photo) + '" width="76" height="62" alt=""><div><strong>' + esc(ride.name) + '</strong><p>Одно катание · ' + money(ride.price) + '</p></div></div>' : '') : '') + '<div class="field"><span class="field-label" id="quantity-label">' + quantityLabel + '</span><div class="quantity-row" role="group" aria-labelledby="quantity-label">' + [1, 2, 3, 4, 5, 6].map(function (n) { return '<button class="choice" id="qty-' + n + '" data-qty="' + n + '" aria-label="Количество: ' + n + '" aria-pressed="' + (order.quantity === n) + '">' + n + '</button>'; }).join('') + '<select class="more-quantity" id="more-quantity" aria-label="Количество от 7 до 20"><option value="">Ещё</option>' + Array.from({ length: 14 }, function (_, i) { var n = i + 7; return '<option value="' + n + '"' + (order.quantity === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></div><span class="help">' + (order.productId === 'package5' ? 'Один пакет = 5 общих катаний. Два пакета = 10 катаний.' : order.productId === 'unlimited' ? 'Каждый безлимит для одного человека. Передавать другому нельзя.' : 'Один билет = одно катание на выбранном аттракционе.') + '</span></div>' + (selected && selected.requiresVisitDate ? '<div class="field"><span class="field-label" id="date-label">Когда придёте?</span><div class="date-row" role="group" aria-labelledby="date-label"><button class="choice" id="date-today" data-date="' + today + '" aria-pressed="' + (order.visitDate === today) + '">Сегодня</button><button class="choice" id="date-tomorrow" data-date="' + tomorrow + '" aria-pressed="' + (order.visitDate === tomorrow) + '">Завтра</button></div><label class="field" for="visit-date"><span class="field-label">Или другая дата</span><input id="visit-date" type="date" min="' + today + '" max="' + selected.end + '" value="' + esc(order.visitDate || '') + '"></label><span class="help">' + esc(selected.when) + '. Билет будет действовать в выбранный день.</span></div>' : '') + (selected && selected.id === 'student15' ? '<label class="ack" for="student-ack"><input id="student-ack" type="checkbox"' + (order.studentAcknowledged ? ' checked' : '') + '><span>Все билеты для меня. При получении покажу действующий студенческий документ. Без него льготные билеты не выдадут.</span></label>' : '') + (product ? '<details class="offer-terms"><summary>Состав и правила билета</summary>' + productInfo(r.lines[0] || product) + '</details>' : '') + '<p class="help">Рост и правила допуска проверяются отдельно. <a href="attractions.html">Посмотреть аттракционы</a>.</p></section><section class="selection-panel"><h2>Предложение в заказе</h2><label for="selected-offer" class="field-label">Можно выбрать только одно</label><select id="selected-offer"><option value="none"' + (!order.offerId ? ' selected' : '') + '>Без предложения, полная цена</option>' + (invalid ? '<option selected value="' + esc(order.offerId) + '">Неизвестное предложение</option>' : '') + currentOptions.map(function (o) { return '<option value="' + o.id + '"' + (order.offerId === o.id ? ' selected' : '') + '>' + esc(o.title) + '</option>'; }).join('') + '</select>' + (selected ? '<details class="offer-terms"><summary>Все условия выбранного предложения</summary>' + terms(selected) + '</details><button class="text-button" id="remove-offer" data-remove>Убрать предложение</button>' : '') + '</section></div><aside class="order-summary" aria-labelledby="total-heading"><h2 id="total-heading">Ваш заказ</h2><p class="small-note">' + esc(product ? (order.productId === 'ticket' && ride ? ride.name : product.name) : 'Товар не выбран') + ' · ' + esc(order.quantity) + ' шт.</p>' + totals(r) + '<p class="order-offer-name">' + esc(selected ? r.applied ? selected.kind === 'package' ? 'Выбран пакет. Отдельная скидка не начисляется.' : 'Применяется: ' + selected.title : 'Пока не применяется: ' + selected.title : 'Без скидок и бонусов.') + '</p>' + (r.issues.length ? '<div class="issue-box" id="order-issues" tabindex="-1"><strong>Нужно уточнить</strong>' + r.issues.map(function (x) { return '<p data-issue="' + x.code + '">' + esc(x.message) + '</p>'; }).join('') + '</div>' : '') + '<button class="action" id="checkout" data-checkout data-ready="' + r.canCheckout + '">' + (r.canCheckout ? 'Оформить учебный заказ' : 'Проверить условия') + '</button>' + (order.offerId && !r.canCheckout ? '<button class="action secondary" id="continue-without" data-remove>Продолжить без ' + (selected && selected.kind === 'bonus' ? 'бонуса' : 'предложения') + '</button>' : '') + '<p class="small-note">Деньги не списываются. Это образец покупки, не настоящий билет.</p></aside></div><div class="mobile-checkout"><div><p>' + (r.canCheckout ? 'В учебном примере' : 'Выгода пока не применена') + '</p><strong>' + money(r.payable) + '</strong></div><button class="action" id="mobile-checkout" data-checkout data-ready="' + r.canCheckout + '">' + (r.canCheckout ? 'Оформить заказ' : 'Проверить условия') + '</button></div>';
+      app.innerHTML = '<a class="crumb" id="back-to-offers" href="offers.html?' + esc(selectionQuery(order.offerId)) + (selected ? '#offer-' + esc(selected.id) : '') + '">← Все предложения</a><div class="checkout-head"><h1>Ваши билеты</h1><p>Выберите билеты и проверьте сумму. Учебный заказ без оплаты.</p></div>' + (notice ? '<p class="notice" id="selection-notice" role="status">' + esc(notice) + '</p>' : '') + '<div class="checkout-grid"><div><section class="selection-panel" aria-labelledby="selection-heading"><h2 id="selection-heading" tabindex="-1">Ваш выбор</h2><div class="active-offer"><strong>' + esc(selected ? selected.title : invalid ? 'Предложение не распознано' : 'Без предложения, по обычной цене') + '</strong><p>' + esc(selected ? selected.important : invalid ? 'Выберите другое предложение или уберите это из заказа.' : 'Цена зависит от выбранного билета.') + '</p></div><div id="product-field"><div class="product-types" role="group" aria-label="Тип билета"' + describedIssue(r, 'product') + '>' + ['ticket', 'package5', 'unlimited'].map(function (id) { return '<button class="choice" id="product-' + id + '" data-product="' + id + '" aria-pressed="' + (order.productId === id) + '">' + { ticket: 'Разовые билеты', package5: 'Пакет на 5', unlimited: 'Безлимит' }[id] + '</button>'; }).join('') + '</div>' + fieldIssue(r, 'product') + '</div>' + (order.productId === 'ticket' ? '<label class="field" id="ride-field" for="ride"><span class="field-label">Аттракцион</span><select id="ride"' + describedIssue(r, 'ride') + '>' + M.demoRides.map(function (a) { return '<option value="' + a.id + '"' + (order.rideId === a.id ? ' selected' : '') + '>' + esc(a.name) + ' · ' + money(a.price) + '</option>'; }).join('') + '</select>' + fieldIssue(r, 'ride') + '</label>' + (ride ? '<div class="product-preview"><img src="' + esc(ride.photo) + '" width="76" height="62" alt=""><div><strong>' + esc(ride.name) + '</strong><p>Одно катание · ' + money(ride.price) + '</p></div></div>' : '') : '') + '<div class="field" id="quantity-field" tabindex="-1"' + describedIssue(r, 'quantity') + '><span class="field-label" id="quantity-label">' + quantityLabel + '</span><div class="quantity-row" role="group" aria-labelledby="quantity-label">' + [1, 2, 3, 4, 5, 6].map(function (n) { return '<button class="choice" id="qty-' + n + '" data-qty="' + n + '" aria-label="Количество: ' + n + '" aria-pressed="' + (order.quantity === n) + '">' + n + '</button>'; }).join('') + '<select class="more-quantity" id="more-quantity" aria-label="Количество от 7 до 20"><option value="">Ещё</option>' + Array.from({ length: 14 }, function (_, i) { var n = i + 7; return '<option value="' + n + '"' + (order.quantity === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select></div>' + fieldIssue(r, 'quantity') + '<span class="help">' + (order.productId === 'package5' ? 'Один пакет = 5 общих катаний. Два пакета = 10 катаний.' : order.productId === 'unlimited' ? 'Каждый безлимит для одного человека. Передавать другому нельзя.' : 'Один билет = одно катание на выбранном аттракционе.') + '</span></div>' + (selected && selected.requiresVisitDate ? '<div class="field" id="date-field"><span class="field-label" id="date-label">Когда придёте?</span><div class="date-row" role="group" aria-labelledby="date-label"><button class="choice" id="date-today"' + describedIssue(r, 'date') + ' data-date="' + today + '" aria-pressed="' + (order.visitDate === today) + '">Сегодня</button><button class="choice" id="date-tomorrow" data-date="' + tomorrow + '" aria-pressed="' + (order.visitDate === tomorrow) + '">Завтра</button></div><label class="field" for="visit-date"><span class="field-label">Или другая дата</span><input id="visit-date"' + describedIssue(r, 'date') + ' type="date" min="' + today + '" max="' + selected.end + '" value="' + esc(order.visitDate || '') + '"></label>' + fieldIssue(r, 'date') + '<span class="help">' + esc(selected.when) + '. Билет будет действовать в выбранный день.</span></div>' : '') + (selected && selected.id === 'student15' ? '<div id="student-field"><label class="ack" for="student-ack"><input id="student-ack" type="checkbox"' + describedIssue(r, 'student') + (order.studentAcknowledged ? ' checked' : '') + '><span>Все билеты для меня. При получении покажу действующий студенческий документ. Без него льготные билеты не выдадут.</span></label>' + fieldIssue(r, 'student') + '</div>' : '') + (product ? '<details class="offer-terms"><summary>Состав и правила билета</summary>' + productInfo(r.lines[0] || product) + '</details>' : '') + '<p class="help">Рост и правила допуска проверяются отдельно. <a href="attractions.html">Посмотреть аттракционы</a>.</p></section><section class="selection-panel" id="offer-field"><h2>Предложение в заказе</h2><label for="selected-offer" class="field-label">Можно выбрать только одно</label><select id="selected-offer"' + describedIssue(r, 'offer') + '><option value="none"' + (!order.offerId ? ' selected' : '') + '>Без предложения, полная цена</option>' + (invalid ? '<option selected value="' + esc(order.offerId) + '">Неизвестное предложение</option>' : '') + currentOptions.map(function (o) { return '<option value="' + o.id + '"' + (order.offerId === o.id ? ' selected' : '') + '>' + esc(o.title) + '</option>'; }).join('') + '</select>' + fieldIssue(r, 'offer') + (selected ? '<details class="offer-terms"><summary>Все условия выбранного предложения</summary>' + terms(selected) + '</details><button class="text-button" id="remove-offer" data-remove>Убрать предложение</button>' : '') + '</section></div><aside class="order-summary" aria-labelledby="total-heading"><h2 id="total-heading">Ваш заказ</h2><p class="small-note">' + esc(product ? (order.productId === 'ticket' && ride ? ride.name : product.name) : 'Товар не выбран') + ' · ' + esc(order.quantity) + ' шт.</p>' + totals(r) + '<p class="order-offer-name">' + esc(selected ? r.applied ? selected.kind === 'package' ? 'Выбран пакет. Отдельная скидка не начисляется.' : 'Применяется: ' + selected.title : 'Пока не применяется: ' + selected.title : 'Без скидок и бонусов.') + '</p>' + (r.issues.length ? '<div class="issue-box" id="order-issues" tabindex="-1"><strong>Нужно уточнить</strong>' + r.issues.map(function (x) { return '<p data-issue="' + x.code + '">' + esc(x.message) + '</p>'; }).join('') + '</div>' : '') + '<button class="action" id="checkout" data-checkout data-ready="' + r.canCheckout + '">' + (r.canCheckout ? 'Оформить учебный заказ' : nextAction.label) + '</button>' + (order.offerId && !r.canCheckout ? '<button class="action secondary" id="continue-without" data-remove>Продолжить без ' + (selected && selected.kind === 'bonus' ? 'бонуса' : 'предложения') + '</button>' : '') + '<p class="small-note">Деньги не списываются. Это образец покупки, не настоящий билет.</p></aside></div><div class="mobile-checkout"><div><p>' + (r.canCheckout ? 'В учебном примере' : 'Выгода пока не применена') + '</p><strong>' + money(r.payable) + '</strong></div><button class="action" id="mobile-checkout" data-checkout data-ready="' + r.canCheckout + '">' + (r.canCheckout ? 'Оформить заказ' : nextAction.label) + '</button></div>';
     }
     function renderReceipt() {
       document.body.classList.remove('has-mobile-checkout');
@@ -102,9 +157,9 @@
         app.innerHTML = renderList(filter);
         if (params.has('product')) app.querySelectorAll('a[href^="offer-checkout.html"]').forEach(function (link) {
           var chosen = new URL(link.href).searchParams.get('offer');
-          var next = new URLSearchParams(selectionQuery(chosen === 'none' ? null : chosen));
-          var targetOffer = M.getOffer(chosen);
-          if (targetOffer && targetOffer.kind === 'package' && order.productId !== targetOffer.productIds[0]) { next.set('product', targetOffer.productIds[0]); next.set('qty', '1'); next.set('switched', '1'); }
+          var cardChoice = chooseOffer(order, chosen === 'none' ? null : chosen);
+          var next = new URLSearchParams(selectionQuery(cardChoice.order.offerId, cardChoice.order));
+          if (cardChoice.switched) next.set('switched', '1');
           link.href = 'offer-checkout.html?' + next.toString();
         });
       }
@@ -121,7 +176,13 @@
       if (el.hasAttribute('data-remove')) { order.offerId = null; order.studentAcknowledged = false; changed('Предложение убрано. Теперь цена без скидки и бонуса.', 'selected-offer'); }
       if (el.hasAttribute('data-checkout')) {
         var r = M.calculate(order);
-        if (!r.canCheckout) { var issueEl = document.getElementById('order-issues'); issueEl.focus(); issueEl.scrollIntoView({ block: 'center' }); announce(r.issues.map(function (x) { return x.message; }).join(' ')); return; }
+        if (!r.canCheckout) {
+          var action = issueAction(r), control = document.getElementById(action.focusId), field = document.getElementById(action.scrollId);
+          if (control) control.focus({ preventScroll: true });
+          if (field) { field.classList.add('issue-focus'); field.scrollIntoView({ block: 'center', behavior: 'auto' }); }
+          announce(action.message);
+          return;
+        }
         receipt = { issuedAt: M.getToday(), result: r }; persist(); render(); document.getElementById('receipt-heading').focus(); window.scrollTo(0, 0);
       }
       if (el.id === 'edit-order') { receipt = null; notice = ''; persist(); render('selection-heading'); window.scrollTo(0, 0); }
@@ -130,13 +191,19 @@
       var el = event.target;
       if (el.id === 'ride') order.rideId = el.value;
       else if (el.id === 'more-quantity') { if (!el.value) return; order.quantity = Number(el.value); }
-      else if (el.id === 'visit-date') order.visitDate = el.value;
+      else if (el.id === 'visit-date') order.visitDate = normalizeVisitDate(el.value);
       else if (el.id === 'student-ack') order.studentAcknowledged = el.checked;
-      else if (el.id === 'selected-offer') { order.offerId = el.value === 'none' ? null : el.value; order.studentAcknowledged = false; changed('Предложение заменено. Проверьте условия и сумму.', el.id); return; }
+      else if (el.id === 'selected-offer') {
+        var selectedChoice = chooseOffer(order, el.value === 'none' ? null : el.value);
+        order = selectedChoice.order;
+        changed(selectedChoice.notice, selectedChoice.switched ? 'selection-heading' : el.id);
+        if (selectedChoice.switched) document.getElementById('selection-notice').scrollIntoView({ block: 'center', behavior: 'auto' });
+        return;
+      }
       else return;
       changed('', el.id);
     });
     render();
   }
-  return { renderList: renderList, renderReference: renderReference, start: start };
+  return { renderList: renderList, renderReference: renderReference, normalizeVisitDate: normalizeVisitDate, ordersMatch: ordersMatch, chooseOffer: chooseOffer, issueAction: issueAction, start: start };
 }));
