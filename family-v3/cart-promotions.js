@@ -7,7 +7,7 @@
 }(typeof window !== 'undefined' ? window : null, function (base, offers) {
   'use strict';
   if (!base || !offers) throw new Error('VPC requires VP3 and VPO.');
-  var VERSION = 'cart-promotions-1';
+  var VERSION = 'cart-promotions-2';
   var BASE_KEYS = ['version', 'modelVersion', 'id', 'status', 'total', 'lines', 'createdAt'];
   var EXTRA_KEYS = ['subtotal', 'promotion', 'discount', 'bonus', 'bonusValidFrom', 'bonusValidUntil', 'pricingVersion', 'purchaseDate'];
   var LINE_KEYS = ['id', 'productId', 'rideId', 'personId', 'recipientKey', 'quantity', 'unitPrice', 'name', 'recipientLabel', 'includedRideIds', 'includedNames', 'terms', 'validity', 'unitsPerItem'];
@@ -36,10 +36,16 @@
   }
   function calculate(input, rawPromotion, today) {
     if (typeof today === 'undefined') today = offers.getToday();
-    var state = base.sanitizeState(input), assessment = base.assessCart(state), promotion = normalizePromotion(rawPromotion);
-    var offer = offers.getOffer(promotion.offerId), lines = state.cart.lines;
+    var state = base.sanitizeState(input), assessment = base.assessCart(state);
+    state = assessment.state || state;
+    return priceAssessment(assessment, assessment.lines || state.cart.lines, rawPromotion, today);
+  }
+  // A receipt is priced from its already validated, immutable lines. Re-running
+  // today's admission rules would reinterpret old purchases with missing ages.
+  function priceAssessment(assessment, lines, rawPromotion, today) {
+    var promotion = normalizePromotion(rawPromotion), offer = offers.getOffer(promotion.offerId);
     var tickets = lines.filter(function (line) { return line.productId === 'ticket'; });
-    var ticketSubtotal = base.cartTotal({ lines: tickets });
+    var ticketSubtotal = tickets.reduce(function (sum, line) { return sum + line.unitPrice * line.quantity; }, 0);
     var relevant = offer ? lines.find(function (line) { return offer.productIds.includes(line.productId); }) : lines[0];
     var probe = relevant || lines[0] || { productId: 'ticket', rideId: base.demoRides[0].id, quantity: 1 };
     // Reuse the existing offer dates and document rules. Only the spending threshold
@@ -87,17 +93,6 @@
     if (has(order, 'pricingVersion')) result.total = order.subtotal;
     return result;
   }
-  function stateFromOrder(order) {
-    var state = base.emptyState(), seen = new Set();
-    state.cart.lines = copy(order.lines);
-    state.cart.lines.forEach(function (line) {
-      if (line.personId && !seen.has(line.personId)) {
-        seen.add(line.personId);
-        state.party.push({ id: line.personId, label: line.recipientLabel, role: 'adult', age: null, height: null });
-      }
-    });
-    return state;
-  }
   function validateOrder(order) {
     if (!object(order) || !Array.isArray(order.lines) || !order.lines.every(function (line) { return exactKeys(line, LINE_KEYS); })) return null;
     var enriched = has(order, 'pricingVersion');
@@ -105,12 +100,12 @@
     var validated = base.validateOrder(baseOrder(order));
     if (!validated) return null;
     if (!enriched) return validated;
-    if (order.pricingVersion !== VERSION || !validDate(order.purchaseDate) || !exactKeys(order.promotion, ['offerId', 'visitDate', 'studentAcknowledged'])) return null;
+    if (![VERSION, 'cart-promotions-1'].includes(order.pricingVersion) || !validDate(order.purchaseDate) || !exactKeys(order.promotion, ['offerId', 'visitDate', 'studentAcknowledged'])) return null;
     var normalized = normalizePromotion(order.promotion);
     if (Object.keys(normalized).some(function (key) { return normalized[key] !== order.promotion[key]; })) return null;
     // Keep a receipt valid after an offer expires by rechecking the sale date.
     // The baseline validator still owns every item, unit price and original right.
-    var calculated = calculate(stateFromOrder(validated), normalized, order.purchaseDate);
+    var calculated = priceAssessment({ total: validated.total, canCheckout: true, errors: [], warnings: [] }, validated.lines, normalized, order.purchaseDate);
     if (!calculated.canCheckout || ['subtotal', 'discount', 'bonus', 'bonusValidFrom', 'bonusValidUntil'].some(function (key) { return order[key] !== calculated[key]; }) || order.total !== calculated.payable) return null;
     return copy(order);
   }

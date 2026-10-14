@@ -34,7 +34,21 @@
     unlimited: { id: 'unlimited', name: 'Личный безлимит на день', price: 5900, includedRideIds: ['demo-calm', 'demo-thrill', 'demo-together'], personal: true, dateRequired: false, fictional: true,
       terms: ['Учебный личный безлимит для одного участника. Срок: один день первого использования; это проектное условие, не правило парка.', 'Детский паровозик, Американские горки и Чайные чашки без ограничения числа катаний в этот день.', 'Детская карусель и Цепочная карусель оплачиваются отдельно.', 'Не передаётся другому человеку. Приоритетной очереди нет.', 'Учебная выдача после подтверждённой оплаты: код для обмена в демонстрационной кассе на личный носитель. Это не рабочая интеграция.', 'Необходимое сопровождение включено; сопровождающий не становится покупателем личного безлимита автоматически.'] }
   });
-  var MODEL_VERSION = 'family-demo-3.1';
+  // Keep the exact 3.1 commercial terms for orders issued before paid accompaniment.
+  var legacy31Products = products;
+  var nextProducts = copy(products);
+  nextProducts.ticket.terms[2] = 'Если ребёнку нужен сопровождающий, взрослому также нужно оплаченное право на это катание. Учебная взрослая цена равна цене детского билета.';
+  nextProducts.package5.terms[4] = 'Совместное катание ребёнка и взрослого расходует два из пяти общих прав. Это не пять совместных катаний.';
+  nextProducts.unlimited.terms[5] = 'Если ребёнку нужно сопровождение на входящем аттракционе, взрослому нужен свой безлимит. Один взрослый сопровождает детей по очереди; его безлимит учитывается один раз в заказе.';
+  products = freeze(nextProducts);
+  var MODEL_VERSION = 'family-demo-3.2';
+  // Explicit fictional admission examples. Editorial ageRange is deliberately separate.
+  var admissionRules = freeze({
+    'demo-calm': { minAge: 3, maxAge: null, soloAge: 8, adultPrice: 900 },
+    'demo-thrill': { minAge: 8, maxAge: null, soloAge: 12, adultPrice: 1400 },
+    'demo-together': { minAge: 4, maxAge: null, soloAge: 8, adultPrice: 1100 },
+    'demo-small': { minAge: 3, maxAge: 8, soloAge: 3, adultPrice: 600 }
+  });
   var VALIDITY = 'Один день первого использования';
   // Exact original catalog. Existing orders keep the names and rights they were issued with.
   var legacyOrderCatalog = freeze({
@@ -117,7 +131,7 @@
     rides: demoRides.reduce(function (out, ride) { out[ride.id] = { name: ride.name, price: ride.price }; return out; }, {}),
     products: products
   });
-  var orderCatalogs = freeze({ 'family-demo-3': legacyOrderCatalog, 'family-demo-3.1': currentOrderCatalog });
+  var orderCatalogs = freeze({ 'family-demo-3': legacyOrderCatalog, 'family-demo-3.1': { rides: currentOrderCatalog.rides, products: legacy31Products }, 'family-demo-3.2': currentOrderCatalog });
   var rideMap = {};
   realRides.concat(demoRides).forEach(function (r) { rideMap[r.id] = r; });
   function copy(value) { return JSON.parse(JSON.stringify(value)); }
@@ -133,7 +147,7 @@
     if (catalog) return Object.prototype.hasOwnProperty.call(catalog.rides, line.rideId) ? catalog.rides[line.rideId].price : null;
     var ride = rideMap[line.rideId]; return ride && ride.fictional ? ride.price : null;
   }
-  function emptyState() { return { version: 3, mode: 'demo', party: [], selections: { real: [], demo: [] }, riders: [], ridersConfirmed: false, cart: { lines: [] }, _issues: [] }; }
+  function emptyState() { return { version: 3, mode: 'demo', party: [], selections: { real: [], demo: [] }, riders: [], ridersConfirmed: false, companionId: null, companionAutoSelected: false, cart: { lines: [] }, _issues: [] }; }
   function sanitizeState(raw) {
     var out = emptyState(); if (!raw || typeof raw !== 'object') return out;
     var issues = Array.isArray(raw._issues) ? raw._issues.filter(function (x) { return ['version', 'party', 'selection', 'cart'].includes(x); }) : [];
@@ -144,8 +158,9 @@
     people.slice(0, 8).forEach(function (p, i) {
       if (!p || !id(p.id) || seen.has(p.id) || !['adult', 'child'].includes(p.role)) { issues.push('party'); return; }
       seen.add(p.id);
+      if (p.role === 'adult' && p.age != null && !integer(p.age, 18, 120)) issues.push('party');
       out.party.push({ id: p.id, label: label(p.label, (p.role === 'adult' ? 'Взрослый ' : 'Ребёнок ') + (i + 1)), role: p.role,
-        age: integer(p.age, p.role === 'adult' ? 18 : 0, p.role === 'adult' ? 120 : 17) ? p.age : null,
+        age: p.role === 'adult' ? (p.age == null ? 18 : integer(p.age, 0, 120) ? p.age : -1) : integer(p.age, 0, 17) ? p.age : null,
         height: typeof p.height === 'number' && Number.isFinite(p.height) && p.height >= 40 && p.height <= 250 ? p.height : null });
     });
     ['real', 'demo'].forEach(function (mode) {
@@ -156,6 +171,8 @@
     });
     out.riders = unique((Array.isArray(raw.riders) ? raw.riders : []).filter(function (x) { return seen.has(x); }));
     out.ridersConfirmed = raw.ridersConfirmed === true;
+    out.companionId = id(raw.companionId) || null;
+    out.companionAutoSelected = !!out.companionId && raw.companionAutoSelected === true;
     var lines = raw.cart && Array.isArray(raw.cart.lines) ? raw.cart.lines : [], lineIds = new Set();
     if (lines.length > 100) issues.push('cart');
     lines.slice(0, 100).forEach(function (line, i) {
@@ -168,7 +185,10 @@
       out.cart.lines.push({ id: lineId, productId: productId, rideId: productId === 'ticket' ? (id(line.rideId) || null) : null,
         personId: productId === 'package5' ? null : (id(line.personId) || null),
         recipientKey: productId === 'unlimited' && !id(line.personId) ? (id(line.recipientKey) || null) : null,
-        quantity: integer(line.quantity, 1, MAX_QUANTITY) ? line.quantity : null, unitPrice: priceFor(line) });
+        quantity: integer(line.quantity, 1, MAX_QUANTITY) ? line.quantity : null, unitPrice: priceFor(line),
+        autoCompanion: line.autoCompanion === true,
+        companionFor: unique((Array.isArray(line.companionFor) ? line.companionFor : []).filter(function (value) { return id(value); })),
+        companionReason: line.autoCompanion === true ? label(line.companionReason, 'Сопровождение ребёнка') : null });
     });
     out._issues = unique(issues); return out;
   }
@@ -185,16 +205,154 @@
     var inside = person.age >= ride.ageRange[0] && person.age <= ride.ageRange[1];
     return { status: inside ? 'suggested' : 'outside', text: (inside ? 'В возрастном ориентире' : 'Вне возрастного ориентира') + ' ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Возраст не подтверждает допуск.' };
   }
-  function eligible(ride, person) {
+  function admission(ride, person) {
     if (typeof ride === 'string') ride = rideMap[ride];
-    var out = { status: 'unknown', reasons: [], needsHeight: false, needsCompanion: false };
-    if (!ride || !ride.rules) { out.reasons.push('Условия допуска нужно уточнить у парка.'); return out; }
+    var out = { status: 'unknown', reasons: [], needsHeight: false, needsCompanion: false, companionKnown: false, priceNeedsHeight: false };
+    if (!ride || !ride.fictional || !ride.rules || !admissionRules[ride.id]) { out.reasons.push('Условия допуска нужно уточнить у парка.'); return out; }
     if (!person || !['adult', 'child'].includes(person.role)) { out.reasons.push('Участник не выбран.'); return out; }
-    var height = person.height, r = ride.rules;
-    if (typeof height !== 'number' || !Number.isFinite(height) || height < 40 || height > 250) { out.needsHeight = true; out.reasons.push('Рост неизвестен. Возраст не заменяет проверку роста.'); return out; }
-    if (height < r.min || height > r.max) { out.status = 'blocked'; out.reasons.push('Рост ' + height + ' см вне учебного диапазона ' + r.min + '-' + r.max + ' см.'); return out; }
-    if (height < r.soloMin) { out.needsCompanion = true; out.reasons.push('Нужен сопровождающий взрослый ростом ' + r.companionMin + '-' + r.companionMax + ' см. Возможность сопровождения уточняется перед катанием.'); return out; }
-    out.status = 'eligible'; out.reasons.push('Рост соответствует показанным учебным условиям.'); return out;
+    var age = person.role === 'adult' && person.age == null ? 18 : person.age, rule = admissionRules[ride.id], r = ride.rules;
+    if (!integer(age, person.role === 'adult' ? 18 : 0, person.role === 'adult' ? 120 : 17)) { out.reasons.push('Укажите возраст кнопкой.'); return out; }
+    if (age < rule.minAge || (rule.maxAge !== null && age > rule.maxAge)) { out.status = 'blocked'; out.companionKnown = true; out.reasons.push('Возраст вне учебных условий: ' + rule.minAge + (rule.maxAge === null ? '+' : '-' + rule.maxAge) + ' лет.'); return out; }
+    var hasHeight = typeof person.height === 'number' && Number.isFinite(person.height) && person.height >= 40 && person.height <= 250;
+    if (hasHeight && (person.height < r.min || person.height > r.max)) { out.status = 'blocked'; out.companionKnown = true; out.reasons.push('Рост ' + person.height + ' см вне учебного диапазона ' + r.min + '-' + r.max + ' см.'); return out; }
+    var byAge = person.role === 'child' && age < rule.soloAge;
+    var byHeight = person.role === 'child' && hasHeight && person.height < r.soloMin;
+    out.needsHeight = !hasHeight;
+    out.needsCompanion = byAge || byHeight;
+    out.companionKnown = person.role === 'adult' || byAge || hasHeight || r.soloMin <= r.min;
+    out.priceNeedsHeight = !out.companionKnown;
+    out.status = out.needsCompanion ? 'accompanied' : hasHeight ? 'solo' : 'unknown';
+    if (out.needsCompanion) out.reasons.push('Только со взрослым 18+.');
+    if (!hasHeight) out.reasons.push('Рост ' + r.min + '-' + r.max + ' см нужно проверить; возраст не подтверждает допуск.');
+    if (out.priceNeedsHeight) out.reasons.push('При росте ниже ' + r.soloMin + ' см нужен оплаченный сопровождающий. Уточните рост для полной суммы.');
+    if (hasHeight && !out.needsCompanion) out.reasons.push('Возраст и рост соответствуют показанным учебным условиям.');
+    return out;
+  }
+  function eligible(ride, person) {
+    var result = admission(ride, person);
+    return Object.assign({}, result, { status: result.status === 'solo' ? 'eligible' : result.status === 'blocked' ? 'blocked' : 'unknown' });
+  }
+  function reconcileCompanions(input) {
+    var s = sanitizeState(input), manual = s.cart.lines.filter(function (line) { return !line.autoCompanion; });
+    var initialAdults = s.party.filter(function (p) { return p.role === 'adult' && integer(p.age, 18, 120); });
+    var initialAdult = (!s.companionAutoSelected || initialAdults.length === 1 ? initialAdults.find(function (p) { return p.id === s.companionId; }) : null) || (initialAdults.length === 1 ? initialAdults[0] : null);
+    var prepaidAdultPass = initialAdult && manual.some(function (line) { return line.productId === 'unlimited' && line.personId === initialAdult.id && line.quantity === 1; });
+    var issues = [], additions = [], notes = [], passChildren = [], ticketNeeds = {}, needsByRide = {}, coverage = { packageRightsUsed: 0, ticketRightsUsed: 0, possiblePackageRights: 0, possibleTicketRights: 0, passUsed: false };
+    function autoId(prefix) { var value = prefix, suffix = 1; while (manual.concat(additions).some(function (line) { return line.id === value; })) value = prefix + '-' + suffix++; return value; }
+    function issue(code, message, personId, rideId) { if (!issues.some(function (x) { return x.code === code && x.personId === (personId || null) && x.rideId === (rideId || null); })) issues.push({ code: code, message: message, personId: personId || null, rideId: rideId || null }); }
+    function need(person, rideId, count) { if (!needsByRide[rideId]) needsByRide[rideId] = []; needsByRide[rideId].push(person.id); if (count) ticketNeeds[rideId] = (ticketNeeds[rideId] || 0) + count; }
+    manual.forEach(function (line) {
+      if (!['ticket', 'unlimited'].includes(line.productId) || !integer(line.quantity, 1, MAX_QUANTITY)) return;
+      var person = s.party.find(function (p) { return p.id === line.personId; });
+      if (!person) { issue('recipient-required', 'Выберите, кому предназначен ' + (line.productId === 'ticket' ? 'билет' : 'безлимит') + '.', null, line.rideId); return; }
+      if (person.role !== 'child') return;
+      if (!integer(person.age, 0, 17)) { issue('child-age-required', person.label + ': выберите возраст для расчёта сопровождения.', person.id); return; }
+      var ids = line.productId === 'ticket' ? [line.rideId] : products.unlimited.includedRideIds, accompanied = [], undecided = [];
+      ids.forEach(function (rideId) {
+        var check = admission(rideId, person);
+        if (check.needsHeight) notes.push(person.label + ': возраст не заменяет проверку роста перед катанием.');
+        if (check.status === 'blocked') return;
+        if (check.needsCompanion) accompanied.push(rideId);
+        else if (check.priceNeedsHeight) {
+          if (prepaidAdultPass && products.unlimited.includedRideIds.includes(rideId)) { accompanied.push(rideId); notes.push('Возможное сопровождение покрыто уже выбранным взрослым безлимитом; рост нужно проверить перед катанием.'); }
+          else undecided.push(rideId);
+        }
+        else if (!check.companionKnown) issue('rules-unknown', person.label + ': условия сопровождения для этого аттракциона не подтверждены. Выберите другой учебный пример.', person.id, rideId);
+      });
+      if (line.productId === 'unlimited' && accompanied.length) {
+        passChildren.push(person.id); accompanied.forEach(function (rideId) { need(person, rideId, 0); });
+      } else {
+        undecided.forEach(function (rideId) { issue('height-required', person.label + ': уточните рост для полной суммы с сопровождением.', person.id, rideId); });
+        if (line.productId === 'ticket') accompanied.forEach(function (rideId) { need(person, rideId, line.quantity); });
+      }
+    });
+    var required = Object.keys(needsByRide).length > 0;
+    var adults = s.party.filter(function (p) { return p.role === 'adult' && integer(p.age, 18, 120); });
+    // A sole adult is a convenience default, not a deliberate choice. If the
+    // family later contains several adults, ask once instead of retaining it.
+    if (s.companionAutoSelected && adults.length !== 1) { s.companionId = null; s.companionAutoSelected = false; }
+    var adult = adults.find(function (p) { return p.id === s.companionId; });
+    if (!adult && adults.length === 1) { adult = adults[0]; s.companionId = adult.id; s.companionAutoSelected = true; }
+    if (!adult && s.companionId) { s.companionId = null; s.companionAutoSelected = false; }
+    if (required && !adult) issue('companion-required', adults.length ? 'Выберите одного сопровождающего 18+ на весь заказ.' : 'Добавьте сопровождающего 18+ для детских катаний.');
+    if (required && adult) {
+      Object.keys(needsByRide).forEach(function (rideId) {
+        var ride = rideMap[rideId], r = ride.rules, check = admission(ride, adult);
+        if (check.status === 'blocked' || (typeof adult.height === 'number' && (adult.height < r.companionMin || adult.height > r.companionMax))) issue('companion-unavailable', adult.label + ': не подходит для сопровождения на «' + ride.name + '» по указанным данным. Выберите другого взрослого.', adult.id, rideId);
+        else if (adult.height === null) notes.push(adult.label + ': перед катанием проверьте рост сопровождающего ' + r.companionMin + '-' + Math.min(r.companionMax, r.max) + ' см.');
+      });
+      var adultPass = manual.some(function (line) { return line.productId === 'unlimited' && line.personId === adult.id && line.quantity === 1; });
+      if (passChildren.length && !adultPass) {
+        var pass = newLine('unlimited', adult.id, null, 1);
+        pass.id = autoId('auto-companion-pass');
+        pass.autoCompanion = true; pass.companionFor = unique(passChildren);
+        pass.companionReason = 'Безлимит сопровождающего: дети катаются с одним взрослым по очереди.';
+        additions.push(pass); adultPass = true;
+      }
+      // An adult pass required by one child also settles the possible paid
+      // accompaniment of another child. Do not ask for height when it cannot
+      // change this order's price; admission still needs checking before riding.
+      if (adultPass) {
+        issues = issues.filter(function (item) {
+          if (item.code !== 'height-required' || !products.unlimited.includedRideIds.includes(item.rideId)) return true;
+          var r = rideMap[item.rideId].rules;
+          if (admission(item.rideId, adult).status === 'blocked' || (typeof adult.height === 'number' && (adult.height < r.companionMin || adult.height > r.companionMax))) return true;
+          notes.push('Возможное сопровождение других детей покрыто тем же взрослым безлимитом; рост нужно проверить перед катанием.');
+          return false;
+        });
+      }
+      var packagePool = manual.reduce(function (n, line) { return n + (line.productId === 'package5' && integer(line.quantity, 1, MAX_QUANTITY) ? line.quantity * 5 : 0); }, 0);
+      Object.keys(ticketNeeds).forEach(function (rideId) {
+        var requiredRights = ticketNeeds[rideId];
+        if (adultPass && products.unlimited.includedRideIds.includes(rideId)) { coverage.passUsed = true; return; }
+        var existing = manual.reduce(function (n, line) { return n + (line.productId === 'ticket' && line.personId === adult.id && line.rideId === rideId && integer(line.quantity, 1, MAX_QUANTITY) ? line.quantity : 0); }, 0);
+        var used = Math.min(requiredRights, existing); coverage.ticketRightsUsed += used; requiredRights -= used;
+        if (products.package5.includedRideIds.includes(rideId)) { used = Math.min(requiredRights, packagePool); coverage.packageRightsUsed += used; requiredRights -= used; packagePool -= used; }
+        if (requiredRights > MAX_QUANTITY) { issue('too-many-companion-rights', 'Для одного учебного аттракциона не больше 20 прав сопровождения.', adult.id, rideId); return; }
+        if (requiredRights) {
+          var ticket = newLine('ticket', adult.id, rideId, requiredRights);
+          ticket.id = autoId('auto-companion-' + rideId);
+          ticket.autoCompanion = true; ticket.companionFor = unique(needsByRide[rideId]); ticket.companionReason = 'Взрослое право на каждое совместное катание.';
+          additions.push(ticket);
+        }
+      });
+      if (passChildren.length) notes.push('Один взрослый безлимит на семью. Дети катаются с сопровождающим по очереди.');
+      if (coverage.passUsed) notes.push('Сопровождение разовых катаний покрыто безлимитом выбранного взрослого.');
+      if (coverage.ticketRightsUsed) notes.push('Уже выбранные взрослые билеты учтены в сопровождении: ' + coverage.ticketRightsUsed + '.');
+      if (coverage.packageRightsUsed) notes.push('На сопровождение выбранных детских билетов пойдёт ' + coverage.packageRightsUsed + ' из общих прав пакета. Эти права нельзя использовать повторно.');
+    }
+    // Resolve price-only height questions against rights already in this order.
+    // Reserve known accompaniment first, then possible accompaniment; a shared
+    // package or a single adult ticket must not be counted twice.
+    var possibleCovered = false;
+    if (adult && issues.some(function (item) { return item.code === 'height-required'; })) {
+      var resolvedPass = manual.concat(additions).some(function (line) { return line.productId === 'unlimited' && line.personId === adult.id && line.quantity === 1; });
+      var availableTickets = {};
+      manual.forEach(function (line) { if (line.productId === 'ticket' && line.personId === adult.id && integer(line.quantity, 1, MAX_QUANTITY)) availableTickets[line.rideId] = (availableTickets[line.rideId] || 0) + line.quantity; });
+      Object.keys(availableTickets).forEach(function (rideId) { if (!(resolvedPass && products.unlimited.includedRideIds.includes(rideId))) availableTickets[rideId] = Math.max(0, availableTickets[rideId] - (ticketNeeds[rideId] || 0)); });
+      var remainingPackage = manual.reduce(function (n, line) { return n + (line.productId === 'package5' && integer(line.quantity, 1, MAX_QUANTITY) ? line.quantity * 5 : 0); }, 0) - coverage.packageRightsUsed;
+      issues = issues.filter(function (item) {
+        if (item.code !== 'height-required') return true;
+        var ride = rideMap[item.rideId], r = ride.rules;
+        if (admission(ride, adult).status === 'blocked' || (typeof adult.height === 'number' && (adult.height < r.companionMin || adult.height > r.companionMax))) return true;
+        if (resolvedPass && products.unlimited.includedRideIds.includes(item.rideId)) { possibleCovered = true; return false; }
+        // A child's unlimited still requires an adult unlimited, not a few tickets.
+        if (manual.some(function (line) { return line.productId === 'unlimited' && line.personId === item.personId; })) return true;
+        var needed = manual.reduce(function (n, line) { return n + (line.productId === 'ticket' && line.personId === item.personId && line.rideId === item.rideId && integer(line.quantity, 1, MAX_QUANTITY) ? line.quantity : 0); }, 0);
+        var prepaidTickets = availableTickets[item.rideId] || 0, prepaidPackage = products.package5.includedRideIds.includes(item.rideId) ? remainingPackage : 0;
+        if (!needed || prepaidTickets + prepaidPackage < needed) return true;
+        var ticketUse = Math.min(needed, prepaidTickets), packageUse = needed - ticketUse;
+        availableTickets[item.rideId] = prepaidTickets - ticketUse; remainingPackage -= packageUse;
+        coverage.possibleTicketRights += ticketUse; coverage.possiblePackageRights += packageUse;
+        possibleCovered = true;
+        return false;
+      });
+      if (coverage.possiblePackageRights) notes.push('До ' + coverage.possiblePackageRights + ' общих прав пакета может понадобиться для сопровождения после проверки роста. Они уже входят в сумму заказа.');
+      if (coverage.possibleTicketRights) notes.push('До ' + coverage.possibleTicketRights + ' уже выбранных взрослых билетов может понадобиться для сопровождения после проверки роста. Доплаты не потребуется.');
+      if (possibleCovered) notes.push('Возможное сопровождение покрыто выбранными правами. Рост и допуск нужно проверить перед катанием.');
+    }
+    s.cart.lines = manual.concat(additions);
+    return { state: s, issues: issues, additions: additions, requiredAdultId: (required || possibleCovered) && adult ? adult.id : null, conditional: issues.length > 0, coverage: coverage, notes: unique(notes) };
   }
   function newLine(productId, personId, rideId, quantity, recipientKey) {
     return { id: [productId, personId || recipientKey || 'shared', rideId || 'all'].join('-'), productId: productId, personId: personId || null, rideId: rideId || null, recipientKey: recipientKey || null, quantity: quantity, unitPrice: priceFor({ productId: productId, rideId: rideId }) };
@@ -220,7 +378,7 @@
         if (check.status === 'unknown') unknown = true;
       });
     });
-    if (blocked.length) notes.push('По указанному росту недоступно: ' + blocked.join('; ') + '.');
+    if (blocked.length) notes.push('По учебным условиям допуска недоступно: ' + blocked.join('; ') + '.');
     if (unknown) notes.push('Для части выбранного рост или сопровождение нужно уточнить перед катанием.');
     return notes;
   }
@@ -231,7 +389,8 @@
     function hasMatch(product) { return !selected.length || selected.some(function (rideId) { return product.includedRideIds.includes(rideId); }); }
     function offer(productId, lines, title, description) {
       var included = products[productId].includedRideIds.slice();
-      return { id: productId === 'package5' ? 'package' : 'unlimited', title: title, description: description, lines: lines, total: cartTotal({ lines: lines }), includedRideIds: included, excludedRideIds: selected.filter(function (rideId) { return !included.includes(rideId); }), notes: productNotes(s, included) };
+      var candidate = copy(s); candidate.cart.lines = lines; var calculation = reconcileCompanions(candidate);
+      return { id: productId === 'package5' ? 'package' : 'unlimited', title: title, description: description, lines: calculation.state.cart.lines, total: cartTotal(calculation.state.cart), conditional: calculation.conditional, issues: calculation.issues, includedRideIds: included, excludedRideIds: selected.filter(function (rideId) { return !included.includes(rideId); }), notes: productNotes(s, included).concat(calculation.notes) };
     }
     if (hasMatch(products.package5)) result.offers.push(offer('package5', [newLine('package5', null, null, 1)], 'Общий пакет на 5 катаний', 'Пять общих прав для компании. Кто и сколько раз катается, решите в парке.'));
     if (s.ridersConfirmed && s.riders.length && hasMatch(products.unlimited)) {
@@ -242,13 +401,13 @@
       if (!unusable.length) {
         var lines = s.riders.map(function (personId) { return newLine('unlimited', personId, null, 1); });
         result.offers.push(offer('unlimited', lines, 'Личные безлимиты', s.riders.length + ' личных прав на один день первого использования. Только выбранным катающимся.'));
-      } else result.warnings.push('Безлимит не предложен: по указанному росту один из выбранных участников не проходит ни на один входящий аттракцион. Можно выбрать другой продукт или изменить катающихся.');
+      } else result.warnings.push('Безлимит не предложен: по указанным возрасту и росту один из выбранных участников не проходит ни на один входящий аттракцион. Можно выбрать другой продукт или изменить катающихся.');
     }
     if (!result.offers.length) result.warnings.push('Для сохранённого нет подходящего готового набора. Можно выбрать билет отдельно.');
     return result;
   }
   function assessCart(input) {
-    var s = sanitizeState(input), lines = s.cart.lines, total = cartTotal(s.cart), errors = [], warnings = [], passPeople = new Set(), placeholders = new Set();
+    var resolved = reconcileCompanions(input), s = resolved.state, lines = s.cart.lines, total = cartTotal(s.cart), errors = resolved.issues.map(function (issue) { return issue.message; }), warnings = resolved.notes.slice(), passPeople = new Set(), placeholders = new Set();
     var rights = { tickets: 0, packageRides: 0, personalPasses: 0 }, included = [];
     if (!lines.length) errors.push('Заказ пуст.');
     if (s.mode !== 'demo' && lines.length) errors.push('Учебные товары нельзя оформить как покупку реального парка.');
@@ -264,7 +423,7 @@
         rights.tickets += line.quantity;
         if (person) {
           var check = eligible(rideMap[line.rideId], person);
-          if (check.status === 'blocked') errors.push(person.label + ': билет на ' + rideMap[line.rideId].name + ' не соответствует указанному росту.');
+          if (check.status === 'blocked') errors.push(person.label + ': билет на ' + rideMap[line.rideId].name + ' не соответствует указанным возрасту или росту.');
           else if (check.status === 'unknown') warnings.push(person.label + ': допуск по назначенному билету нужно уточнить.');
         }
       }
@@ -275,8 +434,8 @@
         if (line.personId) {
           if (passPeople.has(line.personId)) errors.push('Одному участнику добавлены повторные безлимиты.');
           passPeople.add(line.personId);
-          if (person && products.unlimited.includedRideIds.every(function (rideId) { return eligible(rideMap[rideId], person).status === 'blocked'; })) errors.push(person.label + ': по указанному росту недоступны все входящие в безлимит аттракционы.');
-          if (person && s.ridersConfirmed && !s.riders.includes(person.id)) errors.push(person.label + ' больше не выбран как катающийся. Удалите или переназначьте его безлимит.');
+          if (person && products.unlimited.includedRideIds.every(function (rideId) { return eligible(rideMap[rideId], person).status === 'blocked'; })) errors.push(person.label + ': по указанным возрасту и росту недоступны все входящие в безлимит аттракционы.');
+          // A direct personal purchase remains intentional even when the recommendation filter changes.
         } else {
           if (placeholders.has(line.recipientKey)) errors.push('У неназначенных безлимитов повторяется получатель.');
           placeholders.add(line.recipientKey);
@@ -288,15 +447,16 @@
     var excluded = s.selections.demo.filter(function (rideId) { return !included.includes(rideId); });
     if (excluded.length) warnings.push('В заказ не входит из сохранённого: ' + excluded.map(function (rideId) { return rideMap[rideId].name; }).join(', ') + '.');
     productNotes(s, unique(included)).slice(1).forEach(function (note) { warnings.push(note); });
-    return { total: total, errors: unique(errors), warnings: unique(warnings), canCheckout: lines.length > 0 && total !== null && !errors.length, excludedRideIds: excluded, rights: rights };
+    return { state: s, lines: copy(lines), total: total, errors: unique(errors), warnings: unique(warnings), canCheckout: lines.length > 0 && total !== null && !errors.length, excludedRideIds: excluded, rights: rights, companionIssues: resolved.issues, issues: resolved.issues, conditional: resolved.conditional, additions: resolved.additions, requiredAdultId: resolved.requiredAdultId, coverage: resolved.coverage, notes: resolved.notes };
   }
   function snapshotOrder(input, orderId, status) {
-    var s = sanitizeState(input), assessment = assessCart(s);
+    var assessment = assessCart(input), s = assessment.state;
     if (!assessment.canCheckout || !id(orderId) || (status && !['success', 'declined', 'pending', 'issuance'].includes(status))) return null;
     var lines = s.cart.lines.map(function (line, index) {
       var product = products[line.productId], person = s.party.find(function (p) { return p.id === line.personId; });
       var included = line.productId === 'ticket' ? [line.rideId] : product.includedRideIds.slice();
-      return Object.assign({}, copy(line), { name: line.productId === 'ticket' ? 'Билет: ' + rideMap[line.rideId].name : product.name,
+      var storedLine = copy(line); delete storedLine.autoCompanion; delete storedLine.companionFor; delete storedLine.companionReason;
+      return Object.assign({}, storedLine, { name: line.productId === 'ticket' ? 'Билет: ' + rideMap[line.rideId].name : product.name,
         recipientLabel: person ? person.label : line.productId === 'unlimited' ? 'Получатель ' + (index + 1) + ': назначить перед использованием' : line.productId === 'package5' ? 'Общий пакет для компании' : 'Получатель определяется перед использованием',
         includedRideIds: included, includedNames: included.map(function (rideId) { return rideMap[rideId].name; }), terms: copy(product.terms), validity: VALIDITY,
         unitsPerItem: line.productId === 'package5' ? 5 : line.productId === 'ticket' ? 1 : null });
@@ -336,5 +496,5 @@
     });
     return result;
   }
-  return freeze({ MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, realRides: realRides, demoRides: demoRides, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, eligible: eligible, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, issuedItems: issuedItems });
+  return freeze({ MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, realRides: realRides, demoRides: demoRides, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, issuedItems: issuedItems });
 }));

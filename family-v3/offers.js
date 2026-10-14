@@ -56,7 +56,12 @@
     return '<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Условия предложений: текстовый список</title><link rel="stylesheet" href="offers.css"><body class="plain-reference"><h1>Акции и выгода</h1><p>Все предложения и цены учебные. Предложения не действуют в парке.</p><p>Текстовый список содержит те же условия. Для интерактивного выбора <a href="offers.html">откройте страницу акций</a>.</p>' + M.offers.map(function (o) { return '<article id="reference-' + esc(o.id) + '"><h2>' + esc(o.title) + '</h2><p>' + esc(kinds[o.kind] + '. ' + o.benefit) + '</p><p>' + esc(o.summary) + '</p><p>' + esc(o.when + '. ' + o.important) + '</p>' + terms(o) + (o.status === 'active' ? '<a href="' + esc(checkoutHref(o.id)) + '">' + esc(o.cta) + '</a>' : '<p>' + (o.status === 'unknown' ? 'Актуальность не подтверждена' : 'Завершено') + '</p>') + '</article>'; }).join('') + '</body></html>';
   }
   function normalizeVisitDate(value) { return value === '' || value == null ? null : value; }
-  function normalizeOrder(order) { return Object.assign({}, order, { visitDate: normalizeVisitDate(order.visitDate) }); }
+  function normalizeOrder(order) {
+    return Object.assign({}, order, {
+      visitDate: normalizeVisitDate(order.visitDate),
+      rideId: order.productId === 'ticket' ? order.rideId : null
+    });
+  }
   function ordersMatch(first, second) {
     if (!first || !second || typeof first !== 'object' || typeof second !== 'object' || Array.isArray(first) || Array.isArray(second)) return false;
     var a = normalizeOrder(first), b = normalizeOrder(second);
