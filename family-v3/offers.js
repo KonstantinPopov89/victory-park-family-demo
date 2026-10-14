@@ -1,9 +1,9 @@
 (function (root, factory) {
   'use strict';
-  var api = factory(typeof module === 'object' && module.exports ? require('./offers-model.js') : root.VPO);
+  var api = factory(typeof module === 'object' && module.exports ? require('./offers-model.js') : root.VPO, typeof module === 'object' && module.exports ? require('./model.js') : root.VP3);
   if (typeof module === 'object' && module.exports) module.exports = api;
   else api.start();
-}(typeof window !== 'undefined' ? window : null, function (M) {
+}(typeof window !== 'undefined' ? window : null, function (M, Base) {
   'use strict';
   var kinds = { promotion: 'Скидка', package: 'Пакет', bonus: 'Бонус', benefit: 'Льгота' };
   var filters = { all: 'Все', promotion: 'Скидки', package: 'Пакеты', bonus: 'Бонусы', benefit: 'Льготы' };
@@ -17,19 +17,43 @@
   function prominent(offer) {
     return M.getShortFacts(offer.id);
   }
+  function checkoutHref(offerId) {
+    var offer = M.getOffer(offerId), product = offer && offer.kind === 'package' ? (offer.id === 'package5' ? 'package' : 'unlimited') : 'single';
+    return 'tickets.html?' + new URLSearchParams({ offer: offerId || 'none', product: product }).toString() + '#cart';
+  }
+  function legacySelectionHref(order) {
+    var url = new URL(checkoutHref(order.offerId), 'https://prototype.invalid/');
+    url.searchParams.set('legacyProduct', order.productId);
+    url.searchParams.set('legacyRide', order.rideId || '');
+    url.searchParams.set('legacyQty', String(order.quantity));
+    if (order.visitDate) url.searchParams.set('date', order.visitDate);
+    url.searchParams.set('student', order.studentAcknowledged ? '1' : '0');
+    return 'tickets.html' + url.search + url.hash;
+  }
+  function renderCartSummary(input) {
+    var state = Base.sanitizeState(input), lines = state.cart.lines;
+    if (!lines.length) return '';
+    var items = lines.map(function (line) {
+      var ride = Base.demoRides.find(function (r) { return r.id === line.rideId; });
+      var product = Base.products[line.productId];
+      var person = state.party.find(function (p) { return p.id === line.personId; });
+      return (line.productId === 'ticket' && ride ? ride.name : product ? product.name : 'Билет') + (person ? ' (' + person.label + ')' : '') + ' × ' + (line.quantity || '?');
+    });
+    return '<section class="notice" aria-label="Сохранённый заказ"><p><strong>Ваш заказ сохранён · ' + lines.length + ' поз.</strong></p><p>' + esc(items.join('; ')) + '.</p><p>Полная стоимость до скидок: ' + money(Base.cartTotal(state.cart)) + '.</p><p>Выбор предложения сохранит все билеты в заказе.</p><a class="crumb" href="tickets.html#cart">Вернуться к заказу →</a></section>';
+  }
   function renderCard(offer) {
     var facts = prominent(offer);
-    return '<article class="offer-card" data-kind="' + esc(offer.kind) + '" id="offer-' + esc(offer.id) + '"><div class="offer-top"><span class="type">' + esc(kinds[offer.kind]) + '</span><span class="term-short">' + (offer.end ? 'До ' + humanDate(offer.end).replace(' 2026 г.', '') : 'Постоянное предложение') + '</span></div><h2>' + esc(offer.title) + '</h2><p class="benefit">' + esc(offer.benefit) + '</p><p class="summary">' + esc(offer.summary) + '</p><ul class="offer-facts">' + facts.map(function (fact) { return '<li>' + esc(fact) + '</li>'; }).join('') + '<li>С другими предложениями не суммируется.</li></ul><div class="offer-actions"><a class="action" href="offer-checkout.html?offer=' + encodeURIComponent(offer.id) + '" aria-label="' + esc(offer.cta + ': ' + offer.title) + '">' + esc(offer.cta) + '<span aria-hidden="true">→</span></a></div><details class="offer-terms" id="terms-' + esc(offer.id) + '"><summary>Все условия</summary>' + terms(offer) + '</details></article>';
+    return '<article class="offer-card" data-kind="' + esc(offer.kind) + '" id="offer-' + esc(offer.id) + '"><div class="offer-top"><span class="type">' + esc(kinds[offer.kind]) + '</span><span class="term-short">' + (offer.end ? 'До ' + humanDate(offer.end).replace(' 2026 г.', '') : 'Постоянное предложение') + '</span></div><h2>' + esc(offer.title) + '</h2><p class="benefit">' + esc(offer.benefit) + '</p><p class="summary">' + esc(offer.summary) + '</p><ul class="offer-facts">' + facts.map(function (fact) { return '<li>' + esc(fact) + '</li>'; }).join('') + '<li>С другими предложениями не суммируется.</li></ul><div class="offer-actions"><a class="action" href="' + esc(checkoutHref(offer.id)) + '" aria-label="' + esc(offer.cta + ': ' + offer.title) + '">' + esc(offer.cta) + '<span aria-hidden="true">→</span></a></div><details class="offer-terms" id="terms-' + esc(offer.id) + '"><summary>Все условия</summary>' + terms(offer) + '</details></article>';
   }
-  function renderList(filter, today) {
+  function renderList(filter, today, cartState) {
     filter = filter || 'all'; today = today || M.getToday();
     var active = M.offers.filter(function (o) { return stateOf(o, today) === 'active'; });
     var visible = active.filter(function (o) { return filter === 'all' || o.kind === filter; });
     var other = M.offers.filter(function (o) { return stateOf(o, today) !== 'active'; });
-    return '<a class="crumb" href="index.html">Главная / Акции</a><div class="page-heading"><h1>Акции и выгода</h1><p>Выберите, как сэкономить. Сразу видно, кому подходит предложение и сколько вы заплатите.</p></div><div class="filter-bar" role="group" aria-label="Тип предложения">' + Object.keys(filters).map(function (id) { var count = active.filter(function (o) { return id === 'all' || o.kind === id; }).length; return '<button class="filter" id="filter-' + id + '" data-filter="' + id + '" aria-pressed="' + (id === filter) + '">' + filters[id] + '<span class="filter-count">' + count + '</span></button>'; }).join('') + '</div><div id="offer-results"><div class="offer-grid">' + visible.map(renderCard).join('') + '</div>' + (visible.length ? '' : '<div class="no-offers"><h2>Сейчас таких предложений нет</h2><p>Посмотрите другие способы сэкономить или выберите билеты по обычной цене.</p><button class="action secondary" data-filter="all">Все предложения</button> <a class="action" href="offer-checkout.html?offer=none">Билеты по обычной цене</a></div>') + '</div><section class="questions section-space" aria-labelledby="questions-heading"><h2 id="questions-heading">Что ещё важно знать</h2><details><summary>Можно сложить несколько скидок?</summary><p>Нет. В этих учебных примерах выбирается одно предложение на заказ. При покупке видно, что применилось. Заменить или убрать выгоду можно до оформления.</p></details><details><summary>Что выгоднее: пакет, безлимит или отдельные билеты?</summary><p>Зависит от аттракционов и числа катаний. Например, 5 билетов на Американские горки стоят 7 000 ֏, пакет на 5 катаний стоит 4 000 ֏. А 5 билетов на Детскую карусель стоят 3 000 ֏, и пакет уже дороже. Безлимит личный и подходит только для трёх включённых аттракционов.</p></details><details><summary>Покупка билета гарантирует допуск на аттракцион?</summary><p>Нет. Билет даёт право на катание при соблюдении правил допуска. Рост, ограничения и необходимость сопровождения нужно проверить отдельно на странице аттракционов.</p></details>' + (other.length ? '<details id="other-offers"><summary>Завершённые и неподтверждённые предложения</summary><div class="status-list">' + other.map(function (o) { var s = stateOf(o, today); return '<article class="status-card" id="status-' + esc(o.id) + '"><span class="status-tag">' + (s === 'unknown' ? 'Актуальность не подтверждена' : s === 'upcoming' ? 'Ещё не началось' : 'Завершено') + '</span><h3>' + esc(o.title) + '</h3><p>' + (s === 'expired' ? 'Срок закончился ' + humanDate(o.end) + '. Применить к новому заказу нельзя.' : esc(o.summary)) + '</p></article>'; }).join('') + '</div></details>' : '') + '</section><div class="closing"><div><h2>Не нашли подходящее?</h2><p>Можно купить отдельные билеты по обычной цене.</p></div><a class="action secondary" href="offer-checkout.html?offer=none">Выбрать билеты →</a></div>';
+    return '<a class="crumb" href="index.html">Главная / Акции</a><div class="page-heading"><h1>Акции и выгода</h1><p>Выберите, как сэкономить. Сразу видно, кому подходит предложение и сколько вы заплатите.</p></div>' + renderCartSummary(cartState) + '<div class="filter-bar" role="group" aria-label="Тип предложения">' + Object.keys(filters).map(function (id) { var count = active.filter(function (o) { return id === 'all' || o.kind === id; }).length; return '<button class="filter" id="filter-' + id + '" data-filter="' + id + '" aria-pressed="' + (id === filter) + '">' + filters[id] + '<span class="filter-count">' + count + '</span></button>'; }).join('') + '</div><div id="offer-results"><div class="offer-grid">' + visible.map(renderCard).join('') + '</div>' + (visible.length ? '' : '<div class="no-offers"><h2>Сейчас таких предложений нет</h2><p>Посмотрите другие способы сэкономить или выберите билеты по обычной цене.</p><button class="action secondary" data-filter="all">Все предложения</button> <a class="action" href="tickets.html?offer=none&amp;product=single#cart">Билеты по обычной цене</a></div>') + '</div><section class="questions section-space" aria-labelledby="questions-heading"><h2 id="questions-heading">Что ещё важно знать</h2><details><summary>Можно сложить несколько скидок?</summary><p>Нет. В этих учебных примерах выбирается одно предложение на заказ. При покупке видно, что применилось. Заменить или убрать выгоду можно до оформления.</p></details><details><summary>Что выгоднее: пакет, безлимит или отдельные билеты?</summary><p>Зависит от аттракционов и числа катаний. Например, 5 билетов на Американские горки стоят 7 000 ֏, пакет на 5 катаний стоит 4 000 ֏. А 5 билетов на Детскую карусель стоят 3 000 ֏, и пакет уже дороже. Безлимит личный и подходит только для трёх включённых аттракционов.</p></details><details><summary>Покупка билета гарантирует допуск на аттракцион?</summary><p>Нет. Билет даёт право на катание при соблюдении правил допуска. Рост, ограничения и необходимость сопровождения нужно проверить отдельно на странице аттракционов.</p></details>' + (other.length ? '<details id="other-offers"><summary>Завершённые и неподтверждённые предложения</summary><div class="status-list">' + other.map(function (o) { var s = stateOf(o, today); return '<article class="status-card" id="status-' + esc(o.id) + '"><span class="status-tag">' + (s === 'unknown' ? 'Актуальность не подтверждена' : s === 'upcoming' ? 'Ещё не началось' : 'Завершено') + '</span><h3>' + esc(o.title) + '</h3><p>' + (s === 'expired' ? 'Срок закончился ' + humanDate(o.end) + '. Применить к новому заказу нельзя.' : esc(o.summary)) + '</p></article>'; }).join('') + '</div></details>' : '') + '</section><div class="closing"><div><h2>Не нашли подходящее?</h2><p>Можно купить отдельные билеты по обычной цене.</p></div><a class="action secondary" href="tickets.html?offer=none&amp;product=single#cart">Выбрать билеты →</a></div>';
   }
   function renderReference() {
-    return '<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Условия предложений: текстовый список</title><link rel="stylesheet" href="offers.css"><body class="plain-reference"><h1>Акции и выгода</h1><p>Все предложения и цены учебные. Предложения не действуют в парке.</p><p>Текстовый список содержит те же условия. Для интерактивного выбора <a href="offers.html">откройте страницу акций</a>.</p>' + M.offers.map(function (o) { return '<article id="reference-' + esc(o.id) + '"><h2>' + esc(o.title) + '</h2><p>' + esc(kinds[o.kind] + '. ' + o.benefit) + '</p><p>' + esc(o.summary) + '</p><p>' + esc(o.when + '. ' + o.important) + '</p>' + terms(o) + (o.status === 'active' ? '<a href="offer-checkout.html?offer=' + o.id + '">' + esc(o.cta) + '</a>' : '<p>' + (o.status === 'unknown' ? 'Актуальность не подтверждена' : 'Завершено') + '</p>') + '</article>'; }).join('') + '</body></html>';
+    return '<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Условия предложений: текстовый список</title><link rel="stylesheet" href="offers.css"><body class="plain-reference"><h1>Акции и выгода</h1><p>Все предложения и цены учебные. Предложения не действуют в парке.</p><p>Текстовый список содержит те же условия. Для интерактивного выбора <a href="offers.html">откройте страницу акций</a>.</p>' + M.offers.map(function (o) { return '<article id="reference-' + esc(o.id) + '"><h2>' + esc(o.title) + '</h2><p>' + esc(kinds[o.kind] + '. ' + o.benefit) + '</p><p>' + esc(o.summary) + '</p><p>' + esc(o.when + '. ' + o.important) + '</p>' + terms(o) + (o.status === 'active' ? '<a href="' + esc(checkoutHref(o.id)) + '">' + esc(o.cta) + '</a>' : '<p>' + (o.status === 'unknown' ? 'Актуальность не подтверждена' : 'Завершено') + '</p>') + '</article>'; }).join('') + '</body></html>';
   }
   function normalizeVisitDate(value) { return value === '' || value == null ? null : value; }
   function normalizeOrder(order) { return Object.assign({}, order, { visitDate: normalizeVisitDate(order.visitDate) }); }
@@ -85,6 +109,7 @@
   }
   function describedIssue(result, group) { return result.issues.some(function (issue) { return issueGroup(issue.code) === group; }) ? ' aria-describedby="issue-' + group + '"' : ''; }
   function start() {
+    if (window.VPO_REDIRECTING) return;
     var app = document.getElementById('offers-app');
     if (!app) return;
     var isList = document.body.dataset.offersPage === 'list';
@@ -150,18 +175,13 @@
     function renderReceipt() {
       document.body.classList.remove('has-mobile-checkout');
       var r = receipt.result;
-      app.innerHTML = '<div class="receipt"><div class="confirmation" aria-hidden="true">✓</div><h1 tabindex="-1" id="receipt-heading">Учебный заказ собран</h1><p class="receipt-intro">Оплаты не было. Этот образец не является билетом и не даёт права на посещение.</p><section class="receipt-box"><h2>Состав и выбранная выгода</h2>' + r.lines.map(function (line) { return '<p><strong>' + esc(line.name) + ' · ' + line.quantity + ' шт.</strong><br>' + esc(line.recipientLabel) + '</p>'; }).join('') + '<p>' + esc(r.offer ? r.offer.title : 'Без предложения, по полной цене') + '</p>' + (r.offer && r.offer.requiresVisitDate ? '<p><strong>Дата визита: ' + humanDate(r.order.visitDate) + '</strong></p>' : '') + totals(r) + '</section><section class="receipt-box"><h2>Как использовать в учебном примере</h2><p>' + (r.offer && r.offer.id === 'student15' ? 'При получении нужно показать действующий студенческий документ. Все билеты предназначены его владельцу.' : r.bonus ? 'Бонус в этом образце начислен один раз. Его можно использовать на отдельные билеты при следующем визите в указанный срок.' : 'Срок и права сохранены в составе заказа ниже. Перед катанием нужно отдельно проверить допуск.') + '</p>' + r.lines.slice(0, 1).map(function (line) { return '<ul>' + line.terms.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>'; }).join('') + (r.offer ? '<details class="offer-terms"><summary>Условия выбранной выгоды</summary>' + terms(r.offer) + '</details>' : '') + '</section><div class="receipt-actions"><button class="action secondary" id="edit-order">Вернуться к выбору</button><a class="action" href="offers.html">Все предложения</a></div></div>';
+      app.innerHTML = '<div class="receipt"><div class="confirmation" aria-hidden="true">✓</div><h1 tabindex="-1" id="receipt-heading">Учебный заказ собран</h1><p class="receipt-intro">Оплаты не было. Этот образец не является билетом и не даёт права на посещение.</p><section class="receipt-box"><h2>Состав и выбранная выгода</h2>' + r.lines.map(function (line) { return '<p><strong>' + esc(line.name) + ' · ' + line.quantity + ' шт.</strong><br>' + esc(line.recipientLabel) + '</p>'; }).join('') + '<p>' + esc(r.offer ? r.offer.title : 'Без предложения, по полной цене') + '</p>' + (r.offer && r.offer.requiresVisitDate ? '<p><strong>Дата визита: ' + humanDate(r.order.visitDate) + '</strong></p>' : '') + totals(r) + '</section><section class="receipt-box"><h2>Как использовать в учебном примере</h2><p>' + (r.offer && r.offer.id === 'student15' ? 'При получении нужно показать действующий студенческий документ. Все билеты предназначены его владельцу.' : r.bonus ? 'Бонус в этом образце начислен один раз. Его можно использовать на отдельные билеты при следующем визите в указанный срок.' : 'Срок и права сохранены в составе заказа ниже. Перед катанием нужно отдельно проверить допуск.') + '</p>' + r.lines.slice(0, 1).map(function (line) { return '<ul>' + line.terms.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>'; }).join('') + (r.offer ? '<details class="offer-terms"><summary>Условия выбранной выгоды</summary>' + terms(r.offer) + '</details>' : '') + '</section><div class="receipt-actions"><a class="action secondary" href="' + esc(legacySelectionHref(order)) + '">Вернуться к билетам</a><a class="action" href="offers.html">Все предложения</a></div></div>';
     }
     function render(focusId) {
       if (isList) {
-        app.innerHTML = renderList(filter);
-        if (params.has('product')) app.querySelectorAll('a[href^="offer-checkout.html"]').forEach(function (link) {
-          var chosen = new URL(link.href).searchParams.get('offer');
-          var cardChoice = chooseOffer(order, chosen === 'none' ? null : chosen);
-          var next = new URLSearchParams(selectionQuery(cardChoice.order.offerId, cardChoice.order));
-          if (cardChoice.switched) next.set('switched', '1');
-          link.href = 'offer-checkout.html?' + next.toString();
-        });
+        var sharedState = null;
+        try { sharedState = JSON.parse(localStorage.getItem('vp.family.v3')); } catch (_) {}
+        app.innerHTML = renderList(filter, M.getToday(), sharedState);
       }
       else if (receipt) renderReceipt(); else renderCheckout();
       if (focusId) { var el = document.getElementById(focusId); if (el) el.focus({ preventScroll: true }); }
@@ -203,7 +223,11 @@
       else return;
       changed('', el.id);
     });
+    if (isList) {
+      window.addEventListener('pageshow', function (event) { if (event.persisted) render(); });
+      window.addEventListener('storage', function (event) { if (event.key === 'vp.family.v3') render(); });
+    }
     render();
   }
-  return { renderList: renderList, renderReference: renderReference, normalizeVisitDate: normalizeVisitDate, ordersMatch: ordersMatch, chooseOffer: chooseOffer, issueAction: issueAction, start: start };
+  return { checkoutHref: checkoutHref, legacySelectionHref: legacySelectionHref, renderCartSummary: renderCartSummary, renderList: renderList, renderReference: renderReference, normalizeVisitDate: normalizeVisitDate, ordersMatch: ordersMatch, chooseOffer: chooseOffer, issueAction: issueAction, start: start };
 }));
