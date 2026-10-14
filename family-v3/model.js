@@ -13,29 +13,111 @@
     ['mars-ride', 'Полет на Марс'], ['planet', 'Планета'], ['moto-ufo', 'Мощный НЛО'], ['pendulum', 'Метроном'],
     ['rotating-tower', 'Вращающаяся башня'], ['rocket', 'Космический корабль'], ['VR-cinema', 'Виртуальная реальность'], ['VR-for-2', 'Виртуальное путешествие']
   ].map(function (x) { return { id: x[0], name: x[1], photo: 'assets/' + x[0] + '.webp', price: null, intensity: null, ageRange: null, ageBasis: null, rules: null, operation: 'unknown', fictional: false }; }));
-  function demo(id, name, price, intensity, ages, symbol, min, max, soloMin) {
-    return { id: id, name: name, price: price, photo: null, intensity: intensity, ageRange: ages,
+  function demo(id, name, price, intensity, ages, symbol, min, max, soloMin, photo) {
+    return { id: id, name: name, price: price, photo: photo, intensity: intensity, ageRange: ages,
       ageBasis: ages ? 'Учебная редакционная подсказка, не правило допуска и не описание реального парка.' : null,
       symbol: symbol, rules: min === null ? null : { min: min, max: max, soloMin: soloMin, companionMin: 140, companionMax: 210, companionRatio: 1 }, operation: 'open', fictional: true };
   }
   var demoRides = freeze([
-    demo('demo-calm', 'Тихая прогулка', 900, 'calm', [4, 12], '○', 90, 210, 120),
-    demo('demo-thrill', 'Вираж', 1400, 'exciting', [9, 17], '↗', 130, 200, 140),
-    demo('demo-together', 'Вдвоём веселее', 1100, 'calm', [5, 14], '∞', 100, 210, 140),
-    demo('demo-small', 'Маленький круг', 600, 'calm', [3, 8], '◒', 80, 125, 80),
-    demo('demo-unknown', 'Новый маршрут', 700, 'exciting', null, '?', null, null, null)
+    demo('demo-calm', 'Детский паровозик', 900, 'calm', [4, 12], '○', 90, 210, 120, 'assets/demo-train.webp'),
+    demo('demo-thrill', 'Американские горки', 1400, 'exciting', [9, 17], '↗', 130, 200, 140, 'assets/demo-coaster.webp'),
+    demo('demo-together', 'Чайные чашки', 1100, 'calm', [5, 14], '∞', 100, 210, 140, 'assets/demo-teacups.webp'),
+    demo('demo-small', 'Детская карусель', 600, 'calm', [3, 8], '◒', 80, 125, 80, 'assets/demo-carousel.webp'),
+    demo('demo-unknown', 'Цепочная карусель', 700, 'exciting', null, '?', null, null, null, 'assets/demo-swings.webp')
   ]);
   var MAX_QUANTITY = 20;
   var products = freeze({
     ticket: { id: 'ticket', name: 'Билет на одно катание', price: null, includedRideIds: demoRides.map(function (r) { return r.id; }), personal: false, dateRequired: false, fictional: true,
       terms: ['Учебный билет на выбранный аттракцион. Цена зависит от аттракциона.', 'Одно оплаченное катание. Учебный срок: один день первого использования. Не подтверждает допуск.', 'В учебной модели необходимое сопровождение включено в право ребёнка; отдельное катание взрослого покупается только по его желанию.'] },
     package5: { id: 'package5', name: 'Общий пакет на 5 катаний', price: 4000, includedRideIds: ['demo-calm', 'demo-thrill', 'demo-together', 'demo-small'], rides: 5, personal: false, dateRequired: false, fictional: true,
-      terms: ['Учебный пакет: 5 катаний на четыре перечисленных аттракциона.', 'Общий для участников компании, повторные катания расходуют по одному праву.', 'Новый маршрут не входит. Пять прав на катание общие для всей компании.', 'Учебный срок: один день первого использования. Приоритетной очереди нет.', 'Необходимое сопровождение включено; личные катания взрослого расходуют отдельные права.'] },
+      terms: ['Учебный пакет: 5 катаний на четыре перечисленных аттракциона.', 'Общий для участников компании, повторные катания расходуют по одному праву.', 'Цепочная карусель не входит. Пять прав на катание общие для всей компании.', 'Учебный срок: один день первого использования. Приоритетной очереди нет.', 'Необходимое сопровождение включено; личные катания взрослого расходуют отдельные права.'] },
     unlimited: { id: 'unlimited', name: 'Личный безлимит на день', price: 5900, includedRideIds: ['demo-calm', 'demo-thrill', 'demo-together'], personal: true, dateRequired: false, fictional: true,
-      terms: ['Учебный личный безлимит для одного участника. Срок: один день первого использования; это проектное условие, не правило парка.', 'Тихая прогулка, Вираж и Вдвоём веселее без ограничения числа катаний в этот день.', 'Маленький круг и Новый маршрут оплачиваются отдельно.', 'Не передаётся другому человеку. Приоритетной очереди нет.', 'Учебная выдача после подтверждённой оплаты: код для обмена в демонстрационной кассе на личный носитель. Это не рабочая интеграция.', 'Необходимое сопровождение включено; сопровождающий не становится покупателем личного безлимита автоматически.'] }
+      terms: ['Учебный личный безлимит для одного участника. Срок: один день первого использования; это проектное условие, не правило парка.', 'Детский паровозик, Американские горки и Чайные чашки без ограничения числа катаний в этот день.', 'Детская карусель и Цепочная карусель оплачиваются отдельно.', 'Не передаётся другому человеку. Приоритетной очереди нет.', 'Учебная выдача после подтверждённой оплаты: код для обмена в демонстрационной кассе на личный носитель. Это не рабочая интеграция.', 'Необходимое сопровождение включено; сопровождающий не становится покупателем личного безлимита автоматически.'] }
   });
-  var MODEL_VERSION = 'family-demo-3';
+  var MODEL_VERSION = 'family-demo-3.1';
   var VALIDITY = 'Один день первого использования';
+  // Exact original catalog. Existing orders keep the names and rights they were issued with.
+  var legacyOrderCatalog = freeze({
+  "rides": {
+    "demo-calm": {
+      "name": "Тихая прогулка",
+      "price": 900
+    },
+    "demo-thrill": {
+      "name": "Вираж",
+      "price": 1400
+    },
+    "demo-together": {
+      "name": "Вдвоём веселее",
+      "price": 1100
+    },
+    "demo-small": {
+      "name": "Маленький круг",
+      "price": 600
+    },
+    "demo-unknown": {
+      "name": "Новый маршрут",
+      "price": 700
+    }
+  },
+  "products": {
+    "ticket": {
+      "name": "Билет на одно катание",
+      "price": null,
+      "includedRideIds": [
+        "demo-calm",
+        "demo-thrill",
+        "demo-together",
+        "demo-small",
+        "demo-unknown"
+      ],
+      "terms": [
+        "Учебный билет на выбранный аттракцион. Цена зависит от аттракциона.",
+        "Одно оплаченное катание. Учебный срок: один день первого использования. Не подтверждает допуск.",
+        "В учебной модели необходимое сопровождение включено в право ребёнка; отдельное катание взрослого покупается только по его желанию."
+      ]
+    },
+    "package5": {
+      "name": "Общий пакет на 5 катаний",
+      "price": 4000,
+      "includedRideIds": [
+        "demo-calm",
+        "demo-thrill",
+        "demo-together",
+        "demo-small"
+      ],
+      "terms": [
+        "Учебный пакет: 5 катаний на четыре перечисленных аттракциона.",
+        "Общий для участников компании, повторные катания расходуют по одному праву.",
+        "Новый маршрут не входит. Пять прав на катание общие для всей компании.",
+        "Учебный срок: один день первого использования. Приоритетной очереди нет.",
+        "Необходимое сопровождение включено; личные катания взрослого расходуют отдельные права."
+      ]
+    },
+    "unlimited": {
+      "name": "Личный безлимит на день",
+      "price": 5900,
+      "includedRideIds": [
+        "demo-calm",
+        "demo-thrill",
+        "demo-together"
+      ],
+      "terms": [
+        "Учебный личный безлимит для одного участника. Срок: один день первого использования; это проектное условие, не правило парка.",
+        "Тихая прогулка, Вираж и Вдвоём веселее без ограничения числа катаний в этот день.",
+        "Маленький круг и Новый маршрут оплачиваются отдельно.",
+        "Не передаётся другому человеку. Приоритетной очереди нет.",
+        "Учебная выдача после подтверждённой оплаты: код для обмена в демонстрационной кассе на личный носитель. Это не рабочая интеграция.",
+        "Необходимое сопровождение включено; сопровождающий не становится покупателем личного безлимита автоматически."
+      ]
+    }
+  }
+} );
+  var currentOrderCatalog = freeze({
+    rides: demoRides.reduce(function (out, ride) { out[ride.id] = { name: ride.name, price: ride.price }; return out; }, {}),
+    products: products
+  });
+  var orderCatalogs = freeze({ 'family-demo-3': legacyOrderCatalog, 'family-demo-3.1': currentOrderCatalog });
   var rideMap = {};
   realRides.concat(demoRides).forEach(function (r) { rideMap[r.id] = r; });
   function copy(value) { return JSON.parse(JSON.stringify(value)); }
@@ -44,9 +126,11 @@
   function integer(value, min, max) { return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max; }
   function label(value, fallback) { return typeof value === 'string' && value.trim() ? value.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 80) || fallback : fallback; }
   function equal(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
-  function priceFor(line) {
-    if (!line || !Object.prototype.hasOwnProperty.call(products, line.productId)) return null;
-    if (line.productId !== 'ticket') return products[line.productId].price;
+  function priceFor(line, catalog) {
+    var productCatalog = catalog ? catalog.products : products;
+    if (!line || !Object.prototype.hasOwnProperty.call(productCatalog, line.productId)) return null;
+    if (line.productId !== 'ticket') return productCatalog[line.productId].price;
+    if (catalog) return Object.prototype.hasOwnProperty.call(catalog.rides, line.rideId) ? catalog.rides[line.rideId].price : null;
     var ride = rideMap[line.rideId]; return ride && ride.fictional ? ride.price : null;
   }
   function emptyState() { return { version: 3, mode: 'demo', party: [], selections: { real: [], demo: [] }, riders: [], ridersConfirmed: false, cart: { lines: [] }, _issues: [] }; }
@@ -220,15 +304,16 @@
     return { version: 3, modelVersion: MODEL_VERSION, id: orderId, status: status || 'pending', total: assessment.total, lines: lines, createdAt: new Date().toISOString() };
   }
   function validateOrder(order) {
-    if (!order || order.version !== 3 || order.modelVersion !== MODEL_VERSION || !id(order.id) || !['success', 'declined', 'pending', 'issuance'].includes(order.status) || !Array.isArray(order.lines) || !order.lines.length || order.lines.length > 100 || !integer(order.total, 1, 100000000) || typeof order.createdAt !== 'string' || !Number.isFinite(Date.parse(order.createdAt))) return null;
+    if (!order || order.version !== 3 || typeof order.modelVersion !== 'string' || !Object.prototype.hasOwnProperty.call(orderCatalogs, order.modelVersion) || !id(order.id) || !['success', 'declined', 'pending', 'issuance'].includes(order.status) || !Array.isArray(order.lines) || !order.lines.length || order.lines.length > 100 || !integer(order.total, 1, 100000000) || typeof order.createdAt !== 'string' || !Number.isFinite(Date.parse(order.createdAt))) return null;
     if (Object.prototype.hasOwnProperty.call(order, 'visitDate')) return null;
+    var catalog = orderCatalogs[order.modelVersion];
     var ids = new Set(), recipients = new Set(), placeholders = new Set(), total = 0, passes = 0;
     for (var i = 0; i < order.lines.length; i++) {
-      var line = order.lines[i], product = line && Object.prototype.hasOwnProperty.call(products, line.productId) ? products[line.productId] : null;
-      if (!product || !id(line.id) || ids.has(line.id) || !integer(line.quantity, 1, MAX_QUANTITY) || priceFor(line) === null || line.unitPrice !== priceFor(line) || Object.prototype.hasOwnProperty.call(line, 'visitDate')) return null;
+      var line = order.lines[i], product = line && typeof line.productId === 'string' && Object.prototype.hasOwnProperty.call(catalog.products, line.productId) ? catalog.products[line.productId] : null;
+      if (!product || !id(line.id) || ids.has(line.id) || !integer(line.quantity, 1, MAX_QUANTITY) || priceFor(line, catalog) === null || line.unitPrice !== priceFor(line, catalog) || Object.prototype.hasOwnProperty.call(line, 'visitDate')) return null;
       var included = line.productId === 'ticket' ? [line.rideId] : product.includedRideIds;
-      var expectedName = line.productId === 'ticket' ? 'Билет: ' + rideMap[line.rideId].name : product.name;
-      if (line.name !== expectedName || !equal(line.includedRideIds, included) || !equal(line.includedNames, included.map(function (rideId) { return rideMap[rideId].name; })) || !equal(line.terms, product.terms) || line.validity !== VALIDITY || line.unitsPerItem !== (line.productId === 'package5' ? 5 : line.productId === 'ticket' ? 1 : null) || typeof line.recipientLabel !== 'string' || !line.recipientLabel.trim() || line.recipientLabel.length > 150 || /[\u0000-\u001f<>]/.test(line.recipientLabel)) return null;
+      var expectedName = line.productId === 'ticket' ? 'Билет: ' + catalog.rides[line.rideId].name : product.name;
+      if (line.name !== expectedName || !equal(line.includedRideIds, included) || !equal(line.includedNames, included.map(function (rideId) { return catalog.rides[rideId].name; })) || !equal(line.terms, product.terms) || line.validity !== VALIDITY || line.unitsPerItem !== (line.productId === 'package5' ? 5 : line.productId === 'ticket' ? 1 : null) || typeof line.recipientLabel !== 'string' || !line.recipientLabel.trim() || line.recipientLabel.length > 150 || /[\u0000-\u001f<>]/.test(line.recipientLabel)) return null;
       if (line.personId !== null && !id(line.personId)) return null;
       if (line.productId === 'package5' && (line.personId !== null || line.rideId !== null || line.recipientKey !== null)) return null;
       if (line.productId === 'unlimited') {

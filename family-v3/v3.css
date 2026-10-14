@@ -122,3 +122,38 @@ body.keyboard-open .mobile-bar { display:none; }
 @media(min-width:600px){.rider-choices{grid-template-columns:repeat(2,minmax(0,1fr))}.demo-ticket-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.v3-hero .hero-photo img{height:230px}.family-panel{padding:20px}}
 @media(min-width:1000px){body[data-page]{padding-bottom:0}.v3-hero{padding-block:30px;gap:48px}.v3-hero .hero-photo img{height:260px}.party{grid-template-columns:repeat(4,minmax(0,1fr))}.family-panel .btn-row{max-width:460px}.person-head h3{font-size:12px}.person-head{gap:5px}.person-head .avatar{width:27px;height:27px}.rider-choices{grid-template-columns:repeat(4,minmax(0,1fr))}.rider-choice{gap:8px}.rider-choice .avatar{width:28px;height:28px}.plan-panel,.cart-panel{max-height:none;position:sticky;top:24px}.offers{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Exact child ages in one compact, inline panel. Adult is a category. */
+.age-summary {display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;width:100%;padding:8px 10px;border:1px solid #b9b7d0;border-radius:8px;background:white;text-align:left;font-size:13px;}
+.age-summary > span:last-child {font-size:11px;text-decoration:underline;}
+.age-summary[aria-expanded=true] {background:var(--soft);}
+.adult-age {display:flex;align-items:center;justify-content:space-between;min-height:44px;font-size:13px;}
+.adult-age strong {font-size:16px;}
+.age-panel {margin-top:8px;}
+.age-grid {display:grid;grid-template-columns:repeat(5,minmax(44px,1fr));gap:4px;}
+.age-choice {display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:4px;border:1px solid #b9b7d0;border-radius:7px;background:white;font-size:14px;line-height:1.25;}
+.age-choice[data-value="0"] {font-size:11px;}
+.age-choice[aria-pressed=true] {color:white;background:var(--cobalt);border-color:var(--cobalt);}
+.age-unknown {grid-column:span 2;font-size:12px;}
+.direct-entry-head {margin-top:14px;}
+.direct-entry-layout {margin-top:0;}
+.direct-entry-layout .direct-products {margin-top:0;}
+.direct-entry-layout .section-head {margin-top:14px;}
+.direct-entry-layout .section-head h1,.direct-entry-layout .section-head h2 {font-size:clamp(34px,5vw,46px);}
+@media(min-width:600px){.party {grid-template-columns:repeat(auto-fit,minmax(240px,1fr));}}
+
+body.family-editing .mobile-bar {display:none;}
+.person {scroll-margin-block:24px 110px;}
+.ride-visual {margin:0;}
+.generated-label {font-size:10px!important;line-height:1.45;color:var(--muted);padding:8px 12px;}
+.product .generated-label {padding:0;margin-top:10px;}
+.product-intro {display:flex;gap:14px;align-items:center;}
+.product-intro > img {width:88px;height:88px;object-fit:cover;border-radius:10px;flex:none;}
+.product-intro > div {min-width:0;}
+.product-intro h3 {font-size:18px;}
+.product-intro .offer-price {font-size:23px;margin-block:10px 0;}
+@media(min-width:600px){.product-intro > img {width:104px;height:104px;}}
+
+.person-head .adult-age {display:inline-flex;flex:none;min-height:28px;padding:3px 6px;border-radius:6px;background:var(--soft);}
+.person-head .adult-age strong {font-size:12px;}
+.person:has(.adult-age) .person-head {margin-bottom:0;}
