@@ -60,3 +60,28 @@ test('time advance expires statuses in both presentation and running modes',()=>
   assert.equal(ride(s,'wheel',M.now(s,0)).source,'manual-expired');
  }
 });
+
+
+test('shared presentation seed is paused, preserves four states and supports safe fallback',()=>{
+ const s=M.presentationSeed(123);
+ assert.equal(M.validate(s),true);assert.equal(s.clock.running,false);assert.equal(s.clock.realStart,123);
+ assert.deepEqual(M.derive(s,M.now(s,123+24*60*m)).counts,{open:7,paused:1,closed:1,unknown:2});
+ const safe=M.presentationSeed(123,true);
+ assert.equal(M.validate(safe),true);assert.equal(safe.clock.running,false);assert.equal(M.derive(safe).counts.unknown,11);
+});
+test('every availability ride has the exact real catalog identity and existing local photo',()=>{
+ const catalog=require('../../model.js');const fs=require('node:fs');const path=require('node:path');
+ assert.equal(new Set(M.RIDES.map(r=>r.catalogId)).size,11);
+ for(const r of M.RIDES){
+  const real=catalog.realRides.find(c=>c.id===r.catalogId);
+  assert.ok(real,r.id);assert.equal(r.name,real.name);assert.equal(r.photo,real.photo);
+  assert.equal(fs.existsSync(path.join(__dirname,'../..',r.photo)),true);
+ }
+});
+test('old stored state receives canonical catalog metadata without resetting status or trusting saved URLs',()=>{
+ const s=M.presentationSeed(0);s.rides.forEach(r=>{delete r.photo;delete r.catalogId;});
+ s.rides[0].photo='https://invalid.example/photo';s.rides[0].catalogId='wrong';
+ assert.equal(M.validate(s),true);
+ for(const r of M.derive(s).rides){const canonical=M.RIDES.find(c=>c.id===r.id);assert.equal(r.photo,canonical.photo);assert.equal(r.catalogId,canonical.catalogId);}
+ assert.equal(ride(s,'wheel').status,'paused');assert.equal(ride(s,'pendulum').status,'closed');
+});

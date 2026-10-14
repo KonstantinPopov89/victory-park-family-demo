@@ -1,14 +1,12 @@
 /* This is a local demonstration. No API requests, credentials, or production writes. */
 (function(){'use strict';
-// Exact name match against family-v3/model.js realRides, verified during integration.
-const catalogRoutes={"autodrom":"autodrom","vr-travel":"VR-for-2","vr-reality":"VR-cinema","tower":"rotating-tower","wheel":"wheel-of-happiness","rocket":"rocket","pendulum":"pendulum","ufo":"moto-ufo","swan":"water-swan","planet":"planet","mars":"mars-ride"};
 const M=window.Availability, page=document.body.dataset.page, $=id=>document.getElementById(id);
 let state,storageOK=true,corrupt=false,formAction=null,returnFocus=null,formRevision=0,notice='';
 function el(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
 function append(parent,...children){children.filter(Boolean).forEach(c=>parent.append(c));return parent;}
 function button(text,fn,cls='button secondary compact',id){const b=el('button',text,cls);b.type='button';if(id)b.id=id;b.addEventListener('click',fn);return b;}
 function message(text,error=false){notice=text;const n=$('system-message');n.textContent=text;n.className=error?'error':'success';n.hidden=!text;}
-function seedDemo(safe=false){const initial=M.seed(Date.now(),safe);initial.clock.running=false;return initial;}
+function seedDemo(safe=false){return M.presentationSeed(Date.now(),safe);}
 function read(){try{const raw=localStorage.getItem(M.KEY);if(!raw){state=seedDemo();localStorage.setItem(M.KEY,JSON.stringify(state));return;}const parsed=JSON.parse(raw);if(!M.validate(parsed))throw new Error('schema');state=parsed;}catch(e){state=seedDemo(true);storageOK=false;corrupt=true;message('Не удалось прочитать сохранённые данные. Показаны неизвестные статусы. В сценариях можно сбросить учебный пример.',true);}}
 read();
 function save(action,{demo=false}={}){
@@ -52,9 +50,14 @@ function renderWeather(d){const w=$('weather');if(!w)return;w.replaceChildren();
  }
 }
 function renderRides(d){const list=$('rides');if(!list)return;const openIds=new Set([...list.querySelectorAll('details[open]')].map(n=>n.id));const q=$('search').value,rides=M.search(d.rides,q);list.replaceChildren();$('list-count').textContent=rides.length+' из 11';$('clear-search').hidden=!q;$('result-note').textContent=q?'Результаты поиска. Верхняя сводка относится ко всем 11 аттракционам.':'';$('empty').hidden=rides.length>0;
- rides.forEach(r=>{const li=el('li',undefined,'ride');li.id=r.id;const top=el('div',undefined,'ride-top'),name=el('a',r.name,'ride-name');name.href=page==='guest'&&catalogRoutes[r.id]?'attractions.html?ride='+encodeURIComponent(catalogRoutes[r.id]):'#'+r.id;name.id='ride-link-'+r.id;append(top,name,el('span',M.LABELS[r.status],'status '+r.status));li.append(top);const guestReason=r.source==='manual-expired'?'Сведения устарели. Уточняем работу.':r.source==='debit-expired'?'Давно не было списаний. Уточняем работу.':r.source==='mapping'?'Сведения об аттракционе уточняются.':r.source==='source-incomplete'?'Получены не все сведения. Уточняем работу.':r.reason;li.append(el('p',page==='guest'?guestReason:r.reason,'ride-reason'));
- const time=r.checkedAt?' · '+M.clock(r.checkedAt):'';li.append(el('p',sourceName(r)+(r.source==='manual'?time+' · до '+M.clock(r.expiresAt):''),'ride-meta'));
- const debit=M.lastDebit(r);if(debit)li.append(el('p',lastDebitText(r,d.now)+(M.day(debit.eventAt)!==M.day(d.now)?' · в предыдущий день':''),'ride-meta'));else if(page==='admin')li.append(el('p','Нет подходящего списания за сегодня.','ride-meta'));
+ rides.forEach(r=>{const li=el('li',undefined,'ride');li.id=r.id;
+ const row=el('div',undefined,'ride-summary'),copy=el('div',undefined,'ride-copy'),media=el('div',undefined,'ride-photo');
+ const photo=el('img');photo.src=r.photo;photo.alt=r.name;photo.width=112;photo.height=112;photo.loading='lazy';photo.decoding='async';
+ const fallback=el('span','Фото временно недоступно','ride-photo-fallback');fallback.hidden=true;
+ photo.addEventListener('error',()=>{photo.hidden=true;fallback.hidden=false;});append(media,photo,fallback);append(row,media,copy);li.append(row);
+ const top=el('div',undefined,'ride-top'),name=el('a',r.name,'ride-name');name.href=page==='guest'&&r.catalogId?'attractions.html?ride='+encodeURIComponent(r.catalogId):'#'+r.id;name.id='ride-link-'+r.id;append(top,name,el('span',M.LABELS[r.status],'status '+r.status));copy.append(top);const guestReason=r.source==='manual-expired'?'Сведения устарели. Уточняем работу.':r.source==='debit-expired'?'Давно не было списаний. Уточняем работу.':r.source==='mapping'?'Сведения об аттракционе уточняются.':r.source==='source-incomplete'?'Получены не все сведения. Уточняем работу.':r.reason;copy.append(el('p',page==='guest'?guestReason:r.reason,'ride-reason'));
+ const time=r.checkedAt?' · '+M.clock(r.checkedAt):'';copy.append(el('p',sourceName(r)+(r.source==='manual'?time+' · до '+M.clock(r.expiresAt):''),'ride-meta'));
+ const debit=M.lastDebit(r);if(debit)copy.append(el('p',lastDebitText(r,d.now)+(M.day(debit.eventAt)!==M.day(d.now)?' · в предыдущий день':''),'ride-meta'));else if(page==='admin')copy.append(el('p','Нет подходящего списания за сегодня.','ride-meta'));
  if(page==='admin'){
  const bottom=el('div',undefined,'ride-bottom'),details=el('details');details.id='source-'+r.id;details.open=openIds.has(details.id);const sourceSummary=el('summary','Источник и ручной режим');sourceSummary.id='source-summary-'+r.id;append(details,sourceSummary);
  details.append(el('p','Учебный порог этого аттракциона: '+M.threshold(r,state)+' мин. Режим: '+(state.thresholds.mode==='common'?'общий порог':'отдельные пороги')+'.'));
@@ -153,7 +156,7 @@ function reset(){try{const next=seedDemo();localStorage.setItem(M.KEY,JSON.strin
 $('edit-form').addEventListener('submit',event=>{event.preventDefault();try{if(state.clock.realStart+':'+state.revision!==formRevision)throw new Error('Данные изменились в другой вкладке. Закройте форму и проверьте актуальное состояние.');const action=formAction();const ok=action.type==='reset'?reset():save(action);if(ok)closeDialog();else{$('form-error').textContent=notice;$('form-error').hidden=false;}}catch(e){$('form-error').textContent=e.message;$('form-error').hidden=false;}});
 $('dialog-close').addEventListener('click',closeDialog);$('dialog-cancel').addEventListener('click',closeDialog);
 if($('search')){$('search').addEventListener('input',()=>renderRides(M.derive(state)));const clear=()=>{$('search').value='';renderRides(M.derive(state));$('search').focus();};$('clear-search').addEventListener('click',clear);$('empty-reset').addEventListener('click',clear);}
-window.addEventListener('storage',e=>{if(e.key!==M.KEY)return;try{const parsed=JSON.parse(e.newValue);if(!M.validate(parsed))throw new Error('schema');state=parsed;storageOK=true;corrupt=false;render();message('Учебные данные обновлены в другой вкладке.');}catch(error){state=seedDemo(true);storageOK=false;corrupt=true;render();message('Изменённые данные не прошли проверку. Работа объектов не подтверждена.',true);}});
+window.addEventListener('storage',e=>{if(e.key!==M.KEY&&e.key!==null)return;try{const parsed=JSON.parse(e.newValue);if(!M.validate(parsed))throw new Error('schema');state=parsed;storageOK=true;corrupt=false;render();message('Учебные данные обновлены в другой вкладке.');}catch(error){state=seedDemo(true);storageOK=false;corrupt=true;render();message('Изменённые данные не прошли проверку. Работа объектов не подтверждена.',true);}});
 window.addEventListener('online',render);window.addEventListener('offline',render);window.addEventListener('pageshow',render);document.addEventListener('visibilitychange',()=>{if(!document.hidden)render();});
 initScenarios();render();setInterval(render,5000);
 })();

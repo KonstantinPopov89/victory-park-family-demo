@@ -3,17 +3,17 @@
 'use strict';
 const BASE=Date.parse('2026-10-14T11:10:00Z'), MIN=60000, TTL=5*MIN, KEY='victory-availability-pages-v1';
 const RIDES=[
- {id:'autodrom',name:'Автодром',aliases:'машинки'},
- {id:'vr-travel',name:'Виртуальное путешествие',aliases:'vr'},
- {id:'vr-reality',name:'Виртуальная реальность',aliases:'vr кинотеатр'},
- {id:'tower',name:'Вращающаяся башня',aliases:'башня'},
- {id:'wheel',name:'Колесо счастья',aliases:'колесо обозрения'},
- {id:'rocket',name:'Космический корабль',aliases:'ракета'},
- {id:'pendulum',name:'Метроном',aliases:'маятник'},
- {id:'ufo',name:'Мощный НЛО',aliases:'нло'},
- {id:'swan',name:'Плавающий лебедь',aliases:'лебеди лодки'},
- {id:'planet',name:'Планета',aliases:'планета'},
- {id:'mars',name:'Полет на Марс',aliases:'полёт марс'}];
+ {id:'autodrom',catalogId:'autodrom',photo:'assets/autodrom.webp',name:'Автодром',aliases:'машинки'},
+ {id:'vr-travel',catalogId:'VR-for-2',photo:'assets/VR-for-2.webp',name:'Виртуальное путешествие',aliases:'vr'},
+ {id:'vr-reality',catalogId:'VR-cinema',photo:'assets/VR-cinema.webp',name:'Виртуальная реальность',aliases:'vr кинотеатр'},
+ {id:'tower',catalogId:'rotating-tower',photo:'assets/rotating-tower.webp',name:'Вращающаяся башня',aliases:'башня'},
+ {id:'wheel',catalogId:'wheel-of-happiness',photo:'assets/wheel-of-happiness.webp',name:'Колесо счастья',aliases:'колесо обозрения'},
+ {id:'rocket',catalogId:'rocket',photo:'assets/rocket.webp',name:'Космический корабль',aliases:'ракета'},
+ {id:'pendulum',catalogId:'pendulum',photo:'assets/pendulum.webp',name:'Метроном',aliases:'маятник'},
+ {id:'ufo',catalogId:'moto-ufo',photo:'assets/moto-ufo.webp',name:'Мощный НЛО',aliases:'нло'},
+ {id:'swan',catalogId:'water-swan',photo:'assets/water-swan.webp',name:'Плавающий лебедь',aliases:'лебеди лодки'},
+ {id:'planet',catalogId:'planet',photo:'assets/planet.webp',name:'Планета',aliases:'планета'},
+ {id:'mars',catalogId:'mars-ride',photo:'assets/mars-ride.webp',name:'Полет на Марс',aliases:'полёт марс'}];
 const LABELS={open:'Работает',paused:'Пауза',closed:'Не работает',unknown:'Уточняем'};
 const copy=o=>JSON.parse(JSON.stringify(o));
 const clock=t=>new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Yerevan',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(t);
@@ -32,6 +32,8 @@ function seed(realNow=Date.now(),safe=false){
  rides.forEach(r=>r.lastManual=r.manual?copy(r.manual):null);
  return{version:2,revision:0,mode:'debits',thresholds:{mode:'individual',common:15},clock:{realStart:realNow,offsetMs:0,running:true},rides,park:{manual:safe?null:manual('open','Вход в парк открыт.',BASE-2*MIN,60)},sources:{lime:{ok:!safe,complete:!safe,requiresFreshRead:safe,lastSuccessfulRead:BASE-MIN,receivedAt:BASE-MIN},weather:{ok:!safe,checkedAt:BASE-2*MIN,validUntil:BASE+45*MIN,alert:!safe,dismissed:false,ids:['tower','wheel','ufo']}},shift:{active:true,startedAt:BASE-10*MIN},history:[],simulation:{saveError:false,offline:false}};
 }
+// A shared, paused starting point for every screen of the owner presentation.
+function presentationSeed(realNow=Date.now(),safe=false){const s=seed(realNow,safe);s.clock.running=false;return s;}
 function now(s,realNow=Date.now()){return BASE+s.clock.offsetMs+(s.clock.running?Math.max(0,realNow-s.clock.realStart):0);}
 function sourceHealthy(s,t){const l=s.sources.lime;return l.ok&&l.complete&&!l.requiresFreshRead&&fresh(l.lastSuccessfulRead,t);}
 function ownStatus(ride,s,t){
@@ -54,7 +56,9 @@ function derive(s,t=now(s)){
  const park=parkStatus(s,t),rides=s.rides.map(r=>{const own=ownStatus(r,s,t);let effective=own;
  if(park.status==='closed'||park.status==='paused')effective={...own,status:'closed',reason:'Парк временно закрыт. '+park.reason,source:'park',checkedAt:park.checkedAt,needsCheck:false,blockedByPark:true};
  else if(park.status==='unknown'&&own.status==='open')effective={...own,status:'unknown',reason:'Состояние парка требует проверки.',source:'park-unknown',checkedAt:own.checkedAt,needsCheck:true};
- return{...r,...effective,own};});
+ // Metadata comes from the catalog mapping, including for saved states from earlier releases.
+ const canonical=RIDES.find(item=>item.id===r.id);
+ return{...r,...effective,own,catalogId:canonical.catalogId,photo:canonical.photo};});
  const counts=rides.reduce((c,r)=>(c[r.status]++,c),{open:0,paused:0,closed:0,unknown:0});
  const w=s.sources.weather,weatherFresh=w.ok&&fresh(w.checkedAt,t,20*MIN)&&w.validUntil>t;
  return{now:t,park,rides,counts,queue:rides.filter(r=>r.own.needsCheck),weather:{...w,fresh:weatherFresh,showAlert:weatherFresh&&w.alert,needsAction:weatherFresh&&w.alert&&!w.dismissed},limeFresh:sourceHealthy(s,t)};
@@ -128,5 +132,5 @@ function reduce(input,a,t=now(input)){
  }else throw new Error('Неизвестное действие');
  s.revision++;s.history.unshift({at:t,text});s.history=s.history.slice(0,200);if(!validate(s))throw new Error('Изменение нарушает схему');return s;
 }
-return{BASE,MIN,TTL,KEY,RIDES,LABELS,seed,now,derive,ownStatus,parkStatus,reduce,validate,search,clock,date,day,fresh,lastDebit,threshold,sourceHealthy,ageMinutes};
+return{BASE,MIN,TTL,KEY,RIDES,LABELS,seed,presentationSeed,now,derive,ownStatus,parkStatus,reduce,validate,search,clock,date,day,fresh,lastDebit,threshold,sourceHealthy,ageMinutes};
 });
