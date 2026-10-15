@@ -415,16 +415,80 @@
     if (unknown) notes.push('Для части выбранного рост или сопровождение нужно уточнить перед катанием.');
     return notes;
   }
+  // Quote price separately from the unresolved identity of a companion.
+  // Candidate adults are evaluated in copies; no guessed recipient enters the cart.
+  function quoteCart(input) {
+    var original = sanitizeState(input), resolved = reconcileCompanions(original), s = resolved.state;
+    var needsChoice = resolved.issues.some(function (x) { return x.code === 'companion-required'; });
+    var adults = s.party.filter(function (p) { return p.role === 'adult' && integer(p.age, 18, 120); });
+    function uncertain(issues) {
+      return issues.some(function (x) { return ['height-required', 'child-age-required', 'recipient-required', 'rules-unknown', 'too-many-companion-rights'].includes(x.code); });
+    }
+    function option(person, synthetic) {
+      var draft = copy(s);
+      if (synthetic) draft.party.push(person);
+      draft.companionId = person.id; draft.companionAutoSelected = false;
+      var result = reconcileCompanions(draft);
+      return { personId: synthetic ? null : person.id, label: person.label, total: cartTotal(result.state.cart), conditional: uncertain(result.issues),
+        available: !result.issues.some(function (x) { return x.code === 'companion-unavailable' || x.code === 'companion-required'; }), calculation: result };
+    }
+    var options = needsChoice ? adults.map(function (p) { return option(p, false); }) : [];
+    if (needsChoice && !adults.length) options.push(option({ id: 'quote-companion', label: 'Сопровождающий 18+', role: 'adult', age: 18, height: null }, true));
+    var available = options.filter(function (x) { return x.available; });
+    var totals = (needsChoice ? available.map(function (x) { return x.total; }) : [cartTotal(s.cart)]).filter(function (n) { return n !== null; });
+    var min = totals.length ? Math.min.apply(Math, totals) : cartTotal(s.cart);
+    var max = totals.length ? Math.max.apply(Math, totals) : null;
+    var priceUnknown = needsChoice ? !available.length || available.some(function (x) { return x.conditional; }) : uncertain(resolved.issues);
+    var preview = needsChoice && available.length ? available[0].calculation : resolved;
+    var companionLines = preview.state.cart.lines.filter(function (l) { return l.autoCompanion; });
+    var companionCount = preview.requiredAdultId || needsChoice ? 1 : 0;
+    var companionTotals = needsChoice && available.length ? available.map(function (x) { return cartTotal({ lines: x.calculation.state.cart.lines.filter(function (l) { return l.autoCompanion; }) }); }) : [cartTotal({ lines: companionLines })];
+    var companionTotal = companionTotals.every(function (n) { return n === companionTotals[0]; }) ? companionTotals[0] : null;
+    var companionProduct = preview.state.cart.lines.some(function (l) { return l.productId === 'unlimited' && l.personId === preview.requiredAdultId; }) || preview.coverage.passUsed ? 'unlimited' : companionCount ? 'ticket' : null;
+    var notes = resolved.notes.slice();
+    if (needsChoice) notes.push(min === max && !priceUnknown ? 'Полная сумма с одним сопровождающим известна. Выберите взрослого перед оплатой.' : 'Итог зависит от сопровождающего или недостающих данных. Выберите взрослого и проверьте сумму.');
+    return { total: min, minTotal: min, maxTotal: priceUnknown ? null : max, conditional: priceUnknown || min === null || min !== max,
+      needsCompanionChoice: needsChoice, companionCount: companionCount, companionProduct: companionProduct,
+      companionTotal: companionTotal, notes: unique(notes), issues: resolved.issues,
+      companionOptions: options.map(function (x) { return { personId: x.personId, label: x.label, total: x.total, conditional: x.conditional, available: x.available }; }) };
+  }
   function recommend(input) {
     var s = sanitizeState(input), result = { offers: [], errors: [], warnings: [] };
     if (s.mode !== 'demo') { result.warnings.push('Правила онлайн-продуктов реального парка не подтверждены. Учебные продукты не продаются для реального списка.'); return result; }
-    var selected = s.selections.demo;
+    var selected = s.selections.demo, currentQuote = quoteCart(s);
     function hasMatch(product) { return !selected.length || selected.some(function (rideId) { return product.includedRideIds.includes(rideId); }); }
-    function offer(productId, lines, title, description) {
-      var included = products[productId].includedRideIds.slice();
-      var candidate = copy(s); candidate.cart.lines = lines; var calculation = reconcileCompanions(candidate);
-      return { id: productId === 'package5' ? 'package' : 'unlimited', title: title, description: description, lines: calculation.state.cart.lines, total: cartTotal(calculation.state.cart), conditional: calculation.conditional, issues: calculation.issues, includedRideIds: included, excludedRideIds: selected.filter(function (rideId) { return !included.includes(rideId); }), notes: productNotes(s, included).concat(calculation.notes) };
+    function offer(productId, lines, title, description, config) {
+      config = config || {};
+      var included = config.rideId ? [config.rideId] : products[productId].includedRideIds.slice();
+      var candidate = copy(s); candidate.cart.lines = lines;
+      var calculation = reconcileCompanions(candidate), quote = quoteCart(candidate);
+      var added = config.mode === 'add' && !currentQuote.conditional && !quote.conditional ? quote.total - currentQuote.total : null;
+      return Object.assign({ id: config.rideId ? 'single:' + config.rideId : productId === 'package5' ? 'package' : 'unlimited', productId: productId,
+        mode: config.mode || 'replace', rideId: config.rideId || null, title: title, description: description,
+        lines: calculation.state.cart.lines, addedTotal: config.alreadyAdded ? 0 : added, alreadyAdded: !!config.alreadyAdded,
+        unavailable: !!config.unavailable, items: config.items || [], excludedPeople: config.excludedPeople || [],
+        includedRideIds: included, excludedRideIds: selected.filter(function (rideId) { return !included.includes(rideId); }) }, quote,
+        { notes: unique(productNotes(s, included).concat(calculation.notes, quote.notes, config.notes || [])) });
     }
+    if (s.ridersConfirmed && s.riders.length) selected.forEach(function (rideId) {
+      var ride = rideMap[rideId], excluded = [], items = [], lines = s.cart.lines.filter(function (line) { return !line.autoCompanion; }).map(copy);
+      var missing = 0;
+      s.riders.forEach(function (personId) {
+        var person = s.party.find(function (p) { return p.id === personId; }), check = admission(ride, person);
+        if (check.status === 'blocked') { excluded.push({ personId: person.id, label: person.label, reasons: check.reasons }); return; }
+        var covered = lines.some(function (l) { return l.personId === person.id && ((l.productId === 'ticket' && l.rideId === rideId && integer(l.quantity, 1, MAX_QUANTITY)) || (l.productId === 'unlimited' && l.quantity === 1 && products.unlimited.includedRideIds.includes(rideId))); });
+        items.push({ personId: person.id, label: person.label, role: person.role, quantity: 1, needsCompanion: check.needsCompanion, admissionStatus: check.status, coveredInOrder: covered });
+        if (!covered) {
+          var line = newLine('ticket', person.id, rideId, 1), baseId = line.id, suffix = 1;
+          while (lines.some(function (l) { return l.id === line.id; })) line.id = baseId + '-' + suffix++;
+          lines.push(line); missing++;
+        }
+      });
+      var notes = excluded.length ? ['Не включены: ' + excluded.map(function (p) { return p.label + ': ' + p.reasons.join(' '); }).join('; ')] : [];
+      if (!items.length) notes.push('Никому из выбранных катающихся этот аттракцион не подходит по указанным данным.');
+      result.offers.push(offer('ticket', lines, ride.name, 'По одному катанию для перечисленных участников. Сопровождение учтено.',
+        { mode: 'add', rideId: rideId, items: items, excludedPeople: excluded, alreadyAdded: items.length > 0 && missing === 0, unavailable: !items.length, notes: notes }));
+    });
     if (hasMatch(products.package5)) result.offers.push(offer('package5', [newLine('package5', null, null, 1)], 'Общий пакет на 5 катаний', 'Пять общих прав для компании. Кто и сколько раз катается, решите в парке.'));
     if (s.ridersConfirmed && s.riders.length && hasMatch(products.unlimited)) {
       var unusable = s.riders.filter(function (personId) {
@@ -529,5 +593,5 @@
     });
     return result;
   }
-  return freeze({ MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, realRides: realRides, demoRides: demoRides, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, issuedItems: issuedItems });
+  return freeze({ MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, realRides: realRides, demoRides: demoRides, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, quoteCart: quoteCart, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, issuedItems: issuedItems });
 }));

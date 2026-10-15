@@ -556,3 +556,369 @@ span.sp-age-label { min-height: 29px; padding: 5px 9px; background: #f4f0f7; }
  body[data-sp-view="swipe"] .sp-finished-icon { display: none; }
  body[data-sp-view="swipe"] .sp-finished h2 { font-size: 30px; }
 }
+
+/* Continue to purchase without making the saved list an obligatory stop. */
+.sp-action-dock { margin-top: 20px; }
+.sp-action-dock .sp-decision-row { margin-top: 0; }
+.sp-ticket-continue { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
+.sp-ticket-continue > .sp-primary { min-height: 44px; padding: 9px 20px; }
+.sp-ticket-continue > .sp-text { font-size: 12px; white-space: nowrap; }
+.sp-catalog-dock { max-width: 620px; }
+.sp-card-title { flex-wrap: wrap; gap: 8px 14px; }
+.sp-card-title h2 { flex: 1 1 170px; }
+.sp-card-title .sp-price { flex: 0 1 auto; font-size: 18px; white-space: normal; }
+.sp-card-title .sp-price small { max-width: 130px; }
+.sp-card-body > .sp-admission { margin-top: 8px; padding-left: 10px; border-left: 3px solid #efc74c; }
+.sp-card-body > .sp-admission span { margin-top: 2px; }
+.sp-family-button > span { white-space: normal; max-height: none; overflow: visible; }
+
+/* Keep family actions in place while the participant list scrolls. */
+#sp-dialog[data-kind="family"] { padding: 0; overflow: hidden; }
+#sp-dialog[data-kind="family"] .sp-dialog-close { position: absolute; top: 14px; right: 14px; float: none; margin: 0; }
+#sp-dialog[data-kind="family"] #sp-dialog-body { display: flex; flex-direction: column; max-height: calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+.sp-family-heading { flex: none; padding: 25px 26px 14px; }
+#sp-dialog .sp-family-heading h2 { padding-right: 30px; margin-top: 8px; margin-bottom: 10px; }
+.sp-family-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 26px 16px; scrollbar-gutter: stable; }
+.sp-family-scroll .sp-party { margin-top: 0; }
+.sp-family-done { flex: none; padding: 12px 26px 20px; background: #fff; border-top: 1px solid #e3e1ec; }
+#sp-dialog .sp-family-done .sp-primary { width: 100%; margin: 0; }
+
+@media (max-width: 680px) {
+ body[data-page="picker"] { padding-bottom: 98px; overflow-x: clip; }
+ .sp-wrap { width: min(480px, calc(100% - 32px)); padding-top: 18px; }
+ .sp-intro { display: block; position: relative; margin-bottom: 10px; }
+ .sp-intro .sp-eyebrow { display: none; }
+ .sp-intro h1 { font-size: 38px; line-height: 1.12; margin: 0; }
+ .sp-intro-copy { display: none; }
+ .sp-top-actions { justify-content: space-between; padding: 0; margin-top: 8px; }
+ .sp-top-actions > .sp-text { font-size: 11px; width: auto; padding-left: 0; gap: 6px; }
+ .sp-top-actions > .sp-text svg { width: 17px; height: 17px; }
+ .sp-list-button { font-size: 11px; min-height: 40px; padding: 7px 12px; }
+ .sp-list-button > svg { width: 18px; height: 18px; }
+ .sp-toolbar { margin-bottom: 5px; padding-bottom: 10px; gap: 6px; }
+ .sp-views { padding: 3px; }
+ .sp-views .sp-btn { min-height: 38px; padding-inline: 10px; font-size: 10px; gap: 5px; }
+ .sp-views svg { width: 14px; height: 14px; }
+ .sp-family-button { max-width: 47%; font-size: 10px; gap: 6px; padding-left: 5px; }
+ .sp-family-button > span { white-space: normal; max-height: 3em; overflow: hidden; }
+ .sp-family-button svg { width: 17px; height: 17px; }
+ .sp-layout { display: block; }
+ .sp-selection { max-width: none; }
+ .sp-plan { display: none; }
+ .sp-layout.is-list .sp-plan { display: block; padding-top: 14px; }
+ .sp-filter-row { margin-bottom: 6px; gap: 3px; }
+ .sp-filter-row .sp-btn { min-height: 40px; padding: 8px 13px; font-size: 10px; }
+ .sp-onboard { padding: 10px 12px; margin-bottom: 12px; border-radius: 12px; }
+ .sp-onboard strong { font-size: 11px; }
+ .sp-onboard p { font-size: 10px; margin-top: 4px !important; }
+ .sp-onboard small { font-size: 8px; }
+ .sp-onboard .sp-icon { width: 44px; }
+ .sp-card, .sp-card:has(button:focus-visible) .sp-photo { border-radius: 18px; }
+ .sp-card:has(button:focus-visible) .sp-photo { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+ .sp-photo { height: auto; aspect-ratio: 1.85; }
+ .sp-photo > img { position: absolute; inset: 0; }
+ .sp-tag { top: 12px; left: 12px; font-size: 9px; padding: 6px 9px; }
+ .sp-stamp { top: 64px; font-size: 15px; }
+ .sp-card-body { padding: 15px 16px 12px; }
+ .sp-card-title h2 { font-size: 29px; }
+ .sp-price { font-size: 15px; padding-top: 2px; }
+ .sp-price small { font-size: 8px; }
+ .sp-description { font-size: 10px; margin-top: 7px !important; line-height: 1.6; }
+ .sp-facts { margin-top: 10px; gap: 5px; }
+ .sp-facts span { font-size: 9px; padding: 4px 7px; }
+ .sp-conditions { margin-top: 10px; padding-top: 5px; gap: 5px; }
+ .sp-conditions > p { font-size: 9px; }
+ .sp-conditions small { font-size: 8px; }
+ .sp-conditions .sp-text { font-size: 9px; }
+ .sp-source { font-size: 7px; }
+ .sp-decision-row { position: fixed; z-index: 40; bottom: 0; left: 0; right: 0; width: 100%; margin: 0; gap: 16px; padding: 12px 16px calc(22px + env(safe-area-inset-bottom)); border-top: 1px solid #e6e1ed; background: #fff; box-shadow: 0 -4px 24px #22164b06; }
+ .sp-decision { width: min(34vw, 155px); min-height: 49px; font-size: 11px; }
+ .sp-decision > svg { width: 20px; height: 20px; }
+ .sp-undo { width: 44px; min-height: 44px; padding: 9px; }
+ .sp-undo > span { font-size: 8px; top: calc(100% + 3px); }
+ .sp-progress { margin-top: 16px; min-height: 44px; }
+ .sp-keyboard-hint { display: none; }
+ .sp-bottom-note { font-size: 9px; margin-top: 15px; }
+ .sp-layout.is-list .sp-plan-head { align-items: center; }
+ .sp-layout.is-list .sp-plan-head h2 { font-size: 19px; }
+ .sp-plan-head .sp-text { font-size: 10px; padding-inline: 4px; }
+ .sp-plan-head .sp-text svg { width: 16px; height: 16px; }
+ .sp-layout.is-list .sp-plan-name { font-size: 12px; }
+ .sp-layout.is-list .sp-plan-items p { font-size: 10px; }
+ .sp-layout.is-list .sp-plan-items img { width: 60px; height: 60px; }
+ .sp-finished { min-height: 370px; padding: 27px 24px; }
+ .sp-finished h2 { font-size: 37px; }
+ .sp-catalog { gap: 12px; }
+ .sp-catalog-card > div { padding: 12px; }
+ .sp-catalog-card h2 { font-size: 24px; }
+ .sp-catalog-actions { display: block; }
+ .sp-catalog-actions .sp-btn:first-child { width: 100%; }
+ .sp-catalog-actions .sp-text { padding-left: 0; }
+ .sp-catalog-card p { font-size: 9px; }
+ #sp-dialog { padding: 24px 20px; width: calc(100% - 24px); max-height: calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); border-radius: 20px; }
+ #sp-dialog h2 { font-size: 34px; }
+ #sp-dialog .sp-dialog-close { margin-right: -6px; }
+ #sp-dialog .sp-primary { width: 100%; }
+ .sp-person { padding: 11px 12px; }
+ .sp-age-grid { gap: 4px; }
+ .sp-wrap + dialog + .sr-only + .vp-footer { margin-top: 32px; }
+}
+@media (max-width: 359px) {
+ .sp-wrap { width: calc(100% - 24px); }
+ .sp-intro h1 { font-size: 34px; }
+ .sp-views .sp-btn { padding-inline: 8px; }
+ .sp-family-button { font-size: 9px; }
+ .sp-family-button svg { display: none; }
+ .sp-card-title h2 { font-size: 26px; }
+ .sp-price { font-size: 13px; }
+ .sp-card-body { padding-inline: 13px; }
+ .sp-decision-row { gap: 10px; padding-inline: 12px; }
+ .sp-decision { font-size: 10px; gap: 5px; }
+ .sp-catalog { grid-template-columns: minmax(0, 1fr); }
+ .sp-catalog-card > img { aspect-ratio: 1.8; }
+ .sp-catalog-actions { display: flex; }
+ .sp-catalog-actions .sp-btn:first-child { width: auto; }
+ .sp-age-grid { grid-template-columns: repeat(4, minmax(44px, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+ .sp-card, .sp-btn, .sp-primary, .sp-ghost { transition: none !important; animation: none !important; }
+ .sp-btn:active:not(:disabled), .sp-primary:active { transform: none; }
+ #sp-dialog::backdrop { backdrop-filter: none; }
+}
+
+/* Keep the first decision and its conditions within a normal phone viewport. */
+.sp-image-fallback { display: grid; place-items: center; min-height: 120px; padding: 24px; background: #eeebf3; color: #716982; font-size: 12px; line-height: 1.6; text-align: center; }
+.sp-photo > .sp-image-fallback { position: absolute; inset: 0; }
+.sp-plan-items .sp-image-fallback { width: 56px; height: 57px; min-height: 0; flex: none; padding: 5px; border-radius: 8px; font-size: 7px; }
+.sp-catalog-card > .sp-image-fallback { aspect-ratio: 1.35; }
+@media (max-width: 680px) {
+ .sp-wrap { position: relative; }
+ .sp-intro { position: static; margin-bottom: 13px; }
+ .sp-intro h1 { padding-right: 42px; font-size: 36px; }
+ .sp-top-actions { margin: 0; }
+ .sp-top-actions > .sp-text { position: absolute; right: 0; top: 17px; width: 44px; font-size: 0; padding: 10px; }
+ .sp-top-actions > .sp-text svg { width: 20px; height: 20px; }
+ .sp-list-button { position: absolute; right: 0; top: 72px; font-size: 10px; min-height: 44px; padding: 8px 11px; gap: 7px; }
+ .sp-views .sp-btn { padding-inline: 9px; }
+ .sp-toolbar { padding-bottom: 9px; }
+ .sp-family-button { position: absolute; top: 130px; right: 0; width: 118px; max-width: 118px; padding: 3px 0 3px 8px; font-size: 9px; min-height: 40px; }
+ .sp-family-button > span { max-height: 3em; }
+ .sp-family-button svg { width: 16px; height: 16px; }
+ .sp-filter-row { width: calc(100% - 120px); gap: 0; }
+ .sp-filter-row .sp-btn { padding-inline: 10px; font-size: 9px; }
+ .sp-card-body { padding-bottom: 13px; }
+ .sp-conditions > p { font-size: 10px; }
+ .sp-conditions small { font-size: 9px; }
+ .sp-conditions .sp-text { font-size: 10px; }
+ .sp-source { font-size: 8px; }
+ .sp-no { white-space: nowrap; padding-inline: 10px; }
+}
+@media (max-width: 359px) {
+ .sp-intro h1 { font-size: 31px; }
+ .sp-list-button { top: 66px; padding-inline: 9px; }
+ .sp-list-button > svg { display: none; }
+ .sp-views .sp-btn { padding-inline: 8px; }
+ .sp-family-button { top: 124px; width: 108px; max-width: 108px; }
+ .sp-filter-row { width: calc(100% - 110px); }
+ .sp-filter-row .sp-btn { padding-inline: 7px; font-size: 9px; }
+}
+@media (min-width: 681px) {
+ .sp-wrap { padding-top: 24px; }
+ .sp-intro { margin-bottom: 18px; }
+ .sp-intro h1 { font-size: 52px; margin-top: 6px; }
+ .sp-intro-copy { display: none; }
+ .sp-toolbar { padding-bottom: 12px; margin-bottom: 12px; }
+ .sp-filter-row { margin-bottom: 8px; }
+ .sp-onboard { margin-bottom: 12px; }
+ .sp-photo { height: 225px; }
+ .sp-card-body { padding-top: 18px; }
+ .sp-plan { padding-top: 18px; }
+}
+/* Reading comfort wins over fitting all content above the fold. */
+.sp-views .sp-btn, .sp-filter-row .sp-btn, .sp-progress .sp-text, .sp-family-button { min-height: 44px; }
+.sp-plan-name { min-height: 44px; }
+.sp-description { font-size: 12px; }
+.sp-facts span { font-size: 11px; }
+.sp-conditions > p, .sp-conditions .sp-text { font-size: 12px; }
+.sp-conditions small, .sp-source, .sp-price small, .sp-tag { font-size: 11px; }
+.sp-onboard strong, .sp-onboard p { font-size: 12px; }
+.sp-onboard small { font-size: 11px; }
+.sp-plan-name { font-size: 12px; }
+.sp-plan-items p, .sp-plan-end > small, .sp-progress, .sp-progress .sp-text, .sp-bottom-note { font-size: 11px; }
+.sp-plan-empty p, .sp-plan-end > p { font-size: 12px; }
+.sp-keyboard-hint { font-size: 10px; }
+.sp-catalog-card p, .sp-catalog-actions .sp-btn { font-size: 12px; }
+.sp-catalog-card small, .sp-catalog-card > div > .sp-text { font-size: 11px; }
+#sp-dialog .sp-small, #sp-dialog .sp-field-note { font-size: 11px; }
+@media (max-width: 680px) {
+ body[data-page="picker"] .vp-nav-wrap { min-height: 68px; padding-block: 5px; }
+ body[data-page="picker"] .vp-logo img { width: 72px; height: 50px; }
+ .sp-intro h1 { font-size: 34px; }
+ .sp-list-button { top: 70px; }
+ .sp-family-button { top: 134px; font-size: 11px; min-height: 44px; }
+ .sp-family-button svg { display: none; }
+ .sp-views .sp-btn { font-size: 11px; }
+ .sp-filter-row .sp-btn { font-size: 11px; padding-inline: 8px; }
+ .sp-photo { aspect-ratio: 2.15; }
+ .sp-onboard { padding-block: 10px; }
+ .sp-onboard small { line-height: 1.5; }
+ .sp-card-title h2 { font-size: 29px; }
+ .sp-description { font-size: 12px; line-height: 1.6; }
+ .sp-facts span { font-size: 11px; }
+ .sp-conditions > p, .sp-conditions .sp-text { font-size: 12px; }
+ .sp-conditions small, .sp-source, .sp-price small { font-size: 11px; }
+ .sp-source { margin-top: 7px !important; }
+ .sp-tag { font-size: 11px; }
+ .sp-list-button, .sp-no, .sp-yes { font-size: 12px; }
+ .sp-list-button { gap: 5px; padding-inline: 10px; }
+ .sp-list-button > svg { display: none; }
+ .sp-progress, .sp-progress .sp-text, .sp-bottom-note { font-size: 11px; }
+ .sp-undo > span { font-size: 10px; }
+ .sp-layout.is-list .sp-plan-items p { font-size: 12px; }
+ .sp-plan-head .sp-text { font-size: 11px; }
+}
+@media (max-width: 359px) {
+ .sp-intro h1 { font-size: 30px; }
+ .sp-list-button { top: 65px; font-size: 11px; }
+ .sp-family-button { top: 129px; font-size: 10px; }
+ .sp-filter-row .sp-btn { padding-inline: 5px; font-size: 10px; }
+ .sp-views .sp-btn { font-size: 10px; }
+ .sp-card-title h2 { font-size: 27px; }
+ .sp-conditions { flex-wrap: wrap; }
+ .sp-conditions > p { flex: 1 1 180px; }
+ .sp-card-body { padding-inline: 14px; }
+ .sp-no, .sp-yes { font-size: 11px; }
+}
+.sp-search-label { display: block; font-size: 12px; font-weight: 600; line-height: 1.6; margin-bottom: 14px; }
+.sp-search { display: block; width: 100%; min-height: 48px; margin-top: 7px; padding: 11px 14px; border: 1px solid #c8c1d6; border-radius: 12px; background: #fff; color: #2f2e7d; font: 400 16px/1.5 Montserrat, sans-serif; }
+.sp-search::placeholder { color: #81778d; opacity: 1; }
+@media (min-width: 1100px) {
+ .sp-intro { min-height: 90px; position: relative; padding-right: 55%; }
+ .sp-intro h1 { white-space: nowrap; }
+ .sp-top-actions { position: absolute; right: 0; top: 0; }
+ .sp-toolbar { width: 53%; margin: -54px 0 22px auto; padding-bottom: 0; border-bottom: 0; }
+ .sp-layout { position: relative; width: 896px; max-width: 100%; margin-inline: auto; grid-template-columns: 460px 340px; gap: 96px; }
+ .sp-layout:has(.sp-plan-empty) .sp-onboard { position: absolute; right: 0; top: 268px; width: 310px; }
+ .sp-layout.is-list { width: auto; }
+ body[data-sp-view="catalog"] .sp-layout { width: auto; }
+}
+@media (min-width: 1100px) {
+ .sp-layout:not(:has(.sp-plan-empty)) .sp-onboard { display: none; }
+}
+@media (min-width: 1100px) {
+ .sp-toolbar { position: relative; z-index: 1; }
+}
+@media (max-width: 680px) {
+ body[data-sp-view="list"] .sp-family-button { display: none; }
+}
+
+/* Shared admission and operating-status context from the current family model. */
+.sp-admission { margin: 9px 0 0; font: 500 12px/1.55 Montserrat,sans-serif; color: #45406f; }
+.sp-admission strong { display:block; color: #2f2e7d; }
+.sp-admission span { display:block; margin-top: 4px; }
+.sp-admission-blocked { color:#8c3459; }
+.sp-availability { margin-top:12px; font: 400 11px/1.55 Montserrat,sans-serif; }
+.sp-availability > small { display:block; margin-bottom:5px; color:#65647b; }
+.sp-availability .catalog-status-detail { margin-top:6px; font-size:11px; line-height:1.55; }
+.sp-plan .sp-admission { font-size:11px; }
+
+/* Continue to purchase without making the saved list an obligatory stop. */
+.sp-action-dock { margin-top: 20px; }
+.sp-action-dock .sp-decision-row { margin-top: 0; }
+.sp-ticket-continue { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
+.sp-ticket-continue > .sp-primary { min-height: 44px; padding: 9px 20px; }
+.sp-ticket-continue > .sp-text { font-size: 12px; white-space: nowrap; }
+.sp-catalog-dock { max-width: 620px; }
+.sp-card-title { flex-wrap: wrap; gap: 8px 14px; }
+.sp-card-title h2 { flex: 1 1 170px; }
+.sp-card-title .sp-price { flex: 0 1 auto; font-size: 18px; white-space: normal; }
+.sp-card-title .sp-price small { max-width: 130px; }
+.sp-card-body > .sp-admission { margin-top: 8px; padding-left: 10px; border-left: 3px solid #efc74c; }
+.sp-card-body > .sp-admission span { margin-top: 2px; }
+.sp-family-button > span { white-space: normal; max-height: none; overflow: visible; }
+
+/* Keep family actions in place while the participant list scrolls. */
+#sp-dialog[data-kind="family"] { padding: 0; overflow: hidden; }
+#sp-dialog[data-kind="family"] .sp-dialog-close { position: absolute; top: 14px; right: 14px; float: none; margin: 0; }
+#sp-dialog[data-kind="family"] #sp-dialog-body { display: flex; flex-direction: column; max-height: calc(100dvh - 36px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+.sp-family-heading { flex: none; padding: 25px 26px 14px; }
+#sp-dialog .sp-family-heading h2 { padding-right: 30px; margin-top: 8px; margin-bottom: 10px; }
+.sp-family-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 26px 16px; scrollbar-gutter: stable; }
+.sp-family-scroll .sp-party { margin-top: 0; }
+.sp-family-done { flex: none; padding: 12px 26px 20px; background: #fff; border-top: 1px solid #e3e1ec; }
+#sp-dialog .sp-family-done .sp-primary { width: 100%; margin: 0; }
+
+@media (max-width: 680px) {
+ body[data-page="picker"] { padding-bottom: calc(104px + env(safe-area-inset-bottom)); }
+ body[data-page="picker"].sp-has-selection { padding-bottom: calc(152px + env(safe-area-inset-bottom)); }
+ .sp-toolbar { display: grid; grid-template-columns: 1fr; gap: 3px; padding-bottom: 5px; }
+ .sp-views { justify-self: start; }
+ .sp-family-button { position: static; width: 100%; max-width: none; justify-content: flex-start; padding: 5px 0; font-size: 12px; min-height: 44px; }
+ .sp-family-button > span { white-space: normal; max-height: none; overflow: visible; }
+ .sp-family-button svg { display: block; width: 16px; height: 16px; }
+ .sp-filter-row { width: 100%; margin-bottom: 7px; }
+ .sp-filter-row .sp-btn { min-height: 44px; padding: 6px 12px; }
+ .sp-onboard { padding: 8px 11px; margin-bottom: 10px; }
+ .sp-onboard strong { display: none; }
+ .sp-onboard p { margin: 0 !important; font-size: 11px; }
+ .sp-onboard small { font-size: 10px; margin-top: 3px; }
+ .sp-onboard .sp-icon { min-height: 44px; }
+ .sp-photo { aspect-ratio: 2.55; }
+ .sp-card-body { padding-top: 13px; }
+ .sp-card-title h2 { flex-basis: 145px; font-size: 28px; }
+ .sp-card-title .sp-price { font-size: 17px; }
+ .sp-card-title .sp-price small { font-size: 10px; max-width: 116px; }
+ .sp-card-body > .sp-admission { font-size: 12px; line-height: 1.5; margin-top: 7px; }
+ .sp-card-body > .sp-admission span { font-size: 11px; }
+ .sp-action-dock { position: fixed; z-index: 40; bottom: 0; left: 0; right: 0; margin: 0; padding: 9px 16px calc(17px + env(safe-area-inset-bottom)); border-top: 1px solid #e6e1ed; background: #fff; box-shadow: 0 -4px 24px #22164b06; }
+ .sp-action-dock .sp-decision-row { position: static; width: 100%; padding: 0 0 10px; border: 0; box-shadow: none; gap: 13px; }
+ .sp-action-dock .sp-decision { flex: 1; width: auto; max-width: 155px; min-height: 46px; }
+ .sp-action-dock .sp-undo { min-height: 44px; }
+ .sp-action-dock .sp-undo > span { top: calc(100% + 1px); font-size: 9px; }
+ .sp-ticket-continue { margin-top: 11px; padding-top: 7px; border-top: 1px solid #eeeaf3; gap: 12px; }
+ .sp-ticket-continue > .sp-primary { flex: 1; max-width: 215px; font-size: 12px; }
+ .sp-ticket-continue > .sp-text { padding-inline: 4px; font-size: 11px; }
+ .sp-catalog-dock { max-width: none; }
+ .sp-catalog-dock .sp-ticket-continue { margin: 0; padding: 0; border: 0; }
+ body[data-sp-view="catalog"].sp-has-selection { padding-bottom: calc(90px + env(safe-area-inset-bottom)); }
+ .sp-family-heading { padding: 20px 18px 13px; }
+ #sp-dialog .sp-family-heading h2 { font-size: 31px; }
+ #sp-dialog .sp-family-heading p { font-size: 11px; line-height: 1.6; }
+ .sp-family-scroll { padding: 0 18px 14px; }
+ .sp-family-done { padding: 12px 18px 18px; }
+ #sp-dialog[data-kind="family"] #sp-dialog-body { max-height: calc(100dvh - 28px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+ #sp-dialog[data-kind="family"] .sp-dialog-close { top: 10px; right: 10px; }
+}
+@media (max-width: 359px) {
+ .sp-family-button { font-size: 11px; }
+ .sp-filter-row .sp-btn { padding-inline: 10px; font-size: 11px; }
+ .sp-photo { aspect-ratio: 2.65; }
+ .sp-card-title { gap: 5px 10px; }
+ .sp-card-title h2 { flex-basis: 130px; font-size: 26px; }
+ .sp-card-title .sp-price { font-size: 16px; }
+ .sp-card-title .sp-price small { max-width: 110px; }
+ .sp-action-dock { padding-inline: 12px; }
+ .sp-action-dock .sp-decision-row { gap: 10px; }
+ .sp-action-dock .sp-decision { font-size: 11px; gap: 5px; padding-inline: 10px; }
+ #sp-dialog .sp-family-heading h2 { font-size: 29px; }
+}
+
+/* Integrate the direct purchase action with the parallel full-height mobile picker. */
+@media (max-width: 680px) {
+ body[data-page="picker"][data-sp-view="swipe"].sp-has-selection { padding: 0; }
+ body[data-sp-view="swipe"] .sp-action-dock { position: static; flex: none; margin: 0; padding: 9px 0 calc(16px + env(safe-area-inset-bottom)); border: 0; background: transparent; box-shadow: none; }
+ body[data-sp-view="swipe"] .sp-action-dock .sp-decision-row { padding: 3px 0 12px; gap: 12px; }
+ body[data-sp-view="swipe"] .sp-ticket-continue { margin-top: 8px; padding-top: 7px; }
+ body[data-sp-view="swipe"] .sp-ticket-continue > .sp-primary { max-width: 240px; }
+ body[data-sp-view="swipe"] .sp-card-body > .sp-admission { order: 1; margin-top: 8px; font-size: 12px; line-height: 1.45; }
+ body[data-sp-view="swipe"] .sp-conditions { order: 2; }
+ .sp-mobile-hint .sp-mobile-family { margin-top: 4px; white-space: normal; text-align: center; }
+ #sp-dialog[data-kind="family"] { padding: 0; }
+ #sp-dialog[data-kind="family"] #sp-dialog-body { max-height: calc(100dvh - 28px - env(safe-area-inset-top)); }
+ #sp-dialog[data-kind="family"] .sp-family-heading { padding-top: 25px; }
+ #sp-dialog[data-kind="family"] .sp-family-done { padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+}
+@media (max-width: 359px) {
+ body[data-sp-view="swipe"] .sp-action-dock .sp-decision-row { gap: 8px; }
+ body[data-sp-view="swipe"] .sp-card-title h2 { font-size: 26px; }
+}
