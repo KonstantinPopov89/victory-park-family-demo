@@ -23,11 +23,23 @@
     demo('demo-thrill', 'Американские горки', 1400, 'exciting', [9, 17], '↗', 130, 200, 140, 'assets/demo-coaster.webp'),
     demo('demo-together', 'Чайные чашки', 1100, 'calm', [5, 14], '∞', 100, 210, 140, 'assets/demo-teacups.webp'),
     demo('demo-small', 'Детская карусель', 600, 'calm', [3, 8], '◒', 80, 125, 80, 'assets/demo-carousel.webp'),
-    demo('demo-unknown', 'Цепочная карусель', 700, 'exciting', null, '?', null, null, null, 'assets/demo-swings.webp')
+    demo('demo-unknown', 'Цепочная карусель', 700, 'exciting', null, '?', null, null, null, 'assets/demo-swings.webp'),
+    // Park names and photos illustrate the picker; every condition and price is fictional.
+    demo('demo-water-swan', 'Плавающий лебедь', 1000, 'calm', [4, 12], '○', 90, 210, 130, 'assets/water-swan.webp'),
+    demo('demo-wheel-of-happiness', 'Колесо счастья', 1200, 'calm', [4, 17], '○', 90, 210, 130, 'assets/wheel-of-happiness.webp'),
+    demo('demo-autodrom', 'Автодром', 1400, 'exciting', [8, 17], '↗', 110, 200, 140, 'assets/autodrom.webp'),
+    demo('demo-mars-ride', 'Полет на Марс', 1700, 'exciting', [10, 17], '↗', 130, 200, 150, 'assets/mars-ride.webp'),
+    demo('demo-planet', 'Планета', 1500, 'exciting', [9, 17], '↗', 120, 200, 140, 'assets/planet.webp'),
+    demo('demo-moto-ufo', 'Мощный НЛО', 1500, 'exciting', [9, 17], '↗', 120, 200, 140, 'assets/moto-ufo.webp'),
+    demo('demo-pendulum', 'Метроном', 1800, 'exciting', [12, 17], '↗', 140, 200, 140, 'assets/pendulum.webp'),
+    demo('demo-rotating-tower', 'Вращающаяся башня', 1300, 'exciting', [7, 17], '↗', 110, 200, 140, 'assets/rotating-tower.webp'),
+    demo('demo-rocket', 'Космический корабль', 1500, 'exciting', [9, 17], '↗', 120, 200, 140, 'assets/rocket.webp'),
+    demo('demo-vr-cinema', 'Виртуальная реальность', 1100, 'exciting', [7, 17], '↗', 100, 210, 120, 'assets/VR-cinema.webp')
   ]);
+  var legacyDemoRides = demoRides.slice(0, 5);
   var MAX_QUANTITY = 20;
   var products = freeze({
-    ticket: { id: 'ticket', name: 'Билет на одно катание', price: null, includedRideIds: demoRides.map(function (r) { return r.id; }), personal: false, dateRequired: false, fictional: true,
+    ticket: { id: 'ticket', name: 'Билет на одно катание', price: null, includedRideIds: legacyDemoRides.map(function (r) { return r.id; }), personal: false, dateRequired: false, fictional: true,
       terms: ['Учебный билет на выбранный аттракцион. Цена зависит от аттракциона.', 'Одно оплаченное катание. Учебный срок: один день первого использования. Не подтверждает допуск.', 'В учебной модели необходимое сопровождение включено в право ребёнка; отдельное катание взрослого покупается только по его желанию.'] },
     package5: { id: 'package5', name: 'Общий пакет на 5 катаний', price: 4000, includedRideIds: ['demo-calm', 'demo-thrill', 'demo-together', 'demo-small'], rides: 5, personal: false, dateRequired: false, fictional: true,
       terms: ['Учебный пакет: 5 катаний на четыре перечисленных аттракциона.', 'Общий для участников компании, повторные катания расходуют по одному праву.', 'Цепочная карусель не входит. Пять прав на катание общие для всей компании.', 'Учебный срок: один день первого использования. Приоритетной очереди нет.', 'Необходимое сопровождение включено; личные катания взрослого расходуют отдельные права.'] },
@@ -41,13 +53,28 @@
   nextProducts.package5.terms[4] = 'Совместное катание ребёнка и взрослого расходует два из пяти общих прав. Это не пять совместных катаний.';
   nextProducts.unlimited.terms[5] = 'Если ребёнку нужно сопровождение на входящем аттракционе, взрослому нужен свой безлимит. Один взрослый сопровождает детей по очереди; его безлимит учитывается один раз в заказе.';
   products = freeze(nextProducts);
-  var MODEL_VERSION = 'family-demo-3.2';
+  // Orders issued in 3.2 retain their five-ride catalog and paid accompaniment terms.
+  var legacy32Products = products;
+  var expandedProducts = copy(products);
+  expandedProducts.ticket.includedRideIds = demoRides.map(function (ride) { return ride.id; });
+  products = freeze(expandedProducts);
+  var MODEL_VERSION = 'family-demo-3.3';
   // Explicit fictional admission examples. Editorial ageRange is deliberately separate.
   var admissionRules = freeze({
     'demo-calm': { minAge: 3, maxAge: null, soloAge: 8, adultPrice: 900 },
     'demo-thrill': { minAge: 8, maxAge: null, soloAge: 12, adultPrice: 1400 },
     'demo-together': { minAge: 4, maxAge: null, soloAge: 8, adultPrice: 1100 },
-    'demo-small': { minAge: 3, maxAge: 8, soloAge: 3, adultPrice: 600 }
+    'demo-small': { minAge: 3, maxAge: 8, soloAge: 3, adultPrice: 600 },
+    'demo-water-swan': { minAge: 3, maxAge: null, soloAge: 8, adultPrice: 1000 },
+    'demo-wheel-of-happiness': { minAge: 3, maxAge: null, soloAge: 10, adultPrice: 1200 },
+    'demo-autodrom': { minAge: 6, maxAge: null, soloAge: 12, adultPrice: 1400 },
+    'demo-mars-ride': { minAge: 10, maxAge: null, soloAge: 14, adultPrice: 1700 },
+    'demo-planet': { minAge: 8, maxAge: null, soloAge: 12, adultPrice: 1500 },
+    'demo-moto-ufo': { minAge: 8, maxAge: null, soloAge: 12, adultPrice: 1500 },
+    'demo-pendulum': { minAge: 12, maxAge: null, soloAge: 12, adultPrice: 1800 },
+    'demo-rotating-tower': { minAge: 6, maxAge: null, soloAge: 10, adultPrice: 1300 },
+    'demo-rocket': { minAge: 8, maxAge: null, soloAge: 12, adultPrice: 1500 },
+    'demo-vr-cinema': { minAge: 6, maxAge: null, soloAge: 10, adultPrice: 1100 }
   });
   var VALIDITY = 'Один день первого использования';
   // Exact original catalog. Existing orders keep the names and rights they were issued with.
@@ -131,7 +158,13 @@
     rides: demoRides.reduce(function (out, ride) { out[ride.id] = { name: ride.name, price: ride.price }; return out; }, {}),
     products: products
   });
-  var orderCatalogs = freeze({ 'family-demo-3': legacyOrderCatalog, 'family-demo-3.1': { rides: currentOrderCatalog.rides, products: legacy31Products }, 'family-demo-3.2': currentOrderCatalog });
+  var legacyNamedRides = legacyDemoRides.reduce(function (out, ride) { out[ride.id] = { name: ride.name, price: ride.price }; return out; }, {});
+  var orderCatalogs = freeze({
+    'family-demo-3': legacyOrderCatalog,
+    'family-demo-3.1': { rides: legacyNamedRides, products: legacy31Products },
+    'family-demo-3.2': { rides: legacyNamedRides, products: legacy32Products },
+    'family-demo-3.3': currentOrderCatalog
+  });
   var rideMap = {};
   realRides.concat(demoRides).forEach(function (r) { rideMap[r.id] = r; });
   function copy(value) { return JSON.parse(JSON.stringify(value)); }
