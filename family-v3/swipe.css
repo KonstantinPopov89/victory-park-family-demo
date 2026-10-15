@@ -922,3 +922,5 @@ span.sp-age-label { min-height: 29px; padding: 5px 9px; background: #f4f0f7; }
  body[data-sp-view="swipe"] .sp-action-dock .sp-decision-row { gap: 8px; }
  body[data-sp-view="swipe"] .sp-card-title h2 { font-size: 26px; }
 }
+
+.sp-plan-end .sp-company-link,.sp-plan-end .sp-flexible-link{display:flex;align-items:center;justify-content:center;min-height:48px;margin:8px 0;gap:10px}.sp-plan-end .sp-ticket-link{background:transparent;color:#2f2e7d;border:1px solid #d7d5e4}.sp-flexible-link{color:#2f2e7d;text-decoration:underline;text-underline-offset:3px}
