@@ -15,6 +15,7 @@ const icons = {
   people:'<circle cx="9" cy="7" r="3"/><path d="M3 21v-4a6 6 0 0 1 12 0v4M17 4a3 3 0 0 1 0 6m1 4a5 5 0 0 1 3 4v3"/>',
   info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v1"/>',
   check:'<path d="m5 12 4 4L19 6"/>',
+  settings:'<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3" fill="currentColor"/><circle cx="15" cy="17" r="3" fill="currentColor"/>',
   back:'<path d="M20 12H4m6-6-6 6 6 6"/>',
 };
 const icon = name => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name] || icons.info}</svg>`;
@@ -39,7 +40,8 @@ if(['real','demo'].includes(params.get('mode'))) state.mode=params.get('mode');
 const linked=lookup(params.get('ride'));if(linked){state.mode=linked.fictional?'demo':'real';forced=linked.id;}
 if(location.hash==='#plan')view='list';
 if(params.get('view')==='catalog')view='catalog';
-let showOnboard=!journal.onboard, search='';
+let showOnboard=!journal.onboard, search='', settling=null, dragFrame=0;
+const gestureSettings={distanceRatio:.14,minDistance:44,maxDistance:56,flickDistance:32,flickSpeed:.42,velocityWindow:90};
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const selected = () => state.selections[state.mode];
 const part = () => journal.modes[state.mode];
@@ -89,12 +91,18 @@ function card(r,preview=false){
  ${admissionNote(r)}${availability(r)}<p class="sp-source">${esc(sourceLabel(r))}</p></div></article>`;
 }
 function plan(){const items=selected().map(lookup).filter(Boolean);return `<div class="sp-plan-head"><div><p class="sp-eyebrow">Выбрано вами</p><h2>Хочу покататься <span>${items.length}</span></h2></div>${view==='list'?btn('swipe',icon('back')+'К карточкам','sp-text'):''}</div>${items.length?`<ul class="sp-plan-items">${items.map(r=>`<li>${image(r,'sp-thumb')}<div><button class="sp-plan-name" data-sp="details" data-ride="${r.id}">${esc(r.name)}</button><p>${esc(summary(r))}</p>${admissionNote(r)}${availability(r)}</div>${btn('remove',icon('x'),'sp-icon',`data-ride="${r.id}" aria-label="Убрать ${esc(r.name)} из списка"`)}</li>`).join('')}</ul><div class="sp-plan-end"><p>Выбрали достаточно? Можно перейти к билетам уже сейчас.</p><a class="sp-primary sp-ticket-link" href="tickets.html${state.mode==='real'?'?from=real':''}">К билетам ${icon('arrow')}</a><small>Список сохранится. Лайк не подтверждает допуск.</small></div>`:`<div class="sp-plan-empty"><span class="sp-empty-heart">${icon('heart')}</span><h3>Здесь будет ваш день</h3><p>Сохраняйте то, что хочется попробовать. Всё выбранное останется под рукой.</p>${view==='list'?btn('swipe','Выбрать аттракционы','sp-primary'):''}</div>`}`;}
+function mobileHeader(list){
+ return `<div class="sp-mobile-header">${btn('catalog',icon('back'),'sp-mobile-exit','aria-label="Открыть каталог"')}<div class="sp-mobile-heading"><h1>Аттракционы</h1><button type="button" class="sp-demo-label" data-vp-about>Учебный пример</button></div>${btn('list',icon('heart')+'<span>Мой список</span><b>'+selected().length+'</b>','sp-mobile-list','aria-label="Мой список: '+selected().length+'"')}</div>
+ <div class="sp-mobile-tools">${btn('settings',icon('settings')+'<span>Параметры</span>','sp-mobile-settings','id="sp-settings" aria-label="Параметры: фильтры и семья"')}<div class="sp-mobile-hint" data-onboarding="${showOnboard}">${showOnboard?'<p><span>← Не нравится</span><span>Нравится →</span></p><small>Отмена: кнопка ↶</small>':`<p>${list.length?'Ещё '+list.length+' '+pluralCards(list.length):'Выбор за вами'}</p><small>${filter==='all'?'Все впечатления':filter==='calm'?'Спокойные':'Поострее'} · ${state.party.length?'Ваша семья':'Для себя или семьи'}</small>`}</div>${btn('help',icon('info'),'sp-mobile-help','aria-label="Как выбирать"')}</div>`;
+}
 function render(){
- document.querySelectorAll('.sp-ghost').forEach(n=>n.remove());
+ cancelGesture();
+ if(settling){const current=settling;settling=null;current.animation?.cancel();}
+ $('#sp-root').removeAttribute('aria-busy');
  const activeId=document.activeElement?.id, activeData=document.activeElement?.dataset?.sp?{...document.activeElement.dataset}:null;
  const list=pending(),r=list[0],done=Object.keys(part().decisions).length, no=Object.values(part().decisions).filter(v=>v==='no').length;
- $('#sp-root').innerHTML=`<div class="sp-intro"><div><p class="sp-eyebrow">Victory Park · Ереван</p><h1>На чём прокатимся?</h1><p class="sp-intro-copy">Выбирайте сердцем. Сохраняйте одним движением.</p></div><div class="sp-top-actions">${btn('help',icon('info')+'Как выбирать','sp-text','id="sp-help"')}${btn('list',icon('heart')+`<span>Мой список <b>${selected().length}</b></span>`,'sp-list-button','id="sp-show-list"')}</div></div>
- ${!storageOK?'<p class="sp-warning" role="alert">Выбор доступен в этой вкладке, но браузер не даёт его сохранить. При переходе к билетам или обновлении он может потеряться.</p>':''}${state._issues?.length?'<p class="sp-warning">Часть прежних данных повреждена. Проверьте семью и список.</p>':''}
+ $('#sp-root').innerHTML=`${mobileHeader(list)}<div class="sp-intro"><div><p class="sp-eyebrow">Victory Park · Ереван</p><h1>На чём прокатимся?</h1><p class="sp-intro-copy">Выбирайте сердцем. Сохраняйте одним движением.</p></div><div class="sp-top-actions">${btn('help',icon('info')+'Как выбирать','sp-text','id="sp-help"')}${btn('list',icon('heart')+`<span>Мой список <b>${selected().length}</b></span>`,'sp-list-button','id="sp-show-list"')}</div></div>
+ <div class="sp-notices">${!storageOK?'<p class="sp-warning" role="alert">Выбор доступен в этой вкладке, но браузер не даёт его сохранить. При переходе к билетам или обновлении он может потеряться.</p>':''}${state._issues?.length?'<p class="sp-warning">Часть прежних данных повреждена. Проверьте семью и список.</p>':''}</div>
  <div class="sp-toolbar"><div class="sp-views" aria-label="Способ выбора">${btn('swipe',icon('cards')+'Карточки',view==='swipe'?'is-active':'',`id="sp-view-swipe" aria-pressed="${view==='swipe'}"`)}${btn('catalog',icon('grid')+'Каталог',view==='catalog'?'is-active':'',`id="sp-view-catalog" aria-pressed="${view==='catalog'}"`)}</div>${btn('family',icon('people')+`<span>${state.party.length?state.party.map(p=>esc(p.label)+' '+esc(age(p))).join(' · '):'Для себя или семьи'}</span>`,'sp-family-button','id="sp-family"')}</div>
  <div class="sp-layout ${view==='list'?'is-list':''}"><section class="sp-selection" ${view==='list'?'hidden':''} aria-label="Выбор аттракционов">
  <div class="sp-filter-row" aria-label="Впечатления">${[['all','Все'],['calm','Спокойно'],['exciting','Поострее']].map(([id,label])=>btn('filter',label,filter===id?'is-active':'',`data-filter="${id}" aria-pressed="${filter===id}"`)).join('')}</div>
@@ -110,37 +118,87 @@ function render(){
  document.dispatchEvent(new CustomEvent('vp:catalog-rendered'));
  bindDrag();
 }
-function decide(yes){const r=pending()[0];if(!r)return;const old=$('[data-swipe-card]'),deckRect=old?.parentElement.getBoundingClientRect(),rect=old?{left:deckRect.left+old.offsetLeft,top:deckRect.top+old.offsetTop,width:old.offsetWidth,height:old.offsetHeight}:null;let ghost;
- if(old&&!reduced.matches){ghost=old.cloneNode(true);ghost.classList.add('sp-ghost');ghost.removeAttribute('data-swipe-card');ghost.setAttribute('aria-hidden','true');ghost.inert=true;ghost.querySelectorAll('[id]').forEach(n=>n.removeAttribute('id'));ghost.querySelectorAll('[data-sp]').forEach(n=>n.removeAttribute('data-sp'));Object.assign(ghost.style,{position:'fixed',left:rect.left+'px',top:rect.top+'px',width:rect.width+'px',height:rect.height+'px',margin:'0',zIndex:1000});}
+// Animate the actual top card. Rebuild the UI only after its compositor animation,
+// so storage and template work cannot interrupt the hand-off between cards.
+function decide(yes){
+ if(view!=='swipe')return;
+ if(settling)render();
+ const r=pending()[0],card=$('[data-swipe-card]');if(!r)return;
+ cancelGesture(false);
  part().history.push({id:r.id,selected:selected().includes(r.id),previous:part().decisions[r.id]||null});part().history=part().history.slice(-50);
- part().decisions[r.id]=yes?'yes':'no';state.selections[state.mode]=yes?[...new Set([...selected(),r.id])]:selected().filter(id=>id!==r.id);journal.onboard=true;forced=null;persist();render();
- if(ghost){document.querySelectorAll('.sp-ghost').forEach(n=>n.remove());document.body.append(ghost);requestAnimationFrame(()=>{ghost.style.transition='transform 220ms cubic-bezier(.2,.7,.2,1), opacity 220ms ease-out';ghost.style.transform=`translateX(${(yes?1:-1)*(rect.width+80)}px) rotate(${yes?12:-12}deg)`;ghost.style.opacity='0';});setTimeout(()=>ghost.remove(),240);}
- announce(`${r.name}: ${yes?'добавлено в список':'пропущено'}. В списке ${selected().length}. ${pending()[0]?'Следующая карточка: '+pending()[0].name:'Карточки закончились.'}`);
+ part().decisions[r.id]=yes?'yes':'no';
+ state.selections[state.mode]=yes?[...new Set([...selected(),r.id])]:selected().filter(id=>id!==r.id);
+ journal.onboard=true;showOnboard=false;forced=null;
+ const message=`${r.name}: ${yes?'добавлено в список':'пропущено'}. В списке ${selected().length}. ${pending()[0]?'Следующая карточка: '+pending()[0].name:'Карточки закончились.'}`;
+ if(!card||reduced.matches||!card.animate){persist();render();announce(message);return;}
+ const run={animation:null};settling=run;card.classList.add('is-settling');$('#sp-root').setAttribute('aria-busy','true');
+ const from=card.style.transform||'translate3d(0px,0px,0px) rotate(0deg)';
+ const distance=(card.offsetWidth+80)*(yes?1:-1);
+ run.animation=card.animate([{transform:from,opacity:1},{transform:`translate3d(${distance}px,0,0) rotate(${yes?8:-8}deg)`,opacity:.65}],{duration:200,easing:'cubic-bezier(.2,.75,.3,1)',fill:'forwards'});
+ // Persist the decision on the next task; the exit animation is already running.
+ setTimeout(persist,0);
+ run.animation.finished.then(()=>{if(settling!==run)return;settling=null;render();announce(message);}).catch(()=>{});
 }
-function undo(){const h=part().history.pop();if(!h)return;state.selections[state.mode]=h.selected?[...new Set([...selected(),h.id])]:selected().filter(id=>id!==h.id);if(h.previous)part().decisions[h.id]=h.previous;else delete part().decisions[h.id];forced=h.id;filter='all';persist();render();announce('Решение отменено. '+lookup(h.id).name);}
-function bindDrag(){const card=$('[data-swipe-card]');if(!card)return;
- card.addEventListener('pointerdown',e=>{if(e.button!==0||e.isPrimary===false||e.target.closest('button,a,input,select,summary'))return;drag={id:e.pointerId,x:e.clientX,y:e.clientY,t:performance.now(),dx:0,locked:false,cancel:false,card};});
- card.addEventListener('pointermove',e=>{if(!drag||e.pointerId!==drag.id)return;const dx=e.clientX-drag.x,dy=e.clientY-drag.y;drag.dx=dx;if(!drag.locked&&!drag.cancel&&Math.hypot(dx,dy)>10){if(Math.abs(dx)>Math.abs(dy)*1.2){drag.locked=true;card.setPointerCapture(e.pointerId);card.classList.add('is-dragging');}else drag.cancel=true;}if(!drag.locked||drag.cancel)return;card.style.transform=`translateX(${dx}px) rotate(${reduced.matches?0:Math.max(-12,Math.min(12,dx/22))}deg)`;card.style.setProperty('--yes',Math.min(1,Math.max(0,dx/90)));card.style.setProperty('--no',Math.min(1,Math.max(0,-dx/90)));});
- const finish=(e,cancel)=>{if(!drag||e.pointerId!==drag.id)return;const d=drag;drag=null;card.classList.remove('is-dragging');if(card.hasPointerCapture(e.pointerId))card.releasePointerCapture(e.pointerId);const speed=Math.abs(d.dx)/(performance.now()-d.t),threshold=Math.min(96,card.clientWidth*.26);if(!cancel&&!d.cancel&&d.locked&&(Math.abs(d.dx)>threshold||(Math.abs(d.dx)>42&&speed>.6))){decide(d.dx>0);}else{card.style.transform='';card.style.setProperty('--yes','0');card.style.setProperty('--no','0');}};
- card.addEventListener('pointerup',e=>finish(e,false));card.addEventListener('pointercancel',e=>finish(e,true));card.addEventListener('lostpointercapture',e=>{if(e.target===card&&drag)finish(e,true);});
+function undo(){if(settling){render();}const h=part().history.pop();if(!h)return;state.selections[state.mode]=h.selected?[...new Set([...selected(),h.id])]:selected().filter(id=>id!==h.id);if(h.previous)part().decisions[h.id]=h.previous;else delete part().decisions[h.id];forced=h.id;filter='all';persist();render();announce('Решение отменено. '+lookup(h.id).name);}
+function paintDrag(d){
+ d.card.style.transform=`translate3d(${d.dx}px,${reduced.matches?0:Math.max(-8,Math.min(8,d.dy*.12))}px,0) rotate(${reduced.matches?0:Math.max(-8,Math.min(8,d.dx/35))}deg)`;
+ d.card.style.setProperty('--yes',Math.min(1,Math.max(0,d.dx/d.threshold)));
+ d.card.style.setProperty('--no',Math.min(1,Math.max(0,-d.dx/d.threshold)));
 }
-function openModal(kind,id){modalKind=kind;modalRide=id;returnFocus={id:document.activeElement?.id,data:{...document.activeElement?.dataset}};renderModal();$('#sp-dialog').showModal();}
-function renderModal(){const d=$('#sp-dialog-body'),focused=document.activeElement?.id;
+function cancelGesture(reset=true){
+ const d=drag;drag=null;if(dragFrame){cancelAnimationFrame(dragFrame);dragFrame=0;}if(!d)return;
+ d.card.classList.remove('is-dragging');
+ if(d.card.hasPointerCapture(d.id))d.card.releasePointerCapture(d.id);
+ if(reset){d.card.style.transform='';d.card.style.setProperty('--yes','0');d.card.style.setProperty('--no','0');}
+}
+function bindDrag(){
+ const card=$('[data-swipe-card]');if(!card)return;
+ card.addEventListener('pointerdown',e=>{
+  if(e.isPrimary===false){cancelGesture();return;}
+  if(settling||e.button!==0||e.target.closest('button,a,input,select,summary'))return;
+  const t=performance.now();drag={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,locked:false,cancel:false,card,threshold:Math.max(gestureSettings.minDistance,Math.min(gestureSettings.maxDistance,card.clientWidth*gestureSettings.distanceRatio)),samples:[{x:0,t}],lastMove:t};
+ });
+ card.addEventListener('pointermove',e=>{
+  if(!drag||e.pointerId!==drag.id)return;const d=drag,t=performance.now();
+  d.dx=e.clientX-d.x;d.dy=e.clientY-d.y;d.lastMove=t;
+  d.samples.push({x:d.dx,t});while(d.samples.length>2&&d.samples[0].t<t-gestureSettings.velocityWindow)d.samples.shift();
+  if(!d.locked&&!d.cancel){
+   // Let an ambiguous start develop into a natural thumb arc before rejecting it.
+   if(Math.abs(d.dx)>=8&&Math.abs(d.dx)>Math.abs(d.dy)*.9){d.locked=true;card.setPointerCapture(e.pointerId);card.classList.add('is-dragging');}
+   else if(Math.abs(d.dy)>18&&Math.abs(d.dy)>Math.abs(d.dx)*1.6)d.cancel=true;
+  }
+  if(!d.locked||d.cancel)return;
+  if(!dragFrame)dragFrame=requestAnimationFrame(()=>{dragFrame=0;if(d===drag)paintDrag(d);});
+ });
+ const finish=(e,cancel)=>{
+  if(!drag||e.pointerId!==drag.id)return;const d=drag;
+  if(d.locked&&!d.cancel)paintDrag(d);
+  const first=d.samples[0],last=d.samples.at(-1),speed=performance.now()-d.lastMove>100?0:(last.x-first.x)/Math.max(1,last.t-first.t);
+  const commit=!cancel&&!d.cancel&&d.locked&&(Math.abs(d.dx)>=d.threshold||(Math.abs(d.dx)>=gestureSettings.flickDistance&&Math.abs(speed)>gestureSettings.flickSpeed&&Math.sign(speed)===Math.sign(d.dx)));
+  cancelGesture(!commit);if(commit)decide(d.dx>0);
+ };
+ card.addEventListener('pointerup',e=>finish(e,false));
+ card.addEventListener('pointercancel',e=>finish(e,true));
+ card.addEventListener('lostpointercapture',e=>{if(e.target===card&&drag)finish(e,true);});
+}
+function openModal(kind,id){cancelGesture();modalKind=kind;modalRide=id;returnFocus={id:document.activeElement?.id,data:{...document.activeElement?.dataset}};$('#sp-dialog').dataset.kind=kind;renderModal();if(!$('#sp-dialog').open)$('#sp-dialog').showModal();}
+function renderModal(){const d=$('#sp-dialog-body'),focused=document.activeElement?.id,focusedData=document.activeElement?.dataset?.sp?{...document.activeElement.dataset}:null;
  if(modalKind==='details'){const r=lookup(modalRide);d.innerHTML=`<p class="sp-eyebrow">${r.fictional?'Учебные условия':'Аттракцион парка'}</p><h2 id="sp-dialog-title">${esc(r.name)}</h2><p>${esc(meta[r.id]?.text||'Условия уточняются у парка.')}</p><div class="sp-rule-box"><h3>Рост и сопровождение</h3><p>${r.rules?esc(summary(r)+'. '+accompanimentRule(r)):'Подтверждённых правил пока нет. Уточните их у парка до катания.'}</p><p>Возрастной ориентир не заменяет ростовой допуск. Работу аттракциона проверяют в день посещения.</p></div>${state.party.length?`<h3>Для вашей семьи</h3><div class="sp-eligibility">${state.party.map(p=>{const result=VP3.admission(r,p);return `<div><strong>${esc(p.label)} · ${esc(age(p))}</strong><p>${esc(VP3.ageHint(r,p).text)}</p><label for="sp-height-${p.id}">Рост, см <input id="sp-height-${p.id}" data-height="${p.id}" type="text" inputmode="decimal" value="${p.height??''}" placeholder="Не знаю" autocomplete="off"></label><p id="sp-height-error-${p.id}" class="sp-field-note">${esc(result.reasons.join(' '))}</p></div>`;}).join('')}</div>`:''}<p class="sp-small">${r.fictional?'Числа вымышлены для демонстрации интерфейса. Это не условия Victory Park.':'Неизвестность не означает, что катание разрешено.'}</p>`;}
+ else if(modalKind==='settings'){d.innerHTML=`<p class="sp-eyebrow">Выбирайте под себя</p><h2 id="sp-dialog-title">Параметры</h2><h3>Какие впечатления?</h3><div class="sp-sheet-filters">${[['all','Все'],['calm','Спокойно'],['exciting','Поострее']].map(([id,label])=>btn('filter',label,filter===id?'is-active':'',`data-filter="${id}" aria-pressed="${filter===id}"`)).join('')}</div><h3>Кто идёт в парк?</h3><p>${state.party.length?state.party.map(p=>esc(p.label)+' '+esc(age(p))).join(' · '):'Можно начать без заполнения. Состав семьи поможет с возрастными ориентирами.'}</p>${btn('family',icon('people')+(state.party.length?'Изменить семью':'Для себя или семьи'),'sp-sheet-family','id="sp-sheet-family"')}<p class="sp-small">Лайк сохраняет желание. Рост и сопровождение проверяются в условиях аттракциона.</p>${Object.values(part().decisions).includes('no')?btn('review-no','Пересмотреть пропущенные','sp-sheet-review'):''}${btn('close','К карточкам','sp-primary')}`;}
  else if(modalKind==='family'){d.innerHTML=`<p class="sp-eyebrow">Подборка для вас</p><h2 id="sp-dialog-title">Кто идёт в парк?</h2><p>Можно ничего не указывать. Если добавите детей, покажем возрастные ориентиры.</p><div class="sp-party">${state.party.map(p=>`<section class="sp-person"><div><strong>${esc(p.label)}</strong>${btn('remove-person',icon('x'),'sp-icon',`data-person="${p.id}" aria-label="Убрать ${esc(p.label)}"`)}</div>${p.role==='adult'?'<span class="sp-age-label">18+</span>':`${btn('age',esc(age(p))+' · Изменить','sp-age-label',`id="sp-age-${p.id}" data-person="${p.id}" aria-expanded="${ageOpen===p.id}"`)}${ageOpen===p.id?`<div class="sp-age-grid" aria-label="Возраст ребёнка">${Array.from({length:18},(_,n)=>btn('set-age',n===0?'До года':String(n),'',`data-person="${p.id}" data-age="${n}" aria-label="${n===0?'До года':n+' лет'}" aria-pressed="${p.age===n}"`)).join('')}${btn('set-age','Не знаю','',`data-person="${p.id}" data-age="unknown"`)}</div>`:''}`}</section>`).join('')}</div><div class="sp-add-people">${btn('add-adult','+ Взрослый','',state.party.length>=8?'disabled':'')}${btn('add-child','+ Ребёнок','',state.party.length>=8?'disabled':'')}</div><p class="sp-small">Возраст помогает выбрать интересное. Рост и сопровождение проверяются в условиях аттракциона.</p>${btn('close','Готово, к аттракционам','sp-primary')}`;}
  else {d.innerHTML=`<p class="sp-eyebrow">Выбирать легко</p><h2 id="sp-dialog-title">Соберите свой день</h2><div class="sp-help-demo" aria-hidden="true"><span>←</span><span>${icon('cards')}</span><span>→</span></div><div class="sp-help-steps"><p><strong>Влево: не нравится.</strong> Пропускайте то, что сейчас не хочется.</p><p><strong>Вправо: нравится.</strong> Аттракцион попадёт в «Мой список».</p><p><strong>Передумали?</strong> Нажмите «Вернуть». Можно пользоваться кнопками вместо свайпов.</p></div><p>Открывайте список, когда выбрали достаточно. Не обязательно смотреть все карточки.</p>${btn('close','Понятно, начинаем','sp-primary')}`;}
- if(focused&&document.getElementById(focused))document.getElementById(focused).focus({preventScroll:true});
+ if(focused&&document.getElementById(focused))document.getElementById(focused).focus({preventScroll:true});else if(focusedData){[...d.querySelectorAll('[data-sp]')].find(n=>Object.entries(focusedData).every(([k,v])=>n.dataset[k]===v))?.focus({preventScroll:true});}
 }
 function switchView(next){view=next;persist();render();if(next==='list'){$('#sp-plan').focus({preventScroll:true});$('#sp-plan').scrollIntoView({block:'start',behavior:reduced.matches?'instant':'smooth'});}else window.scrollTo({top:0,behavior:reduced.matches?'instant':'smooth'});}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-sp]');if(!b||b.disabled)return;const a=b.dataset.sp,id=b.dataset.ride,pid=b.dataset.person;
  if(a==='yes'||a==='no'){decide(a==='yes');return;}if(a==='undo'){undo();return;}
  if(['swipe','catalog','list'].includes(a)){switchView(a);return;}
- if(a==='help'){openModal('help');return;}if(a==='family'){openModal('family');return;}if(a==='details'){openModal('details',id);return;}
+ if(a==='settings'){openModal('settings');return;}if(a==='help'){openModal('help');return;}if(a==='family'){openModal('family');return;}if(a==='details'){openModal('details',id);return;}
  if(a==='close'){$('#sp-dialog').close();return;}
  if(a==='dismiss'){showOnboard=false;journal.onboard=true;persist();render();return;}
- if(a==='filter'){filter=b.dataset.filter;forced=null;render();return;}
+ if(a==='filter'){filter=b.dataset.filter;forced=null;render();if($('#sp-dialog').open)renderModal();return;}
  if(a==='open-card'){forced=id;filter='all';switchView('swipe');return;}
- if(a==='review-no'){for(const [rid,v] of Object.entries(part().decisions))if(v==='no')delete part().decisions[rid];part().history=[];forced=null;filter='all';persist();switchView('swipe');announce('Пропущенные карточки снова доступны.');return;}
+ if(a==='review-no'){if($('#sp-dialog').open)$('#sp-dialog').close();for(const [rid,v] of Object.entries(part().decisions))if(v==='no')delete part().decisions[rid];part().history=[];forced=null;filter='all';persist();switchView('swipe');announce('Пропущенные карточки снова доступны.');return;}
  if(a==='toggle'||a==='remove'){const isSelected=selected().includes(id);state.selections[state.mode]=isSelected?selected().filter(x=>x!==id):[...selected(),id];if(isSelected)delete part().decisions[id];else part().decisions[id]='yes';part().history=[];persist();render();announce(isSelected?'Убрано из списка.':'Добавлено в список.');return;}
  if(a==='mode'){state.mode=state.mode==='demo'?'real':'demo';filter='all';forced=null;persist();switchView('swipe');return;}
  if(a==='age'){ageOpen=ageOpen===pid?null:pid;renderModal();return;}
@@ -152,10 +210,17 @@ document.addEventListener('input',e=>{if(e.target.id==='sp-search'){search=e.tar
 document.addEventListener('change',e=>{if(!e.target.matches('[data-height]'))return;const input=e.target,p=state.party.find(p=>p.id===input.dataset.height);if(!p)return;const raw=input.value.trim().replace(',','.'),n=Number(raw),error=$('#sp-height-error-'+p.id);if(raw!==''&&(!/^\d+(\.\d{1,2})?$/.test(raw)||n<40||n>250)){input.setAttribute('aria-invalid','true');error.textContent='Укажите рост от 40 до 250 см или оставьте пустым.';return;}input.removeAttribute('aria-invalid');p.height=raw===''?null:n;familyChanged();render();error.textContent=VP3.admission(lookup(modalRide),p).reasons.join(' ');announce('Рост сохранён.');});
 document.addEventListener('keydown',e=>{if($('#sp-dialog').open&&e.key==='Tab'){const controls=[...$('#sp-dialog').querySelectorAll('button:not(:disabled),a[href],input:not(:disabled),select:not(:disabled),[tabindex="0"]')].filter(n=>n.getClientRects().length);const first=controls[0],last=controls.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last?.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}return;}if($('#sp-dialog').open||view!=='swipe'||e.altKey||e.ctrlKey||e.metaKey||e.repeat||e.target.closest('input,textarea,select,a,summary'))return;if(e.key==='ArrowRight'){e.preventDefault();decide(true);}else if(e.key==='ArrowLeft'){e.preventDefault();decide(false);}else if(e.key==='Backspace'){e.preventDefault();undo();}});
 $('#sp-dialog').addEventListener('click',e=>{if(e.target===$('#sp-dialog')){const r=e.target.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)e.target.close();}});
-$('#sp-dialog').addEventListener('close',()=>{modalKind=null;modalRide=null;if(returnFocus?.id)document.getElementById(returnFocus.id)?.focus({preventScroll:true});else if(returnFocus?.data?.sp)[...document.querySelectorAll('#sp-root [data-sp]')].find(n=>Object.entries(returnFocus.data).every(([k,v])=>n.dataset[k]===v))?.focus({preventScroll:true});});
+$('#sp-dialog').addEventListener('close',()=>{
+ modalKind=null;modalRide=null;
+ let target=returnFocus?.id?document.getElementById(returnFocus.id):null;
+ if(!target&&returnFocus?.data?.sp)target=[...document.querySelectorAll('#sp-root [data-sp]')].find(n=>n.getClientRects().length&&Object.entries(returnFocus.data).every(([k,v])=>n.dataset[k]===v));
+ if(!target?.getClientRects().length)target=[...document.querySelectorAll('#sp-settings,#sp-help')].find(n=>n.getClientRects().length);
+ target?.focus({preventScroll:true});
+});
 window.addEventListener('storage',e=>{if(e.key===KEY){try{state=VP3.sanitizeState(JSON.parse(e.newValue||'null'));part().history=[];forced=null;render();if($('#sp-dialog').open)renderModal();announce('Выбор обновлён в другой вкладке.');}catch{}}if(e.key===JOURNEY){try{journal=cleanJournal(JSON.parse(e.newValue||'null'));render();}catch{}}});
 window.addEventListener('pageshow',e=>{if(e.persisted){try{state=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY)||'null'));journal=cleanJournal(JSON.parse(localStorage.getItem(JOURNEY)||'null'));if(['real','demo'].includes(history.state?.vpSwipeMode))state.mode=history.state.vpSwipeMode;if(['swipe','catalog','list'].includes(history.state?.vpSwipeView))view=history.state.vpSwipeView;render();}catch{}}});
 document.addEventListener('error',e=>{if(e.target.tagName==='IMG'&&e.target.closest('#sp-root')){const fallback=document.createElement('div');fallback.className='sp-image-fallback';fallback.setAttribute('role','img');fallback.setAttribute('aria-label',e.target.alt+'; изображение недоступно');fallback.textContent='Изображение пока недоступно';e.target.replaceWith(fallback);}},true);
 persist();render();if(location.hash==='#family')openModal('family');if(linked)announce('Открыта карточка '+linked.name);
+window.addEventListener('pagehide',()=>{cancelGesture();persist();});
 window.VPSwipe={getState:()=>clone(state),getJourney:()=>clone(journal),getCurrent:()=>pending()[0]?.id||null};
 })();
