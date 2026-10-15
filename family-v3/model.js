@@ -548,7 +548,7 @@
   }
   function snapshotOrder(input, orderId, status) {
     var assessment = assessCart(input), s = assessment.state;
-    if (!assessment.canCheckout || !id(orderId) || (status && !['success', 'declined', 'pending', 'issuance'].includes(status))) return null;
+    if (!assessment.canCheckout || !id(orderId) || (status && !['success', 'declined', 'pending', 'issuance', 'partial'].includes(status))) return null;
     var lines = s.cart.lines.map(function (line, index) {
       var product = products[line.productId], person = s.party.find(function (p) { return p.id === line.personId; });
       var included = line.productId === 'ticket' ? [line.rideId] : product.includedRideIds.slice();
@@ -558,13 +558,17 @@
         includedRideIds: included, includedNames: included.map(function (rideId) { return rideMap[rideId].name; }), terms: copy(product.terms), validity: VALIDITY,
         unitsPerItem: line.productId === 'package5' ? 5 : line.productId === 'ticket' ? 1 : null });
     });
-    return { version: 3, modelVersion: MODEL_VERSION, id: orderId, status: status || 'pending', total: assessment.total, lines: lines, createdAt: new Date().toISOString() };
+    var totalItems = lines.reduce(function (sum, line) { return sum + line.quantity; }, 0);
+    var order = { version: 3, modelVersion: MODEL_VERSION, id: orderId, status: status === 'partial' && totalItems === 1 ? 'issuance' : status || 'pending', total: assessment.total, lines: lines, createdAt: new Date().toISOString() };
+    if (order.status === 'partial') order.issuedCount = totalItems - 1;
+    return order;
   }
   function validateOrder(order) {
-    if (!order || order.version !== 3 || typeof order.modelVersion !== 'string' || !Object.prototype.hasOwnProperty.call(orderCatalogs, order.modelVersion) || !id(order.id) || !['success', 'declined', 'pending', 'issuance'].includes(order.status) || !Array.isArray(order.lines) || !order.lines.length || order.lines.length > 100 || !integer(order.total, 1, 100000000) || typeof order.createdAt !== 'string' || !Number.isFinite(Date.parse(order.createdAt))) return null;
+    if (!order || order.version !== 3 || typeof order.modelVersion !== 'string' || !Object.prototype.hasOwnProperty.call(orderCatalogs, order.modelVersion) || !id(order.id) || !['success', 'declined', 'pending', 'issuance', 'partial'].includes(order.status) || !Array.isArray(order.lines) || !order.lines.length || order.lines.length > 100 || !integer(order.total, 1, 100000000) || typeof order.createdAt !== 'string' || !Number.isFinite(Date.parse(order.createdAt))) return null;
     if (Object.prototype.hasOwnProperty.call(order, 'visitDate')) return null;
+    if (order.status !== 'partial' && Object.prototype.hasOwnProperty.call(order, 'issuedCount')) return null;
     var catalog = orderCatalogs[order.modelVersion];
-    var ids = new Set(), recipients = new Set(), placeholders = new Set(), total = 0, passes = 0;
+    var ids = new Set(), recipients = new Set(), placeholders = new Set(), total = 0, passes = 0, totalItems = 0;
     for (var i = 0; i < order.lines.length; i++) {
       var line = order.lines[i], product = line && typeof line.productId === 'string' && Object.prototype.hasOwnProperty.call(catalog.products, line.productId) ? catalog.products[line.productId] : null;
       if (!product || !id(line.id) || ids.has(line.id) || !integer(line.quantity, 1, MAX_QUANTITY) || priceFor(line, catalog) === null || line.unitPrice !== priceFor(line, catalog) || Object.prototype.hasOwnProperty.call(line, 'visitDate')) return null;
@@ -581,17 +585,18 @@
         if (line.personId) recipients.add(line.personId); else placeholders.add(line.recipientKey);
       }
       if (line.productId === 'ticket' && line.recipientKey !== null) return null;
-      ids.add(line.id); total += line.unitPrice * line.quantity;
+      ids.add(line.id); total += line.unitPrice * line.quantity; totalItems += line.quantity;
     }
+    if (order.status === 'partial' && (!Object.prototype.hasOwnProperty.call(order, 'issuedCount') || !integer(order.issuedCount, 1, totalItems - 1))) return null;
     return total === order.total && passes <= MAX_QUANTITY ? copy(order) : null;
   }
   function issuedItems(order) {
-    var valid = validateOrder(order); if (!valid || valid.status !== 'success') return [];
+    var valid = validateOrder(order); if (!valid || !['success', 'partial'].includes(valid.status)) return [];
     var result = [];
     valid.lines.forEach(function (line) {
       for (var n = 1; n <= line.quantity; n++) result.push({ code: valid.id + '-' + line.id + '-' + n, lineId: line.id, ordinal: n, productId: line.productId, name: line.name, recipientLabel: line.recipientLabel, validity: line.validity, includedNames: copy(line.includedNames), includedRideIds: copy(line.includedRideIds), terms: copy(line.terms), remaining: line.unitsPerItem, price: line.unitPrice });
     });
-    return result;
+    return valid.status === 'partial' ? result.slice(0, valid.issuedCount) : result;
   }
   return freeze({ MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, realRides: realRides, demoRides: demoRides, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, quoteCart: quoteCart, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, issuedItems: issuedItems });
 }));

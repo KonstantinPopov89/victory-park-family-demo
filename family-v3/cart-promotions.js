@@ -90,13 +90,15 @@
   function baseOrder(order) {
     var result = {};
     BASE_KEYS.forEach(function (key) { result[key] = order[key]; });
+    if (order.status === 'partial') result.issuedCount = order.issuedCount;
     if (has(order, 'pricingVersion')) result.total = order.subtotal;
     return result;
   }
   function validateOrder(order) {
     if (!object(order) || !Array.isArray(order.lines) || !order.lines.every(function (line) { return exactKeys(line, LINE_KEYS); })) return null;
     var enriched = has(order, 'pricingVersion');
-    if (!exactKeys(order, enriched ? BASE_KEYS.concat(EXTRA_KEYS) : BASE_KEYS)) return null;
+    var keys = order.status === 'partial' ? BASE_KEYS.concat(['issuedCount']) : BASE_KEYS;
+    if (!exactKeys(order, enriched ? keys.concat(EXTRA_KEYS) : keys)) return null;
     var validated = base.validateOrder(baseOrder(order));
     if (!validated) return null;
     if (!enriched) return validated;
@@ -111,7 +113,7 @@
   }
   function issuedItems(order) {
     var validated = validateOrder(order);
-    if (!validated || validated.status !== 'success') return [];
+    if (!validated || !['success', 'partial'].includes(validated.status)) return [];
     var items = base.issuedItems(baseOrder(validated));
     if (!has(validated, 'pricingVersion') || !validated.promotion.offerId) return items;
     var promotion = validated.promotion;
