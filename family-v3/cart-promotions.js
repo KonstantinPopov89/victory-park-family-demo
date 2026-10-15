@@ -111,6 +111,22 @@
     if (!calculated.canCheckout || ['subtotal', 'discount', 'bonus', 'bonusValidFrom', 'bonusValidUntil'].some(function (key) { return order[key] !== calculated[key]; }) || order.total !== calculated.payable) return null;
     return copy(order);
   }
+  // The recommendation and checkout use the same validity rule as issued rights.
+  function lineValidity(line, rawPromotion) {
+    var promotion = normalizePromotion(rawPromotion);
+    if (line.productId === 'ticket' && promotion.offerId === 'weekday20') {
+      return validDate(promotion.visitDate) ? 'Только ' + promotion.visitDate : 'Уточните дату визита';
+    }
+    return line.validity || 'Один день первого использования';
+  }
+  function validitySummary(lines, promotion) {
+    var labels = { ticket: 'разовых билетов', package5: 'пакетов', unlimited: 'безлимитов' };
+    return Object.keys(labels).filter(function (productId) {
+      return lines.some(function (line) { return line.productId === productId; });
+    }).map(function (productId) {
+      return 'Срок ' + labels[productId] + ': ' + lineValidity({ productId: productId }, promotion) + '.';
+    });
+  }
   function issuedItems(order) {
     var validated = validateOrder(order);
     if (!validated || !['success', 'partial'].includes(validated.status)) return [];
@@ -120,7 +136,7 @@
     items.forEach(function (item) {
       if (item.productId !== 'ticket') return;
       if (promotion.offerId === 'weekday20') {
-        item.validity = 'Только ' + promotion.visitDate;
+        item.validity = lineValidity(item, promotion);
         item.terms[1] = 'Одно оплаченное катание только в выбранный день визита: ' + promotion.visitDate + '. Не подтверждает допуск.';
         item.price = Math.round(item.price * 0.8);
       }
@@ -133,5 +149,5 @@
     });
     return items;
   }
-  return Object.freeze({ VERSION: VERSION, normalizePromotion: normalizePromotion, calculate: calculate, snapshotOrder: snapshotOrder, validateOrder: validateOrder, issuedItems: issuedItems });
+  return Object.freeze({ VERSION: VERSION, normalizePromotion: normalizePromotion, calculate: calculate, snapshotOrder: snapshotOrder, validateOrder: validateOrder, issuedItems: issuedItems, validitySummary: validitySummary });
 }));
