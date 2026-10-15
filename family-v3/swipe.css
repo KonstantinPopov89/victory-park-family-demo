@@ -47,6 +47,9 @@ body[data-page="picker"] { background: #faf9f6; }
 .sp-deck::before { content: ''; position: absolute; z-index: -1; inset: 14px 11px -7px; background: #fff; border-radius: 23px; border: 1px solid #e3e1e9; transform: rotate(1.7deg); }
 .sp-deck:has(.sp-finished)::before { display: none; }
 .sp-card { position: relative; background: #fff; border-radius: 22px; box-shadow: 0 2px 5px #22164b08, 0 14px 40px #22164b0c; overflow: hidden; touch-action: pan-y pinch-zoom; user-select: none; -webkit-user-select: none; cursor: grab; transform-origin: 50% 85%; transition: transform 220ms cubic-bezier(.2,.7,.2,1), opacity 220ms ease-out; }
+/* A real second card is painted before the gesture begins. Only the top card is interactive. */
+.sp-deck > [data-swipe-card] { z-index: 1; }
+.sp-deck > .sp-card-next { position: absolute; inset: 0; height: 100%; z-index: 0; pointer-events: none; cursor: default; }
 .sp-card.is-dragging { cursor: grabbing; transition: none; }
 .sp-card:has(button:focus-visible) { overflow: visible; }
 .sp-card:has(button:focus-visible) .sp-photo { border-radius: 22px 22px 0 0; }
