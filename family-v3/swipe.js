@@ -181,25 +181,25 @@ function bindDrag(){
  card.addEventListener('pointerdown',e=>{
   if(e.isPrimary===false){cancelGesture();return;}
   if(settling||e.button!==0||e.target.closest('button,a,input,select,summary'))return;
-  const t=performance.now();drag={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,locked:false,cancel:false,card,threshold:Math.max(gestureSettings.minDistance,Math.min(gestureSettings.maxDistance,card.clientWidth*gestureSettings.distanceRatio)),samples:[{x:0,t}],lastMove:t};
+  const t=performance.now();drag={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,locked:false,card,threshold:Math.max(gestureSettings.minDistance,Math.min(gestureSettings.maxDistance,card.clientWidth*gestureSettings.distanceRatio)),samples:[{x:0,t}],lastMove:t};
  });
  card.addEventListener('pointermove',e=>{
   if(!drag||e.pointerId!==drag.id)return;const d=drag,t=performance.now();
   d.dx=e.clientX-d.x;d.dy=e.clientY-d.y;d.lastMove=t;
   d.samples.push({x:d.dx,t});while(d.samples.length>2&&d.samples[0].t<t-gestureSettings.velocityWindow)d.samples.shift();
-  if(!d.locked&&!d.cancel){
-   // Let an ambiguous start develop into a natural thumb arc before rejecting it.
+  if(!d.locked){
+   // A thumb arc can start vertically. Keep waiting for horizontal intent;
+   // native scrolling in the text area cancels through pointercancel instead.
    if(Math.abs(d.dx)>=8&&Math.abs(d.dx)>Math.abs(d.dy)*.9){d.locked=true;card.setPointerCapture(e.pointerId);card.classList.add('is-dragging');}
-   else if(Math.abs(d.dy)>18&&Math.abs(d.dy)>Math.abs(d.dx)*1.6)d.cancel=true;
   }
-  if(!d.locked||d.cancel)return;
+  if(!d.locked)return;
   if(!dragFrame)dragFrame=requestAnimationFrame(()=>{dragFrame=0;if(d===drag)paintDrag(d);});
  });
  const finish=(e,cancel)=>{
   if(!drag||e.pointerId!==drag.id)return;const d=drag;
-  if(d.locked&&!d.cancel)paintDrag(d);
+  if(d.locked)paintDrag(d);
   const first=d.samples[0],last=d.samples.at(-1),speed=performance.now()-d.lastMove>100?0:(last.x-first.x)/Math.max(1,last.t-first.t);
-  const commit=!cancel&&!d.cancel&&d.locked&&(Math.abs(d.dx)>=d.threshold||(Math.abs(d.dx)>=gestureSettings.flickDistance&&Math.abs(speed)>gestureSettings.flickSpeed&&Math.sign(speed)===Math.sign(d.dx)));
+  const commit=!cancel&&d.locked&&(Math.abs(d.dx)>=d.threshold||(Math.abs(d.dx)>=gestureSettings.flickDistance&&Math.abs(speed)>gestureSettings.flickSpeed&&Math.sign(speed)===Math.sign(d.dx)));
   cancelGesture(!commit);if(commit)decide(d.dx>0);
  };
  card.addEventListener('pointerup',e=>finish(e,false));
