@@ -73,3 +73,5 @@ body[data-checkout=quick].keyboard-open .checkout-dock{display:none}
 .quick-product .quantity-pill:last-child{flex-basis:82px}
 body[data-checkout=quick] .quick-order,body[data-checkout=quick] .quick-context,body[data-checkout=quick] .quick-footer{overflow-wrap:anywhere}
 body[data-checkout=quick] .quick-order input,body[data-checkout=quick] .quick-order select{max-width:100%;min-width:0}
+body[data-checkout=quick] .receipt{overflow-wrap:anywhere}
+body[data-checkout=quick] .receipt .ticket-top,body[data-checkout=quick] .receipt .total{flex-wrap:wrap}
