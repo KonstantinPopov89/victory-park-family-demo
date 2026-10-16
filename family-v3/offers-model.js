@@ -15,13 +15,12 @@
   var rides = {};
   base.demoRides.forEach(function (ride) { rides[ride.id] = ride; });
   var exclusive = 'В одном заказе выбирается только одно предложение. С другими акциями, бонусами и льготами не суммируется.';
-  var ticketOnly = 'Только отдельные билеты. Пакет на 5 катаний и личный безлимит не участвуют.';
+  var ticketOnly = 'Только отдельные билеты. Пакеты и личный безлимит не участвуют.';
   function includedRideNames(productId) {
     return base.products[productId].includedRideIds.map(function (id) { return rides[id].name; }).join(', ');
   }
   function productTerms(productId) {
     var result = base.products[productId].terms.slice();
-    if (productId === 'package5') result[0] = '5 катаний на аттракционах: ' + includedRideNames(productId) + '.';
     return result;
   }
   // Fictional teaching conditions. These are not commercial claims about Victory Park.
@@ -38,9 +37,9 @@
       ]
     },
     {
-      id: 'package5', kind: 'package', title: '5 катаний на компанию', benefit: '5 катаний за 4 000 ֏',
-      summary: 'Входят: ' + includedRideNames('package5') + '. Можно делить с близкими и кататься повторно.',
-      when: 'Один день первого использования', important: 'Выгода зависит от выбранных катаний.',
+      id: 'package5', kind: 'package', title: '5 билетов на компанию', benefit: '5 билетов за 4 000 ֏',
+      summary: 'На любые аттракционы демонстрационного каталога. Можно делить и использовать в разные дни.',
+      when: '30 дней с покупки', important: 'Один билет = одно катание одного человека. Выгода зависит от выбранных катаний.',
       cta: 'Выбрать пакет', status: 'active', start: null, end: null, productIds: ['package5'], requiresVisitDate: false,
       terms: productTerms('package5').concat([
         'Цена пакета 4 000 ֏. Например, пять билетов на Американские горки стоят 7 000 ֏, а пять билетов на Детскую карусель 3 000 ֏. Пакет выгоден не для любого выбора.',
@@ -95,15 +94,22 @@
       cta: null, status: 'unknown', start: null, end: null, productIds: [], requiresVisitDate: false,
       terms: ['Нет подтверждённых условий. Нельзя считать эту льготу ни действующей, ни завершённой. Пока можно выбрать другое предложение или полную цену.']
     }
-  ]);
+  ].concat(base.packageProducts.filter(function (product) { return product.id !== 'package5'; }).map(function (product) {
+    return { id: product.id, kind: 'package', title: product.rides + ' билетов на компанию',
+      benefit: product.rides + ' билетов за ' + product.price.toLocaleString('ru-RU') + ' ֏',
+      summary: 'На любые аттракционы демонстрационного каталога. Можно делить и использовать в разные дни.',
+      when: '30 дней с покупки', important: 'Один билет = одно катание одного человека. Пакет не всегда дешевле отдельных билетов.',
+      cta: 'Выбрать пакет', status: 'active', start: null, end: null, productIds: [product.id], requiresVisitDate: false,
+      terms: productTerms(product.id).concat(['Это цена самого пакета, отдельная скидка в заказе не начисляется.', exclusive]) };
+  })));
     var shortFacts = {
       weekday20: ['Пн-пт, до 30 ноября включительно', 'Покупка и визит в период акции. Пакеты и безлимиты не участвуют.'],
-      package5: ['Можно делить между участниками', '4 аттракциона. Цепочная карусель не входит. Пакет не всегда дешевле отдельных билетов.'],
+      package5: ['Можно делить между участниками', 'Любые аттракционы. 30 дней с покупки. Пакет не всегда дешевле отдельных билетов.'],
       unlimited: ['Личный, на один день', '3 аттракциона. Детская и Цепочная карусели не входят. Выгода зависит от числа катаний.'],
       bonus500: ['При покупке билетов от 5 000 ֏', 'Сейчас платите полную цену. Бонус действует со следующего дня, 30 дней.'],
       student15: ['В любой день', 'Только билеты для владельца документа. Пакеты и безлимиты не участвуют.']
     };
-  function getShortFacts(id) { return has(shortFacts, id) ? shortFacts[id].slice() : []; }
+  function getShortFacts(id) { return base.isPackage(id) ? shortFacts.package5.slice() : has(shortFacts, id) ? shortFacts[id].slice() : []; }
   var offerMap = {};
   offers.forEach(function (offer) { offerMap[offer.id] = offer; });
   freeze(offerMap);
@@ -153,9 +159,9 @@
           productId: product.id, rideId: selectedRide ? selectedRide.id : null,
           name: selectedRide ? 'Билет: ' + selectedRide.name : product.name,
           quantity: lineQuantity, unitPrice: unitPrice, total: lineQuantity * unitPrice,
-          personal: product.personal, unitsPerItem: product.id === 'package5' ? 5 : product.id === 'ticket' ? 1 : null,
+          personal: product.personal, unitsPerItem: base.isPackage(product.id) ? product.rides : product.id === 'ticket' ? 1 : null,
           includedRideIds: selectedRide ? [selectedRide.id] : product.includedRideIds.slice(), terms: productTerms(product.id),
-          recipientLabel: product.id === 'unlimited' ? 'Получатель ' + (index + 1) + ': назначить перед использованием' : product.id === 'package5' ? 'Общий пакет для компании' : selectedOffer && selectedOffer.id === 'student15' ? 'Владелец студенческого документа' : 'Получатель определяется перед использованием'
+          recipientLabel: product.id === 'unlimited' ? 'Получатель ' + (index + 1) + ': назначить перед использованием' : base.isPackage(product.id) ? 'Общий пакет для компании' : selectedOffer && selectedOffer.id === 'student15' ? 'Владелец студенческого документа' : 'Получатель определяется перед использованием'
         });
       }
     }

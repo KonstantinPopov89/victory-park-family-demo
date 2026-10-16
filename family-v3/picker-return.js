@@ -12,7 +12,7 @@
         u.searchParams.delete('view');
         u.hash=u.hash==='#family'?'#family':'#list';
         a.href=u.pathname+u.search+u.hash;
-      } else if(['tickets.html','company.html','offer-checkout.html'].includes(file) && u.searchParams.get('picker')!=='reels') {
+      } else if(['tickets.html','quick.html','company.html','offer-checkout.html'].includes(file) && u.searchParams.get('picker')!=='reels') {
         u.searchParams.set('picker','reels'); a.href=u.pathname+u.search+u.hash;
       }
     });

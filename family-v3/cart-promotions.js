@@ -90,14 +90,16 @@
   function baseOrder(order) {
     var result = {};
     BASE_KEYS.forEach(function (key) { result[key] = order[key]; });
+    if (order.modelVersion === 'family-demo-3.4') result.paymentConfirmedAt = order.paymentConfirmedAt;
     if (order.status === 'partial') result.issuedCount = order.issuedCount;
     if (has(order, 'pricingVersion')) result.total = order.subtotal;
     return result;
   }
   function validateOrder(order) {
-    if (!object(order) || !Array.isArray(order.lines) || !order.lines.every(function (line) { return exactKeys(line, LINE_KEYS); })) return null;
+    if (!object(order) || !Array.isArray(order.lines) || !order.lines.every(function (line) { return exactKeys(line, order.modelVersion === 'family-demo-3.4' ? LINE_KEYS.concat(['purchasedAt', 'validUntil', 'timeZone']) : LINE_KEYS); })) return null;
     var enriched = has(order, 'pricingVersion');
     var keys = order.status === 'partial' ? BASE_KEYS.concat(['issuedCount']) : BASE_KEYS;
+    if (order.modelVersion === 'family-demo-3.4') keys = keys.concat(['paymentConfirmedAt']);
     if (!exactKeys(order, enriched ? keys.concat(EXTRA_KEYS) : keys)) return null;
     var validated = base.validateOrder(baseOrder(order));
     if (!validated) return null;
@@ -111,21 +113,25 @@
     if (!calculated.canCheckout || ['subtotal', 'discount', 'bonus', 'bonusValidFrom', 'bonusValidUntil'].some(function (key) { return order[key] !== calculated[key]; }) || order.total !== calculated.payable) return null;
     return copy(order);
   }
+  function confirmPayment(order, status, confirmedAt) {
+    var valid = validateOrder(order); if (!valid) return null;
+    var updated = base.confirmPayment(baseOrder(valid), status, confirmedAt); if (!updated) return null;
+    var result = Object.assign({}, valid, updated, { total: valid.total });
+    if (!has(updated, 'issuedCount')) delete result.issuedCount;
+    return validateOrder(result);
+  }
   // The recommendation and checkout use the same validity rule as issued rights.
   function lineValidity(line, rawPromotion) {
     var promotion = normalizePromotion(rawPromotion);
     if (line.productId === 'ticket' && promotion.offerId === 'weekday20') {
       return validDate(promotion.visitDate) ? 'Только ' + promotion.visitDate : 'Уточните дату визита';
     }
-    return line.validity || 'Один день первого использования';
+    return line.validity || (base.isPackage(line) ? '30 дней с покупки, можно использовать в разные дни' : 'Один день первого использования');
   }
   function validitySummary(lines, promotion) {
-    var labels = { ticket: 'разовых билетов', package5: 'пакетов', unlimited: 'безлимитов' };
-    return Object.keys(labels).filter(function (productId) {
-      return lines.some(function (line) { return line.productId === productId; });
-    }).map(function (productId) {
-      return 'Срок ' + labels[productId] + ': ' + lineValidity({ productId: productId }, promotion) + '.';
-    });
+    var groups = [{ label: 'разовых билетов', match: function (line) { return line.productId === 'ticket'; } },
+      { label: 'пакетов', match: base.isPackage }, { label: 'безлимитов', match: function (line) { return line.productId === 'unlimited'; } }];
+    return groups.map(function (group) { var line = lines.find(group.match); return line ? 'Срок ' + group.label + ': ' + lineValidity(line, promotion) + '.' : null; }).filter(Boolean);
   }
   function issuedItems(order) {
     var validated = validateOrder(order);
@@ -149,5 +155,5 @@
     });
     return items;
   }
-  return Object.freeze({ VERSION: VERSION, normalizePromotion: normalizePromotion, calculate: calculate, snapshotOrder: snapshotOrder, validateOrder: validateOrder, issuedItems: issuedItems, validitySummary: validitySummary });
+  return Object.freeze({ VERSION: VERSION, normalizePromotion: normalizePromotion, calculate: calculate, snapshotOrder: snapshotOrder, validateOrder: validateOrder, confirmPayment: confirmPayment, issuedItems: issuedItems, lineValidity: lineValidity, validitySummary: validitySummary });
 }));

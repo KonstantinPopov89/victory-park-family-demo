@@ -58,7 +58,27 @@
   var expandedProducts = copy(products);
   expandedProducts.ticket.includedRideIds = demoRides.map(function (ride) { return ride.id; });
   products = freeze(expandedProducts);
-  var MODEL_VERSION = 'family-demo-3.3';
+  // Issued 3.3 purchases retain the original catalog and validity, independently
+  // of the eight universal packages introduced for new purchases in 3.4.
+  var legacy33Products = products;
+  var packageSizes = [5, 10, 20, 30, 40, 60, 80, 100];
+  var PACKAGE_VALIDITY = '30 дней с покупки, можно использовать в разные дни';
+  var universalProducts = copy(products);
+  packageSizes.forEach(function (size) {
+    var productId = 'package' + size;
+    universalProducts[productId] = { id: productId, name: 'Пакет на ' + size + ' билетов', price: size * 800,
+      includedRideIds: demoRides.map(function (ride) { return ride.id; }), rides: size, personal: false, dateRequired: false, fictional: true,
+      validity: PACKAGE_VALIDITY, terms: [
+        'Учебный пакет: ' + size + ' билетов на любые аттракционы демонстрационного каталога.',
+        'Один билет даёт одно катание одному человеку. Билеты можно делить между участниками компании.',
+        'Срок: 30 дней с момента покупки. Можно использовать в разные дни; повторное катание расходует ещё один билет.',
+        'Совместное катание ребёнка и взрослого расходует два билета. Условия допуска, сопровождения и работа аттракциона проверяются отдельно.',
+        'Приоритетной очереди нет. Цены демонстрационные: 800 AMD за билет в пакете; пакет не всегда дешевле отдельных билетов.'
+      ] };
+  });
+  products = freeze(universalProducts);
+  var packageProducts = packageSizes.map(function (size) { return products['package' + size]; });
+  var MODEL_VERSION = 'family-demo-3.4';
   // Explicit fictional admission examples. Editorial ageRange is deliberately separate.
   var admissionRules = freeze({
     'demo-calm': { minAge: 3, maxAge: null, soloAge: 8, adultPrice: 900 },
@@ -163,7 +183,8 @@
     'family-demo-3': legacyOrderCatalog,
     'family-demo-3.1': { rides: legacyNamedRides, products: legacy31Products },
     'family-demo-3.2': { rides: legacyNamedRides, products: legacy32Products },
-    'family-demo-3.3': currentOrderCatalog
+    'family-demo-3.3': { rides: currentOrderCatalog.rides, products: legacy33Products },
+    'family-demo-3.4': currentOrderCatalog
   });
   var rideMap = {};
   realRides.concat(demoRides).forEach(function (r) { rideMap[r.id] = r; });
@@ -173,6 +194,15 @@
   function integer(value, min, max) { return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max; }
   function label(value, fallback) { return typeof value === 'string' && value.trim() ? value.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 80) || fallback : fallback; }
   function equal(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
+  function isPackage(value) { var productId = typeof value === 'string' ? value : value && value.productId; return packageProducts.some(function (product) { return product.id === productId; }); }
+  function packageCapacity(value) {
+    if (!value) return 0;
+    if (Array.isArray(value.lines)) return value.lines.reduce(function (sum, line) { return sum + packageCapacity(line); }, 0);
+    if (value.cart) return packageCapacity(value.cart);
+    return isPackage(value) && integer(value.quantity, 1, MAX_QUANTITY) ? products[value.productId].rides * value.quantity : 0;
+  }
+  function isDirectLine(line) { return !!line && line.personId === null && !!id(line.recipientKey) && /^direct-/.test(line.recipientKey) && ['ticket', 'unlimited'].includes(line.productId); }
+  function packageExpiry(purchasedAt) { var expiry = new Date(Date.parse(purchasedAt) + 30 * 24 * 60 * 60 * 1000); return Number.isFinite(expiry.getTime()) ? expiry.toISOString() : null; }
   function priceFor(line, catalog) {
     var productCatalog = catalog ? catalog.products : products;
     if (!line || !Object.prototype.hasOwnProperty.call(productCatalog, line.productId)) return null;
@@ -180,7 +210,7 @@
     if (catalog) return Object.prototype.hasOwnProperty.call(catalog.rides, line.rideId) ? catalog.rides[line.rideId].price : null;
     var ride = rideMap[line.rideId]; return ride && ride.fictional ? ride.price : null;
   }
-  function emptyState() { return { version: 3, mode: 'demo', party: [], selections: { real: [], demo: [] }, riders: [], ridersConfirmed: false, companionId: null, companionAutoSelected: false, cart: { lines: [] }, _issues: [] }; }
+  function emptyState() { return { version: 3, modelVersion: MODEL_VERSION, tariffNotice: null, mode: 'demo', party: [], selections: { real: [], demo: [] }, riders: [], ridersConfirmed: false, companionId: null, companionAutoSelected: false, cart: { lines: [] }, _issues: [] }; }
   function sanitizeState(raw) {
     var out = emptyState(); if (!raw || typeof raw !== 'object') return out;
     var issues = Array.isArray(raw._issues) ? raw._issues.filter(function (x) { return ['version', 'party', 'selection', 'cart'].includes(x); }) : [];
@@ -207,6 +237,7 @@
     out.companionId = id(raw.companionId) || null;
     out.companionAutoSelected = !!out.companionId && raw.companionAutoSelected === true;
     var lines = raw.cart && Array.isArray(raw.cart.lines) ? raw.cart.lines : [], lineIds = new Set();
+    out.tariffNotice = raw.modelVersion === MODEL_VERSION ? (typeof raw.tariffNotice === 'string' ? raw.tariffNotice.slice(0, 800) : null) : lines.some(function (line) { return line && isPackage(line); }) ? 'Условия пакетов обновились: теперь билет подходит для любого аттракциона демонстрационного каталога, срок 30 дней с покупки. Количество билетов и сумма сохранены. Проверьте заказ перед оплатой.' : null;
     if (lines.length > 100) issues.push('cart');
     lines.slice(0, 100).forEach(function (line, i) {
       if (!line || typeof line !== 'object') { issues.push('cart'); return; }
@@ -216,8 +247,8 @@
       var productId = Object.prototype.hasOwnProperty.call(products, line.productId) ? line.productId : 'invalid';
       if ((line.personId && !id(line.personId)) || (line.recipientKey && !id(line.recipientKey))) issues.push('cart');
       out.cart.lines.push({ id: lineId, productId: productId, rideId: productId === 'ticket' ? (id(line.rideId) || null) : null,
-        personId: productId === 'package5' ? null : (id(line.personId) || null),
-        recipientKey: productId === 'unlimited' && !id(line.personId) ? (id(line.recipientKey) || null) : null,
+        personId: isPackage(productId) ? null : (id(line.personId) || null),
+        recipientKey: !id(line.personId) && (productId === 'unlimited' || productId === 'ticket' && /^direct-/.test(line.recipientKey || '')) ? (id(line.recipientKey) || null) : null,
         quantity: integer(line.quantity, 1, MAX_QUANTITY) ? line.quantity : null, unitPrice: priceFor(line),
         autoCompanion: line.autoCompanion === true,
         companionFor: unique((Array.isArray(line.companionFor) ? line.companionFor : []).filter(function (value) { return id(value); })),
@@ -276,6 +307,7 @@
     function need(person, rideId, count) { if (!needsByRide[rideId]) needsByRide[rideId] = []; needsByRide[rideId].push(person.id); if (count) ticketNeeds[rideId] = (ticketNeeds[rideId] || 0) + count; }
     manual.forEach(function (line) {
       if (!['ticket', 'unlimited'].includes(line.productId) || !integer(line.quantity, 1, MAX_QUANTITY)) return;
+      if (isDirectLine(line)) return;
       var person = s.party.find(function (p) { return p.id === line.personId; });
       if (!person) { issue('recipient-required', 'Выберите, кому предназначен ' + (line.productId === 'ticket' ? 'билет' : 'безлимит') + '.', null, line.rideId); return; }
       if (person.role !== 'child') return;
@@ -334,13 +366,13 @@
           return false;
         });
       }
-      var packagePool = manual.reduce(function (n, line) { return n + (line.productId === 'package5' && integer(line.quantity, 1, MAX_QUANTITY) ? line.quantity * 5 : 0); }, 0);
+      var packagePool = packageCapacity({ lines: manual });
       Object.keys(ticketNeeds).forEach(function (rideId) {
         var requiredRights = ticketNeeds[rideId];
         if (adultPass && products.unlimited.includedRideIds.includes(rideId)) { coverage.passUsed = true; return; }
         var existing = manual.reduce(function (n, line) { return n + (line.productId === 'ticket' && line.personId === adult.id && line.rideId === rideId && integer(line.quantity, 1, MAX_QUANTITY) ? line.quantity : 0); }, 0);
         var used = Math.min(requiredRights, existing); coverage.ticketRightsUsed += used; requiredRights -= used;
-        if (products.package5.includedRideIds.includes(rideId)) { used = Math.min(requiredRights, packagePool); coverage.packageRightsUsed += used; requiredRights -= used; packagePool -= used; }
+        if (packageProducts[0].includedRideIds.includes(rideId)) { used = Math.min(requiredRights, packagePool); coverage.packageRightsUsed += used; requiredRights -= used; packagePool -= used; }
         if (requiredRights > MAX_QUANTITY) { issue('too-many-companion-rights', 'Для одного учебного аттракциона не больше 20 прав сопровождения.', adult.id, rideId); return; }
         if (requiredRights) {
           var ticket = newLine('ticket', adult.id, rideId, requiredRights);
@@ -363,7 +395,7 @@
       var availableTickets = {};
       manual.forEach(function (line) { if (line.productId === 'ticket' && line.personId === adult.id && integer(line.quantity, 1, MAX_QUANTITY)) availableTickets[line.rideId] = (availableTickets[line.rideId] || 0) + line.quantity; });
       Object.keys(availableTickets).forEach(function (rideId) { if (!(resolvedPass && products.unlimited.includedRideIds.includes(rideId))) availableTickets[rideId] = Math.max(0, availableTickets[rideId] - (ticketNeeds[rideId] || 0)); });
-      var remainingPackage = manual.reduce(function (n, line) { return n + (line.productId === 'package5' && integer(line.quantity, 1, MAX_QUANTITY) ? line.quantity * 5 : 0); }, 0) - coverage.packageRightsUsed;
+      var remainingPackage = packageCapacity({ lines: manual }) - coverage.packageRightsUsed;
       issues = issues.filter(function (item) {
         if (item.code !== 'height-required') return true;
         var ride = rideMap[item.rideId], r = ride.rules;
@@ -372,7 +404,7 @@
         // A child's unlimited still requires an adult unlimited, not a few tickets.
         if (manual.some(function (line) { return line.productId === 'unlimited' && line.personId === item.personId; })) return true;
         var needed = manual.reduce(function (n, line) { return n + (line.productId === 'ticket' && line.personId === item.personId && line.rideId === item.rideId && integer(line.quantity, 1, MAX_QUANTITY) ? line.quantity : 0); }, 0);
-        var prepaidTickets = availableTickets[item.rideId] || 0, prepaidPackage = products.package5.includedRideIds.includes(item.rideId) ? remainingPackage : 0;
+        var prepaidTickets = availableTickets[item.rideId] || 0, prepaidPackage = packageProducts[0].includedRideIds.includes(item.rideId) ? remainingPackage : 0;
         if (!needed || prepaidTickets + prepaidPackage < needed) return true;
         var ticketUse = Math.min(needed, prepaidTickets), packageUse = needed - ticketUse;
         availableTickets[item.rideId] = prepaidTickets - ticketUse; remainingPackage -= packageUse;
@@ -463,7 +495,7 @@
       var candidate = copy(s); candidate.cart.lines = lines;
       var calculation = reconcileCompanions(candidate), quote = quoteCart(candidate);
       var added = config.mode === 'add' && !currentQuote.conditional && !quote.conditional ? quote.total - currentQuote.total : null;
-      return Object.assign({ id: config.rideId ? 'single:' + config.rideId : productId === 'package5' ? 'package' : 'unlimited', productId: productId,
+      return Object.assign({ id: config.rideId ? 'single:' + config.rideId : isPackage(productId) ? productId : 'unlimited', productId: productId,
         mode: config.mode || 'replace', rideId: config.rideId || null, title: title, description: description,
         lines: calculation.state.cart.lines, addedTotal: config.alreadyAdded ? 0 : added, alreadyAdded: !!config.alreadyAdded,
         unavailable: !!config.unavailable, items: config.items || [], excludedPeople: config.excludedPeople || [],
@@ -489,7 +521,7 @@
       result.offers.push(offer('ticket', lines, ride.name, 'По одному катанию для перечисленных участников. Сопровождение учтено.',
         { mode: 'add', rideId: rideId, items: items, excludedPeople: excluded, alreadyAdded: items.length > 0 && missing === 0, unavailable: !items.length, notes: notes }));
     });
-    if (hasMatch(products.package5)) result.offers.push(offer('package5', [newLine('package5', null, null, 1)], 'Общий пакет на 5 катаний', 'Пять общих прав для компании. Кто и сколько раз катается, решите в парке.'));
+    packageProducts.forEach(function (product) { if (hasMatch(product)) result.offers.push(offer(product.id, [newLine(product.id, null, null, 1)], product.name, product.rides + ' общих билетов на любые аттракционы. Можно делить и использовать в разные дни в течение 30 дней с покупки.')); });
     if (s.ridersConfirmed && s.riders.length && hasMatch(products.unlimited)) {
       var unusable = s.riders.filter(function (personId) {
         var person = s.party.find(function (p) { return p.id === personId; });
@@ -515,7 +547,7 @@
       if (line.personId && !person) errors.push('Получатель удалён из семьи. Удалите или переназначьте его товар.');
       var rideIds = line.productId === 'ticket' ? [line.rideId] : products[line.productId].includedRideIds;
       included = included.concat(rideIds);
-      if (line.productId === 'package5') rights.packageRides += line.quantity * 5;
+      if (isPackage(line)) rights.packageRides += packageCapacity(line);
       if (line.productId === 'ticket') {
         rights.tickets += line.quantity;
         if (person) {
@@ -541,6 +573,7 @@
     });
     if (rights.personalPasses > MAX_QUANTITY) errors.push('В учебном заказе не больше 20 личных безлимитов.');
     if (placeholders.size) warnings.push('Получатели неназначенных личных прав определяются перед первым использованием.');
+    if (lines.some(isDirectLine)) warnings.push('Куплены права на катание без расчёта состава семьи. Допуск, рост и необходимое сопровождение проверяются отдельно; покупка не подтверждает допуск.');
     var excluded = s.selections.demo.filter(function (rideId) { return !included.includes(rideId); });
     if (excluded.length) warnings.push('В заказ не входит из сохранённого: ' + excluded.map(function (rideId) { return rideMap[rideId].name; }).join(', ') + '.');
     productNotes(s, unique(included)).slice(1).forEach(function (note) { warnings.push(note); });
@@ -549,17 +582,19 @@
   function snapshotOrder(input, orderId, status) {
     var assessment = assessCart(input), s = assessment.state;
     if (!assessment.canCheckout || !id(orderId) || (status && !['success', 'declined', 'pending', 'issuance', 'partial'].includes(status))) return null;
+    var createdAt = new Date().toISOString(), purchasedAt = ['success', 'issuance', 'partial'].includes(status) ? createdAt : null;
     var lines = s.cart.lines.map(function (line, index) {
       var product = products[line.productId], person = s.party.find(function (p) { return p.id === line.personId; });
       var included = line.productId === 'ticket' ? [line.rideId] : product.includedRideIds.slice();
       var storedLine = copy(line); delete storedLine.autoCompanion; delete storedLine.companionFor; delete storedLine.companionReason;
       return Object.assign({}, storedLine, { name: line.productId === 'ticket' ? 'Билет: ' + rideMap[line.rideId].name : product.name,
-        recipientLabel: person ? person.label : line.productId === 'unlimited' ? 'Получатель ' + (index + 1) + ': назначить перед использованием' : line.productId === 'package5' ? 'Общий пакет для компании' : 'Получатель определяется перед использованием',
-        includedRideIds: included, includedNames: included.map(function (rideId) { return rideMap[rideId].name; }), terms: copy(product.terms), validity: VALIDITY,
-        unitsPerItem: line.productId === 'package5' ? 5 : line.productId === 'ticket' ? 1 : null });
+        recipientLabel: person ? person.label : line.productId === 'unlimited' ? 'Получатель ' + (index + 1) + ': назначить перед использованием' : isPackage(line) ? 'Общий пакет для компании' : 'Получатель определяется перед использованием',
+        includedRideIds: included, includedNames: included.map(function (rideId) { return rideMap[rideId].name; }), terms: copy(product.terms), validity: isPackage(line) ? PACKAGE_VALIDITY : VALIDITY,
+        purchasedAt: purchasedAt, validUntil: isPackage(line) && purchasedAt ? packageExpiry(purchasedAt) : null, timeZone: 'Asia/Yerevan',
+        unitsPerItem: isPackage(line) ? product.rides : line.productId === 'ticket' ? 1 : null });
     });
     var totalItems = lines.reduce(function (sum, line) { return sum + line.quantity; }, 0);
-    var order = { version: 3, modelVersion: MODEL_VERSION, id: orderId, status: status === 'partial' && totalItems === 1 ? 'issuance' : status || 'pending', total: assessment.total, lines: lines, createdAt: new Date().toISOString() };
+    var order = { version: 3, modelVersion: MODEL_VERSION, id: orderId, status: status === 'partial' && totalItems === 1 ? 'issuance' : status || 'pending', total: assessment.total, lines: lines, createdAt: createdAt, paymentConfirmedAt: purchasedAt };
     if (order.status === 'partial') order.issuedCount = totalItems - 1;
     return order;
   }
@@ -567,6 +602,10 @@
     if (!order || order.version !== 3 || typeof order.modelVersion !== 'string' || !Object.prototype.hasOwnProperty.call(orderCatalogs, order.modelVersion) || !id(order.id) || !['success', 'declined', 'pending', 'issuance', 'partial'].includes(order.status) || !Array.isArray(order.lines) || !order.lines.length || order.lines.length > 100 || !integer(order.total, 1, 100000000) || typeof order.createdAt !== 'string' || !Number.isFinite(Date.parse(order.createdAt))) return null;
     if (Object.prototype.hasOwnProperty.call(order, 'visitDate')) return null;
     if (order.status !== 'partial' && Object.prototype.hasOwnProperty.call(order, 'issuedCount')) return null;
+    if (order.modelVersion === MODEL_VERSION) {
+      var paid = ['success', 'issuance', 'partial'].includes(order.status);
+      if (paid ? typeof order.paymentConfirmedAt !== 'string' || !Number.isFinite(Date.parse(order.paymentConfirmedAt)) || Date.parse(order.paymentConfirmedAt) < Date.parse(order.createdAt) : order.paymentConfirmedAt !== null) return null;
+    }
     var catalog = orderCatalogs[order.modelVersion];
     var ids = new Set(), recipients = new Set(), placeholders = new Set(), total = 0, passes = 0, totalItems = 0;
     for (var i = 0; i < order.lines.length; i++) {
@@ -574,9 +613,11 @@
       if (!product || !id(line.id) || ids.has(line.id) || !integer(line.quantity, 1, MAX_QUANTITY) || priceFor(line, catalog) === null || line.unitPrice !== priceFor(line, catalog) || Object.prototype.hasOwnProperty.call(line, 'visitDate')) return null;
       var included = line.productId === 'ticket' ? [line.rideId] : product.includedRideIds;
       var expectedName = line.productId === 'ticket' ? 'Билет: ' + catalog.rides[line.rideId].name : product.name;
-      if (line.name !== expectedName || !equal(line.includedRideIds, included) || !equal(line.includedNames, included.map(function (rideId) { return catalog.rides[rideId].name; })) || !equal(line.terms, product.terms) || line.validity !== VALIDITY || line.unitsPerItem !== (line.productId === 'package5' ? 5 : line.productId === 'ticket' ? 1 : null) || typeof line.recipientLabel !== 'string' || !line.recipientLabel.trim() || line.recipientLabel.length > 150 || /[\u0000-\u001f<>]/.test(line.recipientLabel)) return null;
+      var modern = order.modelVersion === MODEL_VERSION, packaged = isPackage(line);
+      if (line.name !== expectedName || !equal(line.includedRideIds, included) || !equal(line.includedNames, included.map(function (rideId) { return catalog.rides[rideId].name; })) || !equal(line.terms, product.terms) || line.validity !== (modern && packaged ? PACKAGE_VALIDITY : VALIDITY) || line.unitsPerItem !== (packaged ? product.rides || 5 : line.productId === 'ticket' ? 1 : null) || typeof line.recipientLabel !== 'string' || !line.recipientLabel.trim() || line.recipientLabel.length > 150 || /[\u0000-\u001f<>]/.test(line.recipientLabel)) return null;
+      if (modern && (line.purchasedAt !== order.paymentConfirmedAt || line.validUntil !== (packaged && order.paymentConfirmedAt ? packageExpiry(order.paymentConfirmedAt) : null) || line.timeZone !== 'Asia/Yerevan' || packaged && order.paymentConfirmedAt && !line.validUntil)) return null;
       if (line.personId !== null && !id(line.personId)) return null;
-      if (line.productId === 'package5' && (line.personId !== null || line.rideId !== null || line.recipientKey !== null)) return null;
+      if (packaged && (line.personId !== null || line.rideId !== null || line.recipientKey !== null)) return null;
       if (line.productId === 'unlimited') {
         passes++;
         if (line.quantity !== 1 || line.rideId !== null || (!line.personId && !id(line.recipientKey)) || (line.personId && line.recipientKey !== null)) return null;
@@ -584,19 +625,37 @@
         if (!line.personId && placeholders.has(line.recipientKey)) return null;
         if (line.personId) recipients.add(line.personId); else placeholders.add(line.recipientKey);
       }
-      if (line.productId === 'ticket' && line.recipientKey !== null) return null;
+      if (line.productId === 'ticket' && line.recipientKey !== null && !(modern && isDirectLine(line))) return null;
       ids.add(line.id); total += line.unitPrice * line.quantity; totalItems += line.quantity;
     }
     if (order.status === 'partial' && (!Object.prototype.hasOwnProperty.call(order, 'issuedCount') || !integer(order.issuedCount, 1, totalItems - 1))) return null;
     return total === order.total && passes <= MAX_QUANTITY ? copy(order) : null;
   }
+  // A payment attempt is not a purchase. Start the package lifetime once the
+  // simulated provider confirms payment, and never extend it on later issuance.
+  function confirmPayment(order, status, confirmedAt) {
+    var next = validateOrder(order);
+    if (!next || !['success', 'declined', 'pending', 'issuance', 'partial'].includes(status)) return null;
+    var paidBefore = ['success', 'issuance', 'partial'].includes(next.status), paidNext = ['success', 'issuance', 'partial'].includes(status);
+    if (paidBefore && !paidNext || next.status === 'declined' && status !== 'declined') return null;
+    next.status = status; delete next.issuedCount;
+    var count = next.lines.reduce(function (sum, line) { return sum + line.quantity; }, 0);
+    if (next.status === 'partial') { if (count === 1) next.status = 'issuance'; else next.issuedCount = count - 1; }
+    if (next.modelVersion === MODEL_VERSION && paidNext && !paidBefore) {
+      var when = confirmedAt === undefined ? new Date().toISOString() : confirmedAt;
+      if (typeof when !== 'string' || !Number.isFinite(Date.parse(when)) || Date.parse(when) < Date.parse(next.createdAt)) return null;
+      next.paymentConfirmedAt = when;
+      next.lines.forEach(function (line) { line.purchasedAt = when; line.validUntil = isPackage(line) ? packageExpiry(when) : null; });
+    }
+    return validateOrder(next);
+  }
   function issuedItems(order) {
     var valid = validateOrder(order); if (!valid || !['success', 'partial'].includes(valid.status)) return [];
     var result = [];
     valid.lines.forEach(function (line) {
-      for (var n = 1; n <= line.quantity; n++) result.push({ code: valid.id + '-' + line.id + '-' + n, lineId: line.id, ordinal: n, productId: line.productId, name: line.name, recipientLabel: line.recipientLabel, validity: line.validity, includedNames: copy(line.includedNames), includedRideIds: copy(line.includedRideIds), terms: copy(line.terms), remaining: line.unitsPerItem, price: line.unitPrice });
+      for (var n = 1; n <= line.quantity; n++) result.push({ code: valid.id + '-' + line.id + '-' + n, lineId: line.id, ordinal: n, productId: line.productId, name: line.name, recipientLabel: line.recipientLabel, validity: line.validity, purchasedAt: line.purchasedAt || valid.createdAt, validUntil: line.validUntil || null, timeZone: line.timeZone || null, includedNames: copy(line.includedNames), includedRideIds: copy(line.includedRideIds), terms: copy(line.terms), remaining: line.unitsPerItem, price: line.unitPrice });
     });
     return valid.status === 'partial' ? result.slice(0, valid.issuedCount) : result;
   }
-  return freeze({ MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, realRides: realRides, demoRides: demoRides, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, quoteCart: quoteCart, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, issuedItems: issuedItems });
+  return freeze({ MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, packageSizes: packageSizes, packageProducts: packageProducts, isPackage: isPackage, packageCapacity: packageCapacity, isDirectLine: isDirectLine, newLine: newLine, realRides: realRides, demoRides: demoRides, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, quoteCart: quoteCart, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, confirmPayment: confirmPayment, issuedItems: issuedItems });
 }));
