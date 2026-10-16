@@ -199,7 +199,11 @@ function needsReview(){
 }
 function checkoutNext(){
  if(!state.cart.lines.length&&quick)return {action:'show-products',label:activeProduct==='package'?'Выберите размер':'Выберите количество',title:'Ваш заказ',small:'Оплата после выбора',disabled:true};
- if(!state.cart.lines.length)return {action:'show-products',label:!directEntry&&state.party.length&&!state.riders.length?'Выбрать катающихся':'Выбрать катание',title:'Выберите покупку',small:'Оплата после выбора'};
+ if(!state.cart.lines.length){
+  const target=directEntry?(activeProduct==='package'?'product-package':activeProduct==='unlimited'||!person(ticketPersonId)?'purchase-people':'product-'+(deepRide?.fictional?deepRide.id:state.selections.demo[0]||VP3.demoRides[0].id)):'';
+  const label=!directEntry&&state.party.length&&!state.riders.length?'Выбрать катающихся':target==='product-package'?'Выбрать размер пакета':target==='purchase-people'?'Выбрать получателя':'Выбрать катание';
+  return {action:'show-products',label,target,title:'Выберите покупку',small:'Оплата после выбора'};
+ }
  const q=basketQuote(),title=q.conditional?`От ${money(q.minTotal??q.total)}`:money(q.payable);
  if(companyContext()?.changed)return {action:'recalculate-company',label:'Пересчитать состав',title,small:'Компания изменилась'};
  const first=accompaniment?.issues?.[0],a=VPC.calculate(state,promotion);
@@ -291,7 +295,7 @@ if(act==='recalculate-company'){location.href='company.html'+(new URLSearchParam
 if(act==='review-order'){reviewOrder();return;}
 if(act==='back-to-products'){reviewing=false;reviewedToken='';render();jump(directEntry?'#direct':'#recommendations');return;}
 if(act==='fix-order'){focusField(b.dataset.target);return;}
-if(act==='show-products'){if(!directEntry&&!state.riders.length&&state.party.length){focusField('riders');return;}if(!directEntry&&state.riders.length){focusField('recommendations');return;}focusField('direct');return;}
+if(act==='show-products'){if(b.dataset.target){focusField(b.dataset.target);return;}if(!directEntry&&!state.riders.length&&state.party.length){focusField('riders');return;}if(!directEntry&&state.riders.length){focusField('recommendations');return;}focusField('direct');return;}
 if(act==='edit-riders'){state.ridersConfirmed=false;update();jump('#riders');return;}
 if(act==='ticket-person'){ticketPersonId=b.dataset.person;agePerson=person(ticketPersonId)?.age===null&&person(ticketPersonId)?.role==='child'?ticketPersonId:'';render();return;}
 if(act==='purchase-add-adult'||act==='purchase-add-child'||act==='purchase-add-companion'){purchaseAdd(act==='purchase-add-child'?'child':'adult',act==='purchase-add-companion');return;}

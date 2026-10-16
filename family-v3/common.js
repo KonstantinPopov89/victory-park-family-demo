@@ -4,7 +4,7 @@
 // One shared entry keeps the standalone top-up reachable from every guest menu.
 document.querySelectorAll('.vp-desktop-nav,.vp-mobile-nav,.vp-footer-links').forEach(nav=>{
  if(nav.querySelector('a[href="topup.html"]'))return;
- const tickets=nav.querySelector('a[href^="tickets.html"]');if(!tickets)return;
+ const tickets=nav.querySelector('a[href^="tickets.html"],a[href^="quick.html"]');if(!tickets)return;
  const link=document.createElement('a');link.href='topup.html';link.textContent='Пополнить карту';
  if(location.pathname.endsWith('/topup.html'))link.setAttribute('aria-current','page');
  tickets.after(link);

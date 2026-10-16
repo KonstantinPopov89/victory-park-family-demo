@@ -206,7 +206,7 @@
     const party=[...form.querySelectorAll('[data-person]')].map(el=>({id:el.dataset.person,role:el.dataset.role,label:el.querySelector('[name=label]').value.trim()||(el.dataset.role==='child'?'Ребёнок':'Взрослый'),age:el.querySelector('[name=age]').value===''?null:Number(el.querySelector('[name=age]').value),height:el.querySelector('[name=height]').value===''?null:Number(el.querySelector('[name=height]').value)}));
     readState();const next=structuredClone(raw && typeof raw==='object' && !Array.isArray(raw) ? raw : M.emptyState());next.party=party;next.mode=mode;commitRaw(next);closePanel();toast('Семья сохранена. Проверка доступна в условиях аттракциона.');
   }
-  function ticketLink() {return 'tickets.html?picker=reels'+(mode==='real'?'&from=real':'');}
+  function ticketLink() {return mode==='real'?'index.html#visit':'quick.html?product=single&picker=reels'+(selected()[0]?'&ride='+encodeURIComponent(selected()[0]):'');}
   function renderList() {
     const list=allRides().filter(r=>selected().includes(r.id));
     const undo = lastRemoved ? '<p class="r-undo" role="status">Убрано из списка. <button class="r-text" data-action="restore" data-id="'+esc(lastRemoved)+'">Вернуть</button></p>' : '';
