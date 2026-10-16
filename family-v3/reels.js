@@ -84,6 +84,9 @@
     stage.classList.toggle('is-overflow', !!overflow); el?.classList.toggle('is-overflow', !!overflow);
   }
   function updateControls() {
+    $('.picker-switch').querySelectorAll('[data-picker]').forEach(link => {
+      link.href = (link.dataset.picker==='reels'?'reels.html':'attractions.html')+'?mode='+mode;
+    });
     $('#r-count').textContent = !rides.length ? '0 / 0' : Math.min(index+1,rides.length)+' / '+rides.length;
     $('#r-mode-label').textContent = mode==='demo'?'Учебный пример':'Аттракционы парка';
     $('#r-list-count').textContent = selected().length;
@@ -202,7 +205,12 @@
     panelHTML('Выбирайте в своём ритме','<ol class="r-help-steps"><li><strong>Листайте вверх</strong><p>Следующий аттракцион. Вниз, чтобы вернуться. Можно нажимать стрелки.</p></li><li><strong>Нравится? Добавьте в список</strong><p>Кнопка «Хочу покататься». Повторное нажатие убирает из списка. Листание ничего не удаляет.</p></li><li><strong>Завершите, когда захотите</strong><p>«Мой список» всегда внизу. Оттуда можно перейти к билетам.</p></li></ol><button class="r-save" data-action="repeat-tip">Понятно, к просмотру</button><h3>Что показать</h3><div class="r-filter">'+[['all','Все'],['calm','Спокойнее'],['exciting','С драйвом']].map(([v,t])=>'<button class="r-secondary" data-action="filter" data-value="'+v+'" aria-pressed="'+(filter===v)+'">'+t+'</button>').join('')+'</div><h3>Другой формат</h3><div class="r-actions"><a class="r-text" href="attractions.html?mode='+mode+'">Карточки Tinder ↗</a><a class="r-text" href="'+catalogURL()+'">Каталог ↗</a></div><details class="r-demo-settings"><summary>О прототипе и данных</summary><p>Лента на фото. В учебном режиме цены, возраст, рост и сопровождение вымышлены. Выбор сохраняется только в этом браузере. Реальная оплата не подключена.</p><button class="r-secondary" data-action="mode">'+(mode==='demo'?'Показать реальные аттракционы':'Показать учебные примеры')+'</button></details>');
   }
   document.addEventListener('click',e=>{
-    const link=e.target.closest('a[href]');if(link && /(?:tickets|company)\.html/.test(link.getAttribute('href')))syncMode();
+    const link=e.target.closest('a[href]');
+    if(link?.dataset?.picker) {
+      syncMode();
+      if(writeBlocked) { e.preventDefault(); toast('Не удалось сохранить выбор. Продолжайте на этой странице, чтобы не потерять его.', true); return; }
+    }
+    if(link && /(?:tickets|company)\.html/.test(link.getAttribute('href')))syncMode();
     const el=e.target.closest('[data-action]');if(!el)return;
     const a=el.dataset.action;
     if(a==='save'){if(current())toggle();else openPanel('list');}

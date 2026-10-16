@@ -1,0 +1,41 @@
+/* Shared navigation between the two pickers. Both use vp.family.v3. */
+.picker-switch {
+  display: flex;
+  flex: none;
+  gap: 4px;
+  padding: 4px;
+  margin: 4px 0 8px;
+  border-radius: 16px;
+  background: #eeedf6;
+  color: #2f2e7d;
+  font: 600 14px/1.25 Montserrat, sans-serif;
+}
+.picker-switch a {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  color: inherit;
+  text-decoration: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 160ms ease, color 160ms ease;
+}
+.picker-switch a:hover { background: #e0ddeb; }
+.picker-switch a[aria-current="page"] { background: #2f2e7d; color: #fff; }
+.picker-switch a:focus-visible { outline: 3px solid #ffa400; outline-offset: 2px; }
+.picker-switch svg { width: 18px; height: 18px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.r-app > .picker-switch { margin: 0 10px 8px; background: #353264; color: #fff; }
+.r-app > .picker-switch a:hover { background: #484477; }
+.r-app > .picker-switch a[aria-current="page"] { background: #fff; color: #2f2e7d; }
+@media (min-width: 681px) {
+  #sp-root > .picker-switch { max-width: 320px; margin-left: auto; margin-bottom: 16px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .picker-switch a { transition: none; }
+}
