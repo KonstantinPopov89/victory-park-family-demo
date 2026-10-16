@@ -228,6 +228,8 @@ img { max-width: 100%; display: block; }
 .r-stage.is-overflow, .r-stage:has(.r-card.is-overflow), .r-card.is-overflow { touch-action: pan-y pinch-zoom; }
 .r-photo {
   position: relative;
+  /* Keep vertical photo swipes in the feed; overflowing text can still scroll. */
+  touch-action: pan-x pinch-zoom;
   flex: 1 1 20rem;
   min-height: 180px;
   overflow: hidden;

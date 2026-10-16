@@ -57,9 +57,10 @@
     const f = C.facts(r);
     return '<article class="r-card" data-slot="'+slot+'" data-id="'+r.id+'" '+(slot ? 'inert aria-hidden="true"' : 'aria-label="'+esc(r.name)+'"')+'><div class="r-photo"><img src="'+esc(r.photo)+'" alt="'+esc(r.name)+'" draggable="false" decoding="async" '+(!slot ? 'fetchpriority="high"' : 'loading="eager"')+'><span class="r-photo-note">'+sourceShort(r)+'</span><span class="r-photo-fallback" hidden>Фото не загрузилось<br>Выбор всё равно доступен</span></div><div class="r-content"><h2>'+esc(r.name)+'</h2><p class="r-price">'+esc(f.price)+'</p><ul class="r-facts">'+(f.cardLines || f.lines).map(t=>'<li>'+esc(t)+'</li>').join('')+'</ul><p class="r-source">'+esc(r.fictional ? 'Учебные цены и условия, не правила парка.' : 'Действующие цены и условия уточняются.')+'</p><button class="r-details" data-action="details">Условия и семья <span aria-hidden="true">↗</span></button></div></article>';
   }
+  function endSummary() { return 'В вашем списке: '+selected().length+'. '+(mode==='demo'?'Можно перейти к билетам или вернуться к просмотру.':'Условия и стоимость можно уточнить у парка.'); }
   function endCard(slot) {
     const empty = !rides.length;
-    return '<article class="r-card r-end" data-slot="'+slot+'" '+(slot ? 'inert aria-hidden="true"' : '')+'><span class="r-end-icon" aria-hidden="true">'+(empty?'○':'✓')+'</span><p class="r-eyebrow">'+(empty?'ПО ЭТОМУ ФИЛЬТРУ':'ВСЁ ПОСМОТРЕЛИ')+'</p><h2>'+(empty?'Пока ничего<br>не нашлось':'Ваш день<br>начинается здесь')+'</h2><p>'+(empty?'Попробуйте все аттракционы.':'В вашем списке: '+selected().length+'. '+(mode==='demo'?'Можно перейти к билетам или вернуться к просмотру.':'Условия и стоимость можно уточнить у парка.'))+'</p><div class="r-actions">'+(empty?'<button class="r-save" data-action="reset-filter">Показать все</button>':'<button class="r-save" data-action="list">Открыть мой список</button><button class="r-list-btn" data-action="restart">Посмотреть ещё раз</button>')+'<a class="r-text" href="'+catalogURL()+'">Открыть каталог ↗</a></div></article>';
+    return '<article class="r-card r-end" data-slot="'+slot+'" '+(slot ? 'inert aria-hidden="true"' : '')+'><span class="r-end-icon" aria-hidden="true">'+(empty?'○':'✓')+'</span><p class="r-eyebrow">'+(empty?'ПО ЭТОМУ ФИЛЬТРУ':'ВСЁ ПОСМОТРЕЛИ')+'</p><h2>'+(empty?'Пока ничего<br>не нашлось':'Ваш день<br>начинается здесь')+'</h2><p'+(empty?'':' data-end-summary')+'>'+(empty?'Попробуйте все аттракционы.':endSummary())+'</p><div class="r-actions">'+(empty?'<button class="r-save" data-action="reset-filter">Показать все</button>':'<button class="r-save" data-action="list">Открыть мой список</button><button class="r-list-btn" data-action="restart">Посмотреть ещё раз</button>')+'<a class="r-text" href="'+catalogURL()+'">Открыть каталог ↗</a></div></article>';
   }
   function render() {
     cancelSettle(false); offset = 0;
@@ -90,6 +91,7 @@
     $('#r-count').textContent = !rides.length ? '0 / 0' : Math.min(index+1,rides.length)+' / '+rides.length;
     $('#r-mode-label').textContent = mode==='demo'?'Учебный пример':'Аттракционы парка';
     $('#r-list-count').textContent = selected().length;
+    track.querySelectorAll('[data-end-summary]').forEach(el => { el.textContent = endSummary(); });
     const isSaved = current() && selected().includes(current().id);
     $('#r-save').setAttribute('aria-pressed',String(!!isSaved)); $('#r-save-label').textContent = current() ? (isSaved?'В списке':'Хочу покататься') : 'К моему списку';
     $('#r-save > span').textContent = isSaved?'♥':'♡';
@@ -115,9 +117,17 @@
     // Force the current position to be committed before a responsive CSS transition.
     void track.offsetHeight;
     position(target,true);
-    const finish = () => { settling=null; index+=direction; progress().swiped=true; saveProgress(); render(); $('#r-live').textContent=current()?current().name+'. '+(index+1)+' из '+rides.length:'Вы посмотрели все аттракционы'; performance.mark('reels-settled'); performance.measure('reels-settle','reels-release','reels-settled'); };
-    if(reduced.matches) finish(); else settling={timer:setTimeout(finish,230),direction};
+    const run = {timer:null,direction,finish:null};
+    run.finish = () => {
+      if(settling!==run)return;
+      clearTimeout(run.timer);settling=null;index+=direction;progress().swiped=true;saveProgress();render();
+      $('#r-live').textContent=current()?current().name+'. '+(index+1)+' из '+rides.length:'Вы посмотрели все аттракционы';
+      performance.mark('reels-settled');performance.measure('reels-settle','reels-release','reels-settled');
+    };
+    settling=run;
+    if(reduced.matches)run.finish();else run.timer=setTimeout(run.finish,230);
   }
+  function finishPendingMove() { if(settling)settling.finish(); }
   function settleBack() {
     cancelSettle(false); position(0,true);
   }
@@ -160,8 +170,10 @@
     if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();if(!settling)move(e.key==='ArrowDown'?1:-1);}
   });
   function openPanel(type) {
-    cancelSettle(true);gesture=null;settleBack();
     if(!dialog.open)focusBack=document.activeElement;
+    finishPendingMove();
+    if(type==='details'&&!current())type='list';
+    cancelSettle(true);gesture=null;settleBack();
     panel=type; renderPanel(); if(!dialog.open)dialog.showModal();
   }
   function closePanel() {dialog.close();}
@@ -207,13 +219,14 @@
   document.addEventListener('click',e=>{
     const link=e.target.closest('a[href]');
     if(link?.dataset?.picker) {
+      finishPendingMove();
       syncMode();
       if(writeBlocked) { e.preventDefault(); toast('Не удалось сохранить выбор. Продолжайте на этой странице, чтобы не потерять его.', true); return; }
     }
     if(link && /(?:tickets|company)\.html/.test(link.getAttribute('href')))syncMode();
     const el=e.target.closest('[data-action]');if(!el)return;
     const a=el.dataset.action;
-    if(a==='save'){if(current())toggle();else openPanel('list');}
+    if(a==='save'){finishPendingMove();if(current())toggle();else openPanel('list');}
     else if(['details','list','family','help'].includes(a))openPanel(a);
     else if(a==='close')closePanel();
     else if(a==='next'||a==='prev'){if(!settling)move(a==='next'?1:-1);}
