@@ -223,7 +223,7 @@ function saveAccess(){
  const objectUrl=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));const a=document.createElement('a');a.href=objectUrl;a.download=order.id+'-access.html';a.click();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);announce('Данные заказа подготовлены для сохранения.');
 }
 document.addEventListener('click',e=>{if(busy){e.preventDefault();e.stopImmediatePropagation();return;}const detail=e.target.closest('[data-open-details]');if(detail){e.preventDefault();const d=$('#details-'+detail.dataset.openDetails);if(d){d.open=true;jump('#details-'+detail.dataset.openDetails);}return;}const b=e.target.closest('[data-action]');if(!b)return;const act=b.dataset.action;if(busy)return;
-if(act==='recalculate-company'){location.href='company.html';return;}
+if(act==='recalculate-company'){location.href='company.html'+(new URLSearchParams(location.search).get('picker')==='reels'?'?picker=reels':'');return;}
 if(act==='review-order'){reviewOrder();return;}
 if(act==='back-to-products'){reviewing=false;reviewedToken='';render();jump(directEntry?'#direct':'#recommendations');return;}
 if(act==='fix-order'){focusField(b.dataset.target);return;}
