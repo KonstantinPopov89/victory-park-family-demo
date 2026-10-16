@@ -149,8 +149,8 @@ function setQuickQuantity(target,n){
   for(let i=0;i<n;i++)lines.push(existing[i]||{id:id(),productId:'unlimited',rideId:null,personId:null,recipientKey:'direct-pass-'+id(),quantity:1,unitPrice:VP3.products.unlimited.price});
  }else{
   const chosen=ride(quickRideId);if(!chosen?.fictional)return false;
-  let line=lines.find(l=>!l.autoCompanion&&l.productId==='ticket'&&l.rideId===quickRideId&&(quickPersonId?l.personId===quickPersonId:VP3.isDirectLine(l)));
-  if(line)line.quantity=n;else lines.push({id:id(),productId:'ticket',rideId:quickRideId,personId:quickPersonId||null,recipientKey:quickPersonId?null:'direct-ticket-'+id(),quantity:n,unitPrice:chosen.price});
+  const matching=lines.filter(l=>!l.autoCompanion&&l.productId==='ticket'&&l.rideId===quickRideId&&(quickPersonId?l.personId===quickPersonId:VP3.isDirectLine(l))),line=matching[0];
+  if(line){line.quantity=n;lines=lines.filter(l=>!matching.includes(l)||l===line);}else lines.push({id:id(),productId:'ticket',rideId:quickRideId,personId:quickPersonId||null,recipientKey:quickPersonId?null:'direct-ticket-'+id(),quantity:n,unitPrice:chosen.price});
  }
  customTarget='';commitCart(lines,'Количество изменено. Полная сумма обновлена.',false);return true;
 }
@@ -173,7 +173,11 @@ function promotionAction(a){
 }
 function focusField(target){const el=document.getElementById(target);if(!el)return;let ancestor=el.parentElement;while(ancestor){if(ancestor.tagName==='DETAILS')ancestor.open=true;ancestor=ancestor.parentElement;}el.scrollIntoView({block:'center',behavior:'auto'});if(!el.matches('input,select,button,a'))el.setAttribute('tabindex','-1');el.focus({preventScroll:true});}
 function orderTotals(o){return `${o.promotion?.offerId?`<p>${esc(VPO.getOffer(o.promotion.offerId)?.title||'Предложение')}${o.promotion.offerId==='weekday20'?' · '+esc(o.promotion.visitDate):''}</p>`:''}${o.discount?`<div class="price-breakdown"><span>Полная стоимость</span><strong>${money(o.subtotal)}</strong><span>Скидка</span><strong>−${money(o.discount)}</strong></div>`:''}${o.bonus&&o.status==='success'?`<p>Бонус на следующий визит: ${money(o.bonus)}. С ${esc(o.bonusValidFrom)} по ${esc(o.bonusValidUntil)}. Сейчас оплачивается полная цена.</p>`:''}`;}
-function legacyRecipient(l){if(VP3.isPackage(l)||person(l.personId)||VP3.isDirectLine(l))return '';return `<div class="line-recipient-fix"><p class="helper">Для старого черновика нужно выбрать получателя, чтобы учесть сопровождение.</p><div class="chips">${state.party.map(p=>btn('assign-line-person',esc(p.label)+' · '+esc(ageLabel(p)),`data-line="${l.id}" data-person="${p.id}"`,'chip')).join('')}</div>${!state.party.length?btn('fix-recipient','Добавить получателя',`data-product="${l.productId==='unlimited'?'unlimited':'single'}"`,'btn btn-outline'):''}</div>`;}
+function legacyRecipient(l){
+ if(VP3.isPackage(l)||person(l.personId)||VP3.isDirectLine(l))return '';
+ const product=l.productId==='unlimited'?'unlimited':'single',canContinue=quick&&!l.autoCompanion;
+ return `<div class="line-recipient-fix"><p class="helper">${canContinue?'Можно продолжить без анкеты. Каждому катающемуся, включая сопровождающего, нужно своё право.':'Для старого черновика нужно выбрать получателя, чтобы учесть сопровождение.'}</p><div class="chips">${state.party.map(p=>btn('assign-line-person',esc(p.label)+' · '+esc(ageLabel(p)),`data-line="${l.id}" data-person="${p.id}"`,'chip')).join('')}</div>${canContinue?btn('make-direct-line','Продолжить без анкеты',`data-line="${l.id}"`,'btn btn-outline'):''}${!state.party.length?(quick?`<a class="btn btn-text" data-checkout-switch href="tickets.html?product=${product}#cart">Указать получателя</a>`:btn('fix-recipient','Добавить получателя',`data-product="${product}"`,'btn btn-outline')):''}</div>`;
+}
 function pricedCart(input){
  const q=VP3.quoteCart(input), options=q.needsCompanionChoice?q.companionOptions.filter(x=>x.available):[{personId:input.companionId,total:q.total}];
  let beforePromotion=false;
@@ -293,6 +297,14 @@ if(act==='ticket-person'){ticketPersonId=b.dataset.person;agePerson=person(ticke
 if(act==='purchase-add-adult'||act==='purchase-add-child'||act==='purchase-add-companion'){purchaseAdd(act==='purchase-add-child'?'child':'adult',act==='purchase-add-companion');return;}
 if(act==='edit-companion'){editingCompanion=true;render();focusField('companion-controls');return;}
 if(act==='choose-companion'){editingCompanion=false;state.companionId=b.dataset.person;state.companionAutoSelected=false;clearIssues();update('Сопровождающий выбран для всего заказа.');return;}
+if(act==='make-direct-line'){
+ if(!quick)return;
+ const lines=clone(state.cart.lines),line=lines.find(l=>l.id===b.dataset.line);
+ if(!line||line.personId||line.autoCompanion||!['ticket','unlimited'].includes(line.productId)||VP3.isDirectLine(line))return;
+ line.recipientKey=(line.productId==='unlimited'?'direct-pass-':'direct-ticket-')+id();
+ activeProduct=line.productId==='unlimited'?'unlimited':'single';if(line.productId==='ticket'){quickRideId=line.rideId;quickPersonId='';}
+ commitCart(lines,'Билеты сохранены без назначения получателя. Количество и сумма не изменились.',false);return;
+}
 if(act==='assign-line-person'){const line=state.cart.lines.find(l=>l.id===b.dataset.line);if(line){line.personId=b.dataset.person;line.recipientKey=null;ticketPersonId=b.dataset.person;if(person(ticketPersonId)?.role==='child'&&person(ticketPersonId).age===null)agePerson=ticketPersonId;clearIssues();update('Получатель выбран. Сопровождение пересчитано.');}return;}
 if(act==='add-adult'||act==='add-child'){addPerson(act==='add-adult'?'adult':'child');return;}
 if(act==='collapse-family'){agePerson='';familyOpen=false;render();jump('#catalog');return;}
