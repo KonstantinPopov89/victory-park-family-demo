@@ -1,0 +1,1 @@
+/* Homepage cards link directly to inline attraction details in this version. */

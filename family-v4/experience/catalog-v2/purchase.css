@@ -1,0 +1,39 @@
+/* Purchase A extends the shared family layout without replacing its tokens. */
+.quantity-choice { margin-top: 18px; }
+.quantity-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+.quantity-pills { display: flex; flex-wrap: wrap; gap: 7px; }
+.quantity-pill { min-width: 44px; min-height: 44px; padding: 9px 13px; border: 1px solid #ABAAC8; border-radius: 10px; color: var(--cobalt); background: white; font: 600 13px/1.3 Montserrat, sans-serif; cursor: pointer; transition: background-color .15s, color .15s, transform .15s; }
+.quantity-pill[aria-pressed="true"] { background: var(--cobalt); color: white; border-color: var(--cobalt); }
+.quantity-pill:active { transform: scale(.96); }
+.quantity-pill:disabled { cursor: wait; opacity: .6; }
+.product-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+.pass-recipients { border-top: 1px solid #DEDEEC; margin-top: 20px; padding-top: 20px; }
+.pass-date { margin-top: 24px; padding-top: 20px; border-top: 1px solid #DEDEEC; }
+.pass-date .chips { margin: 10px 0; }
+.pass-date input { width: 100%; min-width: 0; }
+.demo-ticket-grid { display: grid; gap: 16px; margin: 20px 0 24px; }
+.demo-ticket { border: 2px solid var(--cobalt); border-radius: 18px; padding: 22px; min-width: 0; background: white; break-inside: avoid; }
+.demo-ticket h3 { margin-top: 20px; }
+.ticket-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; font-size: 10px; }
+.ticket-top strong { background: var(--yellow); padding: 5px 8px; border-radius: 5px; }
+.ticket-code { overflow-wrap: anywhere; margin-top: 20px; font: 12px/1.5 monospace; padding-top: 16px; border-top: 1px dashed #ABAAC8; }
+.ticket-demo { font-size: 12px; font-weight: 600; }
+.tickets-heading { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 30px; }
+.tickets-heading h3 { margin: 0; }
+.copy-section { margin-top: 30px; padding-top: 24px; border-top: 1px solid #DEDEEC; }
+.copy-section form { max-width: 540px; }
+.copy-section input { font-size: 16px; }
+.receipt { max-width: 100%; }
+#keep-recipients-form > .btn { margin-top: 18px; }
+.undo-banner { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+@media (min-width: 768px) { .demo-ticket-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (prefers-reduced-motion: reduce) { .quantity-pill { transition: none; } .quantity-pill:active { transform: none; } }
+.payment-inline { border-top: 1px solid #DEDEEC; margin-top: 22px; padding-top: 20px; }
+.payment-inline .notice { margin-block: 14px; font-size: 12px; }
+.payment-inline form > .btn-primary { margin-top: 18px; width: 100%; }
+.payment-inline .btn-text { text-align: left; }
+.product-tabs [aria-selected="true"] { background: var(--cobalt); color: white; border-color: var(--cobalt); }
+.product-panel > .product + .product { margin-top: 16px; }
+.cart-panel .pass-recipients h4 { margin: 0 0 14px; }
+.cart-panel .pass-recipients select { font-size: 16px; }
+.cart-panel .pass-date label { line-height: 1.5; }

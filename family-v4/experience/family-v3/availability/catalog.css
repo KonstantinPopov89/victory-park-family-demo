@@ -1,0 +1,14 @@
+.catalog-modes{margin:0 0 12px;flex-wrap:wrap}
+.catalog-status-note{font-size:12px;line-height:1.6;color:#595778;margin:0 0 24px;max-width:760px}
+.catalog-status-note a{color:#2f2e7d;text-underline-offset:3px}
+.catalog-availability{margin:12px 0 14px}
+.catalog-status{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:6px 11px;border-radius:8px;font-size:13px;font-weight:600;line-height:1.4;text-decoration:none;border:1px solid transparent}
+.catalog-status::before{content:'';width:7px;height:7px;flex:0 0 7px;border-radius:50%;background:currentColor}
+.catalog-status.open{color:#195d42;background:#edf8f1;border-color:#c9e3d2}
+.catalog-status.paused{color:#79500d;background:#fff7e1;border-color:#ecd9a2}
+.catalog-status.closed{color:#9c343b;background:#fff0f1;border-color:#edc7ca}
+.catalog-status.unknown{color:#59566c;background:#f0eef5;border-color:#dad6e5}
+.catalog-status:hover{text-decoration:underline;text-underline-offset:3px}
+.catalog-status:focus-visible{outline:3px solid #2f2e7d;outline-offset:3px}
+.catalog-status-detail{font-size:12px;line-height:1.6;margin:8px 0 0;color:#595778}
+@media(max-width:599px){.catalog-status{min-height:44px}.catalog-modes .chip{white-space:normal}.catalog-status-note{font-size:12px}}

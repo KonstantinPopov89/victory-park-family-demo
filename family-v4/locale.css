@@ -1,0 +1,31 @@
+@font-face{font-family:VPArmenian;src:url('/victory-park-family-demo/family-v4/design-assets/noto-sans-armenian.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap}
+html[lang=hy] body{font-family:VPArmenian,Arial,sans-serif}
+html[lang=hy] .hero h1{font-family:VPArmenian,Arial,sans-serif;font-size:clamp(48px,5.5vw,76px);line-height:1.12;font-weight:800;letter-spacing:-.035em;text-transform:none}
+html[lang=hy] .section h2{font-family:VPArmenian,Arial,sans-serif;font-size:clamp(32px,3.4vw,50px);font-weight:700;line-height:1.16;text-transform:none}
+html[lang=hy] :where(.ride-teaser h3,.plans-caption strong,.product-teaser h3,.footer-word,.circle-note){font-family:VPArmenian,Arial,sans-serif;line-height:1.2;text-transform:none}
+html[lang=hy] .ride-teaser h3{font-size:24px;font-weight:700}
+html[lang=hy] .product-teaser h3{font-size:30px;font-weight:700}
+html[lang=hy] .circle-note{font-size:19px;font-weight:700}
+html[lang=hy] .footer-word{font-size:clamp(26px,3vw,42px);font-weight:700}
+html[lang=hy] .nav-links{gap:18px}
+html[lang=hy] .nav-links a{font-size:13px}
+.language-help{font-size:13px;line-height:1.55;max-width:540px;margin:20px 0 0}
+.locale-notice{padding:14px 22px;background:#f1edfa;color:#2f2e7d;font:400 14px/1.6 VPText,Arial,sans-serif;display:flex;align-items:center;justify-content:center;gap:8px 24px;flex-wrap:wrap;text-align:center}
+.locale-notice[lang=hy]{font-family:VPArmenian,Arial,sans-serif}
+.locale-notice a{color:inherit;text-underline-offset:4px;min-height:44px;display:inline-flex;align-items:center;font-weight:600}
+.mobile-menu .menu-languages{display:flex;gap:12px;flex-wrap:wrap;margin-top:24px}
+.mobile-menu .menu-languages a{font-size:16px;min-height:44px;padding:10px 14px;border:0;background:var(--vp-soft);border-radius:4px;text-decoration:none}
+.mobile-menu .menu-languages a[aria-current=page]{background:var(--vp-ink);color:#fff}
+@media(max-width:1100px){html[lang=hy] .nav-links{display:none}html[lang=hy] .nav-actions{margin-left:auto}html[lang=hy] .menu-toggle{display:flex}}
+@media(max-width:800px){html[lang=hy] .hero h1{font-size:clamp(43px,9vw,66px);line-height:1.13}html[lang=hy] .section h2{font-size:34px}html[lang=hy] .hero-actions .button{font-size:14px}html[lang=hy] .mobile-buy strong{font-size:12px}html[lang=hy] .mobile-buy>div{font-size:11px}html[lang=hy] .mobile-buy .button{font-size:13px;padding-inline:14px}.language-help{font-size:13px}}
+@media(max-width:390px){html[lang=hy] .hero h1{font-size:43px}html[lang=hy] .nav-actions>.button{font-size:12px;padding-inline:12px}html[lang=hy] .section h2{font-size:32px}html[lang=en] .hero h1{font-size:56px}}
+
+html[lang=hy] body[data-vp-theme] :where(h1,h2,h3,.disp){font-family:VPArmenian,Arial,sans-serif}
+
+.locale-notice{position:relative;padding-right:66px;gap:2px 20px;min-height:64px}
+.locale-notice a{min-height:36px}
+.locale-dismiss{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:44px;height:44px;border:0;border-radius:6px;background:transparent;color:#2f2e7d;font:24px Arial,sans-serif;cursor:pointer}
+body.locale-reels{flex-direction:column;gap:16px}
+body.locale-reels>.locale-notice{align-self:stretch}
+@media(max-width:760px){body.locale-reels .r-app{height:calc(100svh - var(--locale-notice-height,0px));height:calc(100dvh - var(--locale-notice-height,0px))}body.locale-reels .r-card{overflow-y:auto}.locale-notice{padding-block:6px;padding-left:16px;text-align:left;justify-content:start;font-size:13px}.locale-notice a{font-size:13px}}
+@media(max-width:680px){body[data-page="picker"][data-sp-view="swipe"] #main.sp-wrap{height:calc(100svh - var(--locale-notice-height,0px));height:calc(100dvh - var(--locale-notice-height,0px))}}

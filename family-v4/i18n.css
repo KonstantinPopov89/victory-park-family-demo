@@ -1,0 +1,22 @@
+@font-face{font-family:VPArmenian;src:url('/victory-park-family-demo/family-v4/design-assets/noto-sans-armenian.ttf') format('truetype');font-weight:100 900;font-style:normal;font-display:swap}
+.locale-toolbar{box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;min-height:52px;padding:4px clamp(12px,4vw,32px);background:#fffdf5;color:#2f2e7d;border-bottom:1px solid #e3dfea;font:600 14px/1.25 VPText,Montserrat,Arial,sans-serif;position:relative;z-index:30}
+.locale-home{color:inherit;text-decoration:none;min-height:44px;display:flex;align-items:center;font-weight:600}
+.locale-options{display:flex;align-items:center;gap:4px}
+.locale-options button{border:0;background:transparent;color:#2f2e7d;min-width:44px;min-height:44px;padding:8px;font:600 13px/1.1 Arial,sans-serif;border-radius:6px;cursor:pointer}
+.locale-options button[aria-pressed=true]{background:#2f2e7d;color:#fff}
+.locale-options button:focus-visible{outline:3px solid #d80b8c;outline-offset:2px}
+html[lang=hy] body,html[lang=hy] body :where(h1,h2,h3,h4,p,a,button,label,summary,input,select,textarea,strong,small,span,li){font-family:VPArmenian,Arial,sans-serif}
+html[lang=hy] body :where(h1,h2,h3){line-height:1.2;text-transform:none;letter-spacing:-.02em}
+html[lang=hy] body :where(h1){font-size:clamp(28px,4vw,48px)}
+html[lang=hy] body :where(h2){font-size:clamp(24px,3vw,34px)}
+html[lang=hy] body :where(h3){font-size:clamp(21px,2.5vw,28px)}
+html[lang=hy] body :where(button,.btn,.chip,.cp-button,.cp-chip){white-space:normal;overflow-wrap:anywhere}
+.locale-toolbar :lang(hy){font-family:VPArmenian,Arial,sans-serif}
+body.locale-reels{flex-direction:column;gap:12px}
+body.locale-reels>.locale-toolbar{align-self:stretch}
+@media(max-width:760px){body.locale-reels{gap:0}body.locale-reels .r-app{height:calc(100svh - var(--locale-toolbar-height,52px));height:calc(100dvh - var(--locale-toolbar-height,52px))}body.locale-reels .r-card{overflow-y:auto}.locale-toolbar{min-height:48px;padding-block:0}html[lang=hy] .r-title{font-size:26px}html[lang=hy] .r-actions button{font-size:13px}}
+@media(max-width:680px){body[data-page=picker][data-sp-view=swipe] #main.sp-wrap{height:calc(100svh - var(--locale-toolbar-height,48px));height:calc(100dvh - var(--locale-toolbar-height,48px))}html[lang=hy] .sp-card h2{font-size:25px}html[lang=hy] .quick-wrap h1{font-size:30px}html[lang=hy] .checkout-dock .btn{font-size:13px}}
+
+.locale-dialog-options{justify-content:flex-end;padding:4px 8px;margin-bottom:12px;position:relative;z-index:2}.locale-dialog-options button{min-width:44px;min-height:44px}
+
+html[lang=hy] .hero-tag{display:block;padding:28px 10px;font:600 19px/1.3 VPArmenian,Arial,sans-serif;overflow-wrap:anywhere}html[lang=hy] .hero-tag br{display:block}@media(max-width:760px){html[lang=hy] .hero-tag{padding:32px 6px;font-size:16px}}
