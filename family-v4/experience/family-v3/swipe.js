@@ -236,7 +236,15 @@ document.addEventListener('click',e=>{
  if(a==='mode'){state.mode=state.mode==='demo'?'real':'demo';filter='all';forced=null;persist();switchView('swipe');return;}
  if(a==='age'){ageOpen=ageOpen===pid?null:pid;renderModal();return;}
  if(a==='set-age'){const p=state.party.find(p=>p.id===pid);if(p)p.age=b.dataset.age==='unknown'?null:Number(b.dataset.age);ageOpen=null;familyChanged();render();renderModal();$('#sp-age-'+pid)?.focus({preventScroll:true});return;}
- if(a==='add-adult'||a==='add-child'){if(state.party.length>=8)return;const role=a==='add-child'?'child':'adult';const used=state.party.filter(p=>p.role===role).map(p=>p.label);let n=1;const label=role==='adult'?'Взрослый':'Ребёнок';while(used.includes(label+' '+n))n++;const p={id:'sp-'+crypto.randomUUID(),role,label:label+' '+n,age:null,height:null};state.party.push(p);if(role==='child')ageOpen=p.id;familyChanged();render();renderModal();requestAnimationFrame(()=>$('#sp-age-'+p.id)?.closest('.sp-person')?.scrollIntoView({block:'nearest'}));return;}
+ if(a==='add-adult'||a==='add-child'){if(state.party.length>=8)return;const role=a==='add-child'?'child':'adult';const used=state.party.filter(p=>p.role===role).map(p=>p.label);let n=1;const label=role==='adult'?'Взрослый':'Ребёнок';while(used.includes(label+' '+n))n++;const p={id:'sp-'+crypto.randomUUID(),role,label:label+' '+n,age:null,height:null};state.party.push(p);if(role==='child')ageOpen=p.id;familyChanged();render();renderModal();requestAnimationFrame(()=>{
+  const ageButton=$('#sp-age-'+p.id);
+  ageButton?.closest('.sp-person')?.scrollIntoView({block:'nearest'});
+  // At the participant limit the Add trigger is disabled after rendering.
+  if(state.party.length>=8&&modalKind==='family'&&$('#sp-dialog').open){
+   const target=ageButton||$('#sp-dialog-body .sp-family-done [data-sp="close"]');
+   target?.focus({preventScroll:true});target?.scrollIntoView({block:'nearest'});
+  }
+ });return;}
  if(a==='remove-person'){state.party=state.party.filter(p=>p.id!==pid);state.riders=state.riders.filter(id=>id!==pid);state.cart.lines=state.cart.lines.filter(l=>l.personId!==pid);if(state.companionId===pid){state.companionId=null;state.companionAutoSelected=false;}if(!state.riders.length)state.ridersConfirmed=false;familyChanged();render();renderModal();announce('Участник и его личные билеты удалены.');return;}
 });
 document.addEventListener('input',e=>{if(e.target.id==='sp-search'){search=e.target.value;const start=e.target.selectionStart,end=e.target.selectionEnd;render();$('#sp-search').setSelectionRange(start,end);}});
