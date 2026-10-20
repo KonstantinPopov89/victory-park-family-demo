@@ -24,6 +24,7 @@ const all = [...VP3.demoRides, ...VP3.realRides];
 const lookup = id => all.find(r => r.id === id);
 let storageOK=true, state, journal, view='swipe', filter='all', forced=null, drag=null, modalKind=null, modalRide=null, ageOpen=null, returnFocus=null;
 try { state=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY)||'null')); } catch { state=VP3.emptyState();storageOK=false; }
+let realBaseline=state.selections.real.slice();
 try { const test='vp.swipe.storage-test';localStorage.setItem(test,'1');localStorage.removeItem(test); } catch {storageOK=false;}
 function cleanJournal(raw) {
   const out={version:1,onboard:raw?.onboard===true,modes:{}};
@@ -67,7 +68,7 @@ function cardPrice(r){
  return `<p class="sp-price">${unknown&&!accompanied?'От ':''}${money(amount)}<small>${accompanied?(hasAdultRights(r)?'новая пара без учёта прав':'ребёнок + взрослый'):unknown?'сопровождение уточним':'за одного'}</small></p>`;
 }
 const generated=r=>Boolean(r.photo?.startsWith('assets/demo-'));
-const sourceLabel=r=>r.fictional?(generated(r)?'Учебный пример · изображение сгенерировано':'Учебные условия · фото парка'):'Фото парка · действующие условия уточняются';
+const sourceLabel=r=>r.fictional?(generated(r)?'Учебный пример · изображение сгенерировано':'Учебные условия · фото парка'):r.photo?'Фото парка · действующие условия уточняются':'Изображение не указано';
 const meta={
  'demo-water-swan':{tag:'По воде, не спеша',text:'Небольшое водное путешествие и спокойный ритм.'},
  'demo-wheel-of-happiness':{tag:'Посмотреть на всё сверху',text:'Поднимайтесь над парком и делитесь впечатлениями.'},
@@ -85,7 +86,7 @@ const meta={
  'demo-small':{tag:'Первое приключение',text:'Знакомая карусель для маленьких исследователей.'},
  'demo-unknown':{tag:'Навстречу ветру',text:'Круг за кругом, с ощущением полёта над землёй.'},
 };
-function persist(){try{const u=new URL(location.href);u.searchParams.set('mode',state.mode);if(view==='catalog')u.searchParams.set('view','catalog');else u.searchParams.delete('view');if(view==='list')u.hash='plan';else if(u.hash==='#plan')u.hash='';if(!forced)u.searchParams.delete('ride');history.replaceState({...history.state,vpSwipeMode:state.mode,vpSwipeView:view},'',u.pathname+u.search+u.hash);}catch{}try{localStorage.setItem(KEY,JSON.stringify(state));localStorage.setItem(JOURNEY,JSON.stringify(journal));}catch{storageOK=false;}}
+function persist(){try{const u=new URL(location.href);u.searchParams.set('mode',state.mode);if(view==='catalog')u.searchParams.set('view','catalog');else u.searchParams.delete('view');if(view==='list')u.hash='plan';else if(u.hash==='#plan')u.hash='';if(!forced)u.searchParams.delete('ride');history.replaceState({...history.state,vpSwipeMode:state.mode,vpSwipeView:view},'',u.pathname+u.search+u.hash);}catch{}try{if(window.VPJourneySync){const result=VPJourneySync('local',{a:{before:realBaseline,after:state.selections.real}},{aState:state});if(!result?.ok)throw new Error('Interest storage unavailable');}else localStorage.setItem(KEY,JSON.stringify(state));state.selections.real=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY))).selections.real;realBaseline=state.selections.real.slice();localStorage.setItem(JOURNEY,JSON.stringify(journal));}catch{storageOK=false;}}
 function announce(text){$('#sp-status').textContent='';requestAnimationFrame(()=>{$('#sp-status').textContent=text;});}
 function familyMatch(r){return state.party.filter(p=>p.role==='child'&&VP3.ageHint(r,p).status==='suggested');}
 function candidates(){return rides().filter(r=>filter==='all'||r.intensity===filter).slice().sort((a,b)=>familyMatch(b).length-familyMatch(a).length);}
@@ -101,7 +102,7 @@ function admissionNote(r){
 function availability(r){return r.fictional?'':`<div class="sp-availability" data-availability-catalog-id="${esc(r.id)}"><small>Учебный статус работы</small><a class="catalog-status unknown" href="availability.html">Уточняем</a><p class="catalog-status-detail">Проверяем сведения.</p></div>`;}
 function familyChanged(){state=VP3.reconcileCompanions(state).state;persist();}
 
-function image(r,cls='',priority=false,eager=false){const stem=r.photo?.replace('.webp','');return r.photo?`<img class="${cls}" src="${esc(r.photo)}" ${generated(r)?`srcset="${stem}-thumb.webp 160w, ${stem}-small.webp 400w, ${stem}.webp 720w" sizes="${cls==='sp-thumb'?'64px':'(max-width: 640px) 100vw, 460px'}"`:''} alt="${esc(generated(r)?'Учебная иллюстрация: '+r.name:r.name)}" width="560" height="350" ${priority?'fetchpriority="high" loading="eager"':eager?'fetchpriority="low" loading="eager"':'loading="lazy"'} draggable="false">`:'';}
+function image(r,cls='',priority=false,eager=false){const stem=r.photo?.replace('.webp','');return r.photo?`<img class="${cls}" src="${esc(r.photo)}" ${generated(r)?`srcset="${stem}-thumb.webp 160w, ${stem}-small.webp 400w, ${stem}.webp 720w" sizes="${cls==='sp-thumb'?'64px':'(max-width: 640px) 100vw, 460px'}"`:''} alt="${esc(generated(r)?'Учебная иллюстрация: '+r.name:r.name)}" width="560" height="350" ${priority?'fetchpriority="high" loading="eager"':eager?'fetchpriority="low" loading="eager"':'loading="lazy"'} draggable="false">`:`<span class="${cls} sp-image-fallback" role="img" aria-label="Изображение не указано">Изображение не указано</span>`;}
 function card(r,preview=false){
  const m=meta[r.id],fits=familyMatch(r);
  return `<article class="sp-card${preview?' sp-card-next':''}" ${preview?'data-next-card aria-hidden="true" inert':'data-swipe-card'} data-ride="${r.id}" aria-label="${esc(r.name)}">
@@ -140,7 +141,7 @@ function render(){
  if(view==='catalog'&&selected().length)$('#sp-root').insertAdjacentHTML('beforeend',`<div class="sp-action-dock sp-catalog-dock">${ticketContinue()}</div>`);
  const cartCount=state.cart.lines.reduce((n,l)=>n+l.quantity,0);document.querySelectorAll('#cart-count,[data-mobile-cart-count]').forEach(el=>el.textContent=cartCount?' ('+cartCount+')':'');
  if(activeId&&document.getElementById(activeId))document.getElementById(activeId).focus({preventScroll:true});else if(activeData){[...document.querySelectorAll('#sp-root [data-sp]')].find(n=>Object.entries(activeData).every(([k,v])=>n.dataset[k]===v))?.focus({preventScroll:true});}
- if(r){const next=list[1];if(next){const im=new Image();im.src=generated(next)?next.photo.replace('.webp','-small.webp'):next.photo;}}
+ if(r){const next=list[1];if(next?.photo){const im=new Image();im.src=generated(next)?next.photo.replace('.webp','-small.webp'):next.photo;}}
  document.dispatchEvent(new CustomEvent('vp:catalog-rendered'));
  bindDrag();
 }
@@ -258,8 +259,15 @@ $('#sp-dialog').addEventListener('close',()=>{
  if(!target?.getClientRects().length)target=[...document.querySelectorAll('#sp-settings,#sp-help')].find(n=>n.getClientRects().length);
  target?.focus({preventScroll:true});
 });
-window.addEventListener('storage',e=>{if(e.key===KEY){try{state=VP3.sanitizeState(JSON.parse(e.newValue||'null'));part().history=[];forced=null;render();if($('#sp-dialog').open)renderModal();announce('Выбор обновлён в другой вкладке.');}catch{}}if(e.key===JOURNEY){try{journal=cleanJournal(JSON.parse(e.newValue||'null'));showOnboard=!journal.onboard;render();}catch{}}});
-window.addEventListener('pageshow',e=>{if(e.persisted){try{state=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY)||'null'));journal=cleanJournal(JSON.parse(localStorage.getItem(JOURNEY)||'null'));showOnboard=!journal.onboard;if(['real','demo'].includes(history.state?.vpSwipeMode))state.mode=history.state.vpSwipeMode;if(['swipe','catalog','list'].includes(history.state?.vpSwipeView))view=history.state.vpSwipeView;render();}catch{}}});
+document.addEventListener('vp:interests',()=>{try{
+ const latest=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY)||'null'));
+ if(JSON.stringify(latest.selections.real)===JSON.stringify(state.selections.real))return;
+ state.selections.real=latest.selections.real;realBaseline=state.selections.real.slice();journal.modes.real.history=[];
+ Object.keys(journal.modes.real.decisions).forEach(id=>{if(journal.modes.real.decisions[id]==='yes'&&!state.selections.real.includes(id))delete journal.modes.real.decisions[id];});
+ render();if($('#sp-dialog').open)renderModal();
+ }catch{}});
+window.addEventListener('storage',e=>{if(e.key===KEY){try{state=VP3.sanitizeState(JSON.parse(e.newValue||'null'));realBaseline=state.selections.real.slice();part().history=[];forced=null;render();if($('#sp-dialog').open)renderModal();announce('Выбор обновлён в другой вкладке.');}catch{}}if(e.key===JOURNEY){try{journal=cleanJournal(JSON.parse(e.newValue||'null'));showOnboard=!journal.onboard;render();}catch{}}});
+window.addEventListener('pageshow',e=>{if(e.persisted){try{state=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY)||'null'));realBaseline=state.selections.real.slice();journal=cleanJournal(JSON.parse(localStorage.getItem(JOURNEY)||'null'));showOnboard=!journal.onboard;if(['real','demo'].includes(history.state?.vpSwipeMode))state.mode=history.state.vpSwipeMode;if(['swipe','catalog','list'].includes(history.state?.vpSwipeView))view=history.state.vpSwipeView;render();}catch{}}});
 document.addEventListener('error',e=>{if(e.target.tagName==='IMG'&&e.target.closest('#sp-root')){const fallback=document.createElement('div');fallback.className='sp-image-fallback';fallback.setAttribute('role','img');fallback.setAttribute('aria-label',e.target.alt+'; изображение недоступно');fallback.textContent='Изображение пока недоступно';e.target.replaceWith(fallback);}},true);
 persist();render();if(location.hash==='#family')openModal('family');if(linked)announce('Открыта карточка '+linked.name);
 window.addEventListener('pagehide',()=>{cancelGesture();persist();});

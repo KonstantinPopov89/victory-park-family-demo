@@ -61,6 +61,15 @@
   applyStatus();
   D.addEventListener("vp:opt", function (e) { applyStatus(); if (e.detail === "vpStatus" && SCR === "SCR-42") renderPlan(); if (e.detail === "vpPack" && SCR === "SCR-41") deckInit(); if (e.detail === "vpEscort" && SCR === "SCR-42") renderPlan(); });
 
+  D.addEventListener("vp:interests", function(e){
+    if(SCR === "SCR-42") renderPlan();
+    if(SCR === "SCR-41"){
+      if(e.detail && (e.detail.reason === 'external' || e.detail.reason === 'pageshow')) history_=[];
+      [].forEach.call(D.querySelectorAll('[data-heart]'),function(t){var on=inList(t.getAttribute('data-heart'));t.setAttribute('aria-pressed',String(on));t.innerHTML='<svg aria-hidden="true"><use href="#i-heart"/></svg>'+h(on?'in_list_done':'in_list');});
+      count();
+    }
+  });
+
   /* ---------- список и состав ---------- */
   function list() { return C.list(); }
   function inList(s) { return list().indexOf(s) >= 0; }
@@ -108,6 +117,7 @@
     function ab_upd() { if (inList(slug)) { ab.innerHTML = h("to_sum"); ab.setAttribute("data-in", "1"); } else { ab.innerHTML = h("in_list"); ab.removeAttribute("data-in"); } }
     ab.addEventListener("click", function () { if (ab.getAttribute("data-in")) { location.href = url("plan"); } else { add(slug, "attraction"); ab_upd(); } });
     ab_upd();
+    D.addEventListener("vp:interests", ab_upd);
     var bk = D.querySelector("[data-back]"); if (bk && D.referrer && D.referrer.indexOf(location.host) >= 0 && history.length > 1) bk.addEventListener("click", function (e) { e.preventDefault(); history.back(); });
   }
 
@@ -234,7 +244,7 @@
   function decide(yes, slug) {
     var card = deckEl.querySelector(".card"), hint = deckEl.querySelector(".hint"); if (hint) hint.remove();
     var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-    history_.push({ idx: idx, slug: slug, yes: yes });
+    history_.push({ idx: idx, slug: slug, yes: yes, wasSelected: inList(slug) });
     if (yes) add(slug, "swipe"); else C.log("deck_skip", { slug: slug, mode: "swipe" });
     var next = function () { idx = Math.min(items.length - 1, idx + 1); render41(); };
     if (card && !reduce) { card.style.transition = "transform .26s cubic-bezier(.2,.8,.2,1), opacity .26s"; card.style.transform = "translateX(" + (yes ? 130 : -130) + "%) rotate(" + (yes ? 14 : -14) + "deg)"; card.style.opacity = "0"; setTimeout(next, 240); }
@@ -284,7 +294,7 @@
       if (t.hasAttribute("data-mode")) setMode(t.getAttribute("data-mode"), true);
       if (t.hasAttribute("data-yes")) decide(true, items[idx].a.slug);
       if (t.hasAttribute("data-no")) decide(false, items[idx].a.slug);
-      if (t.hasAttribute("data-undo") && history_.length) { var hst = history_.pop(); if (hst.yes) remove(hst.slug); idx = hst.idx; C.log("deck_undo", { slug: hst.slug }); render41(); }
+      if (t.hasAttribute("data-undo") && history_.length) { var hst = history_.pop(); if (hst.yes && !hst.wasSelected) remove(hst.slug); idx = hst.idx; C.log("deck_undo", { slug: hst.slug }); render41(); }
       if (t.hasAttribute("data-heart")) { var s = t.getAttribute("data-heart"); if (inList(s)) { remove(s); C.log("deck_undo", { slug: s }); t.setAttribute("aria-pressed", "false"); t.lastChild.textContent = ""; t.innerHTML = '<svg aria-hidden="true"><use href="#i-heart"/></svg>' + h("in_list"); } else { add(s, "feed"); t.setAttribute("aria-pressed", "true"); t.innerHTML = '<svg aria-hidden="true"><use href="#i-heart"/></svg>' + h("in_list_done"); } }
       if (t.hasAttribute("data-fnext") || t.hasAttribute("data-fprev")) { var i = +(t.getAttribute("data-fnext") || t.getAttribute("data-fprev")) + (t.hasAttribute("data-fnext") ? 1 : -1); var sl = deckEl.querySelector('[data-i="' + Math.max(0, i) + '"]'); if (sl) sl.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }
       if (t.hasAttribute("data-nextpack")) { var pi = +t.getAttribute("data-nextpack"); for (var k = 0; k < items.length; k++) if (items[k].a && items[k].pack === pi) { idx = k; break; } render41(); }

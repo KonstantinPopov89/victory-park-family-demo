@@ -82,6 +82,8 @@
     for (var i = 0; i < b.length; i++) { b[i].hidden = n < 1; var c = b[i].querySelector("[data-mylist-n]"); if (c) c.textContent = n; }
   }
 
+  D.addEventListener("vp:interests", updBadge);
+
   /* ---------- меню SCR-28 ---------- */
   var lastFocus = null;
   function menu(open) {
@@ -244,7 +246,7 @@
   }
 
   W.VPCORE = { log: log, get: get, set: set, jget: jget, jset: jset, SS: function () { return SS; }, LS: function () { return LS; }, qs: qs, setState: setState, lazy: lazy,
-    list: list, setList: function (l) { jset(LS, "vpList", l); updBadge(); }, updBadge: updBadge, opt: opt, qrGo: qrGo, langEntry: langEntry, pickLang: pickLang,
+    list: list, setList: function (l) { var before=list(); if(W.VPJourneySync)W.VPJourneySync("local",{b:{before:before,after:l}},{bList:l});else jset(LS, "vpList", l); updBadge(); }, updBadge: updBadge, opt: opt, qrGo: qrGo, langEntry: langEntry, pickLang: pickLang,
     utm: function () { return utm || jget(SS, "vpUtm", {}); }, screen: function () { return screen; }, lang: function () { return lang; }, root: function () { return root; } };
   if (D.readyState === "loading") D.addEventListener("DOMContentLoaded", init); else init();
 })();

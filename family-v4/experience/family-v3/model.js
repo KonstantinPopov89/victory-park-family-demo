@@ -1,18 +1,14 @@
 (function (root, factory) {
   'use strict';
-  var api = factory();
+  var api = factory(typeof module === 'object' && module.exports ? require('../../shared-catalog.js') : root.VPSharedCatalog);
   if (typeof module === 'object' && module.exports) module.exports = api;
   if (root) root.VP3 = api;
-}(typeof window !== 'undefined' ? window : null, function () {
+}(typeof window !== 'undefined' ? window : null, function (sharedCatalog) {
   'use strict';
 
   // All numbers below describe a fictional teaching model, never Victory Park rules.
   function freeze(value) { Object.freeze(value); Object.keys(value).forEach(function (k) { if (value[k] && typeof value[k] === 'object' && !Object.isFrozen(value[k])) freeze(value[k]); }); return value; }
-  var realRides = freeze([
-    ['water-swan', 'Плавающий лебедь'], ['wheel-of-happiness', 'Колесо счастья'], ['autodrom', 'Автодром'],
-    ['mars-ride', 'Полет на Марс'], ['planet', 'Планета'], ['moto-ufo', 'Мощный НЛО'], ['pendulum', 'Метроном'],
-    ['rotating-tower', 'Вращающаяся башня'], ['rocket', 'Космический корабль'], ['VR-cinema', 'Виртуальная реальность'], ['VR-for-2', 'Виртуальное путешествие']
-  ].map(function (x) { return { id: x[0], name: x[1], photo: 'assets/' + x[0] + '.webp', price: null, intensity: null, ageRange: null, ageBasis: null, rules: null, operation: 'unknown', fictional: false }; }));
+  var realRides = freeze(sharedCatalog.rides);
   function demo(id, name, price, intensity, ages, symbol, min, max, soloMin, photo) {
     return { id: id, name: name, price: price, photo: photo, intensity: intensity, ageRange: ages,
       ageBasis: ages ? 'Учебная редакционная подсказка, не правило допуска и не описание реального парка.' : null,
