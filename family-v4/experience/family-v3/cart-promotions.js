@@ -34,9 +34,9 @@
       studentAcknowledged: raw.studentAcknowledged === true
     };
   }
-  function calculate(input, rawPromotion, today) {
+  function calculate(input, rawPromotion, today, purchaseOptions) {
     if (typeof today === 'undefined') today = offers.getToday();
-    var state = base.sanitizeState(input), assessment = base.assessCart(state);
+    var state = base.sanitizeState(input), assessment = base.assessCart(state, purchaseOptions);
     state = assessment.state || state;
     return priceAssessment(assessment, assessment.lines || state.cart.lines, rawPromotion, today);
   }
@@ -75,11 +75,11 @@
       canCheckout: eligible && payable !== null && payable > 0
     });
   }
-  function snapshotOrder(state, promotion, orderId, status, today) {
+  function snapshotOrder(state, promotion, orderId, status, today, purchaseOptions) {
     if (typeof today === 'undefined') today = offers.getToday();
-    var calculated = calculate(state, promotion, today);
+    var calculated = calculate(state, promotion, today, purchaseOptions);
     if (!calculated.canCheckout) return null;
-    var order = base.snapshotOrder(state, orderId, status);
+    var order = base.snapshotOrder(state, orderId, status, purchaseOptions);
     if (!order) return null;
     return Object.assign(order, {
       total: calculated.payable, subtotal: calculated.subtotal, promotion: calculated.promotion,
