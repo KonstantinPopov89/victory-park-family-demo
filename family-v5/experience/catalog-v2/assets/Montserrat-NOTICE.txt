@@ -1,0 +1,6 @@
+Copyright 2011 The Montserrat Project Authors (https://github.com/JulietaUla/Montserrat)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1. See OFL-Montserrat.txt for the full licence.
+
+The WOFF files are generated from Montserrat-Variable.ttf Version 9.000 at weights 400 and 600, with the Cyrillic/Latin character set of this prototype. The original copyright and licence metadata are retained in both WOFF files.
+Source SHA-256: 0f7b311b2f3279e4eef9b2f968bcdbab6e28f4daeb1f049f4f278a902bcd82f7

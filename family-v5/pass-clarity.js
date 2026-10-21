@@ -1,0 +1,1 @@
+/* v5: all pass summaries use product-catalog.js via v5.js. Legacy comparison retained in QA evidence. */

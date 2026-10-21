@@ -1,0 +1,35 @@
+/* Scoped presentation for two distinct demonstration products. */
+.vp-pass-context{margin:12px 0;padding:11px 14px;border:0;border-top:1px solid #d9d5e8;background:#f5f3e8;color:#2f2e7d;font:inherit;line-height:1.5;min-width:0}
+.vp-pass-context .vp-pass-summary{font-size:13px;line-height:1.5;margin:0 0 5px}
+.vp-pass-context .vp-pass-summary strong{font-weight:600}
+.vp-pass-details>summary,.vp-pass-included>summary{cursor:pointer;min-height:44px;padding:10px 0;font-size:14px;font-weight:600;line-height:1.5;text-decoration:underline;text-underline-offset:3px}
+.vp-pass-details[open]>summary{margin-bottom:14px}
+.vp-pass-compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+.vp-pass-card{padding:22px;background:#fffdf5;border:1px solid #d9d5e8;border-radius:8px;min-width:0;color:#2f2e7d}
+.vp-pass-card h3{font-family:inherit;font-size:20px;font-weight:600;line-height:1.3;margin:10px 0}
+.vp-pass-card h4{font-family:inherit;font-weight:600;font-size:14px;line-height:1.4;margin:20px 0 5px}
+.vp-pass-card p,.vp-pass-card li{font-size:15px;line-height:1.6;margin:6px 0}
+.vp-pass-card ul{margin:8px 0;padding-left:20px}
+.vp-pass-card a{color:inherit;font-weight:600;font-size:13px;line-height:1.5;text-underline-offset:3px}
+.vp-pass-tag{display:inline-block;font-size:11px;line-height:1.3;letter-spacing:.025em;font-weight:600;padding:5px 8px;background:#eeebf8;border-radius:3px}
+.vp-pass-price{display:block;font-size:27px;line-height:1.2;margin:12px 0}
+.vp-pass-card .vp-pass-choose{display:block;margin-top:22px;padding:13px 16px;border:1px solid #2f2e7d;border-radius:5px;min-height:48px;text-decoration:none;text-align:center;white-space:normal;overflow-wrap:anywhere}
+.vp-pass-card .vp-pass-choose:hover{background:#ffd400}
+.vp-pass-demo,.vp-pass-saved{font-size:13px;line-height:1.6;margin:18px 0 0}
+.vp-pass-full{display:inline-block;font-size:13px;font-weight:600;margin-top:12px;color:inherit}
+.vp-pass-context :is(a,summary):focus-visible,.vp-pass-page :is(a,summary):focus-visible{outline:3px solid #2f2e7d;outline-offset:4px}
+[data-pass-entry]{margin-block:0 18px}
+[data-pass-surface="a"] #product-unlimited>.vp-pass-context{margin-block:10px}
+[data-pass-surface="a"] .quick-product-heading h2{max-width:25ch}
+[data-pass-surface="a"] .vp-pass-context .vp-pass-compare{grid-template-columns:1fr}
+.vp-pass-page{max-width:1120px;margin:auto;padding:28px 24px 72px;color:#2f2e7d}
+.vp-pass-page h1{font-family:Oswald,"Arial Narrow",sans-serif;font-weight:600;font-size:clamp(32px,4vw,58px);line-height:1.1;max-width:22ch;margin:0 0 18px;text-transform:uppercase}
+html[lang="hy"] .vp-pass-page h1{font-family:VPArmenian,sans-serif;font-size:clamp(28px,3.3vw,48px);line-height:1.25;text-transform:none}
+.vp-pass-intro{max-width:68ch;line-height:1.65;margin:0 0 26px}
+.vp-pass-header{max-width:1120px;margin:auto;padding:18px 24px;display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;color:#2f2e7d}
+.vp-pass-header>a{font-family:Oswald,sans-serif;font-size:22px;text-decoration:none;color:inherit}
+.vp-pass-header nav{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:13px}
+.vp-pass-header nav a{color:inherit;min-height:36px;display:flex;align-items:center}
+.vp-pass-header [aria-current=page]{font-weight:700;text-decoration-thickness:2px}
+@media(max-width:700px){.vp-pass-compare{grid-template-columns:1fr}.vp-pass-card{padding:18px}.vp-pass-context{padding:10px 11px}.vp-pass-page{padding:24px 16px 56px}.vp-pass-header{padding:14px 16px;gap:10px}.vp-pass-header nav{gap:12px}.vp-pass-card h3{font-size:19px}}
+@media print{.vp-pass-context,.vp-pass-header{display:none}.vp-pass-page .vp-pass-compare{display:block}.vp-pass-card{break-inside:avoid}.vp-pass-choose{display:none!important}}

@@ -1,0 +1,1 @@
+(()=>{const b=new URL('.',document.currentScript.src).pathname,l=new URLSearchParams(location.search).get('lang')||document.documentElement.lang||'ru';if(l==='ru'){window.VP_TRANSLATIONS={};return;}document.write('<script src="'+b+'i18n-'+(['ru','hy','en'].includes(l)?l:'ru')+'.js"><\/script>')})();

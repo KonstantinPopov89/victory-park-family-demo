@@ -1,0 +1,1 @@
+(()=>{if(new URLSearchParams(location.search).get('review')==='1')return;const b=new URL('.',document.currentScript.src).pathname,l=new URLSearchParams(location.search).get('lang')||'ru';location.replace(b+(['ru','hy','en'].includes(l)?l:'ru')+'/pay/');})();

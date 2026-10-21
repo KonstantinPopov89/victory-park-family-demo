@@ -1,0 +1,82 @@
+[
+ {
+  "code": "k1",
+  "cls": "k",
+  "place": "окно кассы 1",
+  "target": "in-park",
+  "utm": "utm_source=qr&utm_medium=offline&utm_campaign=always-on&utm_content=kassa-1",
+  "status": "active",
+  "printed_on": "",
+  "note": "пример прототипа"
+ },
+ {
+  "code": "t-kassa-1",
+  "cls": "t",
+  "place": "наклейка у очереди кассы 1",
+  "target": "pay",
+  "utm": "utm_source=qr&utm_medium=offline&utm_campaign=topup&utm_content=queue-kassa-1",
+  "status": "active",
+  "printed_on": "",
+  "note": "пример прототипа"
+ },
+ {
+  "code": "s3",
+  "cls": "s",
+  "place": "стойка 3",
+  "target": "pay",
+  "utm": "utm_source=qr&utm_medium=offline&utm_campaign=topup&utm_content=stand-03",
+  "status": "active",
+  "printed_on": "",
+  "note": "пример прототипа"
+ },
+ {
+  "code": "is1",
+  "cls": "is",
+  "place": "картинка Stories с прайсом",
+  "target": "in-park",
+  "utm": "utm_source=instagram&utm_medium=story-qr&utm_campaign=always-on&utm_content=stories-price-1",
+  "status": "active",
+  "printed_on": "",
+  "note": "пример прототипа"
+ },
+ {
+  "code": "pr-1",
+  "cls": "k",
+  "place": "прайс у кассы 1 (QR на прайсе)",
+  "target": "in-park",
+  "utm": "utm_source=qr&utm_medium=offline&utm_campaign=always-on&utm_content=price-1",
+  "status": "active",
+  "printed_on": "",
+  "note": "пример прототипа"
+ },
+ {
+  "code": "pr-2",
+  "cls": "k",
+  "place": "прайс у кассы 2 (QR на прайсе)",
+  "target": "in-park",
+  "utm": "utm_source=qr&utm_medium=offline&utm_campaign=always-on&utm_content=price-2",
+  "status": "active",
+  "printed_on": "",
+  "note": "пример прототипа"
+ },
+ {
+  "code": "a-koleso",
+  "cls": "a",
+  "place": "наклейка у колеса обозрения",
+  "target": "in-park",
+  "utm": "utm_source=qr&utm_medium=offline&utm_campaign=always-on&utm_content=attraction-koleso",
+  "status": "active",
+  "printed_on": "",
+  "note": "пример прототипа"
+ },
+ {
+  "code": "p-demo",
+  "cls": "p",
+  "place": "купон партнёра (пример)",
+  "target": "",
+  "utm": "utm_source=partner&utm_medium=coupon&utm_campaign=partner&utm_content=coupon-demo",
+  "status": "active",
+  "printed_on": "",
+  "note": "пример прототипа"
+ }
+]
