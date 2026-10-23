@@ -45,8 +45,9 @@ function filterLinks(){
   if(target.origin!==location.origin||!target.pathname.startsWith(base))continue;
   const tail=target.pathname.slice(base.length);
   const catalog=/^(ru|en|hy)\/attractions\/(?:index\.html)?$/.test(tail);
+  const discovery=/^experience\/guest\/(reels|attractions)\.html$/.test(tail);
   const ride=/^(ru|en|hy)\/attractions\/[^/]+\/(?:index\.html)?$/.test(tail);
-  if(!catalog&&!(screen==='SCR-14'&&ride))continue;
+  if(!catalog&&!discovery&&!(screen==='SCR-14'&&ride))continue;
   target.searchParams.delete('cat');target.searchParams.delete('filter');
   if(filter)target.searchParams.set(filter==='unl'?'filter':'cat',filter);
   if(a.href!==target.href)a.href=target.href;

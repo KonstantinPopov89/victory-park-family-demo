@@ -1,0 +1,211 @@
+/* Focused attraction discovery. Loaded after the preserved v5 theme. */
+body[data-vp-discovery] {
+  --vp-discovery-header-height: 116px;
+  --discovery-ink: #2f2e7d;
+  --discovery-muted: #625b78;
+  --discovery-line: #dedbe9;
+  --discovery-paper: #fffdf5;
+}
+body[data-vp-discovery] .picker-switch {
+  gap: 4px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+body[data-vp-discovery] .picker-switch a {
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  text-align: center;
+}
+body[data-vp-discovery] :is(.sp-source,.sp-price small,.sp-tag,.sp-eyebrow,.sp-progress,.sp-keyboard-hint,.sp-bottom-note,.sp-plan-end > small,.sp-plan-items p,.sp-conditions small,.sp-undo > span,.sp-catalog-card small,.r-counter > span,.r-source,.r-photo-note,.r-muted,.r-disclaimer,.r-end .r-eyebrow) {
+  font-size: 11px;
+  line-height: 1.5;
+}
+body[data-vp-discovery] :is(.sp-source,.sp-eyebrow,.sp-bottom-note,.sp-plan-items p) { color: var(--discovery-muted); }
+body[data-vp-discovery] .sp-card-body { user-select: text; -webkit-user-select: text; }
+body[data-vp-discovery] :is(.sp-card-body,.r-card,.r-dialog-body,#sp-dialog) { scrollbar-width: thin; }
+body[data-vp-discovery] :is(.sp-wrap,.r-layout) { scroll-margin-top: 0; }
+body[data-vp-discovery] .sp-ticket-continue { display: flex; gap: 8px; align-items: center; justify-content: space-between; }
+body[data-vp-discovery] .sp-ticket-continue > * { min-width: 0; font-size: 12px; }
+body[data-vp-discovery] .sp-ticket-continue .sp-primary { min-height: 44px; }
+body[data-vp-discovery] .r-content h2 { text-align: left; }
+body[data-vp-discovery] .r-photo-fallback { font-size: 13px; }
+body[data-vp-discovery] .r-content :is(.r-facts,.r-source) { color: #e1deef; }
+body[data-vp-discovery] .r-selected-row :is(h3,h4) { font: 600 14px/1.45 Montserrat,sans-serif !important; }
+body[data-vp-discovery] .r-selected-row button { min-width: 44px; min-height: 44px; font-size: 20px; }
+body[data-vp-discovery] .r-end { gap: 14px; }
+body[data-vp-discovery] .r-end-icon { flex: none; }
+
+@media (min-width: 761px) {
+  body[data-vp-discovery="feed"] .r-layout { align-items: center; margin: 20px auto 36px; }
+  body[data-vp-discovery="feed"] .r-app { height: min(820px, max(640px, calc(100dvh - 180px))); }
+  body[data-vp-discovery="swipe"] .sp-card-body { padding: 18px 22px; }
+  body[data-vp-discovery="swipe"] .sp-action-dock { margin-top: 12px; }
+  body[data-vp-discovery="swipe"] .sp-decision-row { margin-top: 0; padding-bottom: 20px; }
+  body[data-vp-discovery="swipe"] .sp-source { margin-top: 8px !important; }
+}
+
+@media (max-width: 760px) {
+  body[data-vp-discovery] {
+    display: block;
+    height: auto;
+    min-height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow-x: clip;
+    overflow-y: auto;
+    background: var(--discovery-paper);
+  }
+  body[data-vp-discovery] > .v5-demo { padding: 4px 12px; font-size: 11px; line-height: 1.4; }
+  body[data-vp-discovery] > .v5-header {
+    display: grid !important;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 0 8px;
+    padding: 2px 12px !important;
+  }
+  body[data-vp-discovery] .v5-brand { grid-column: 1; grid-row: 1; justify-self: start; }
+  body[data-vp-discovery] .v5-brand img { width: 52px !important; height: 36px !important; }
+  body[data-vp-discovery] .v5-languages { grid-column: 2 / 4; grid-row: 1; justify-self: end; }
+  body[data-vp-discovery] .v5-languages a { min-width: 44px; }
+  body[data-vp-discovery] .v5-nav { display: contents; }
+  body[data-vp-discovery] .v5-nav a { grid-row: 2; min-width: 0; min-height: 44px; font-size: 11px; justify-content: start; }
+  body[data-vp-discovery] .v5-nav a:first-child { grid-column: 1; }
+  body[data-vp-discovery] .v5-nav a:nth-child(2) { grid-column: 2; }
+  body[data-vp-discovery] .v5-history { grid-column: 3; grid-row: 2; min-height: 44px; font-size: 11px !important; }
+  body[data-vp-discovery] .picker-switch { margin: 0 0 6px; padding: 3px; }
+  body[data-vp-discovery] .picker-switch a { gap: 6px; padding: 8px 6px; font-size: 12px; }
+  body[data-vp-discovery] .picker-switch svg { width: 17px; height: 17px; }
+
+  /* Natural scrolling remains available outside the focused swipe view. */
+  body[data-vp-discovery="swipe"] #main.sp-wrap { width: min(540px,100%); margin: 0 auto; padding: 12px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] #main.sp-wrap {
+    height: calc(100dvh - var(--vp-discovery-header-height));
+    min-height: 0;
+    padding: 0 12px;
+  }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] #sp-root { display: flex; flex-direction: column; min-height: 0; height: 100%; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-mobile-header { min-height: 48px; gap: 8px; }
+  body[data-vp-discovery="swipe"] .sp-mobile-heading { position: static; height: auto; }
+  body[data-vp-discovery="swipe"] .sp-mobile-heading h1 { position: static; margin: 0; font-size: 24px; line-height: 1.15; }
+  body[data-vp-discovery="swipe"] .sp-demo-label { position: static; min-height: 0; padding: 0; font-size: 11px; }
+  body[data-vp-discovery="swipe"] .sp-mobile-list { min-height: 44px; padding: 6px 9px; font-size: 11px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-mobile-tools { min-height: 44px; padding: 0 0 4px; gap: 6px; }
+  body[data-vp-discovery="swipe"] .sp-mobile-hint { min-height: 44px; }
+  body[data-vp-discovery="swipe"] .sp-mobile-hint > p { font-size: 11px; }
+  body[data-vp-discovery="swipe"] .sp-mobile-hint .sp-btn { min-height: 24px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] :is(.sp-intro,.sp-toolbar,.sp-filter-row,.sp-onboard,.sp-progress,.sp-bottom-note) { display: none; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-layout { display: flex; flex: 1; min-height: 0; width: 100%; margin: 0; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-selection { display: flex; flex-direction: column; min-height: 0; max-width: none; width: 100%; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-plan { display: none; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-deck { flex: 1; min-height: 0; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-card { display: flex; flex-direction: column; height: 100%; border-radius: 18px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-photo { flex: 0 0 42%; height: auto; min-height: 112px; max-height: 230px; aspect-ratio: auto; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-card-body { flex: 1; min-height: 0; padding: 10px 14px 14px; overflow-y: auto; touch-action: pan-y pinch-zoom; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-card-title h2 { font-size: 28px; line-height: 1.12; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-conditions { margin-top: 8px; padding-top: 8px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-conditions :is(p,small) { font-size: 12px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-action-dock { flex: none; padding: 7px 0 max(18px,env(safe-area-inset-bottom)); background: var(--discovery-paper); }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-decision-row { gap: 8px; margin: 0; padding: 0; background: none; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-decision { min-height: 46px; padding: 9px 8px; font-size: 12px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-undo { width: 44px; height: 44px; min-height: 44px; padding: 10px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-undo > span { font-size: 11px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-ticket-continue { margin-top: 16px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-ticket-continue > .sp-text { min-height: 44px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-ticket-continue .sp-primary { padding: 8px 14px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-finished { min-height: 0; height: 100%; padding: 20px; overflow-y: auto; }
+
+  /* List/catalog headings and controls use normal flow, without absolute overlap. */
+  body[data-vp-discovery="swipe"]:not([data-sp-view="swipe"]) .sp-intro { display: block; position: static; margin: 14px 0; padding: 0; }
+  body[data-vp-discovery="swipe"]:not([data-sp-view="swipe"]) .sp-intro h1 { padding: 0; white-space: normal; font-size: 34px; }
+  body[data-vp-discovery="swipe"]:not([data-sp-view="swipe"]) .sp-top-actions { display: flex; position: static; flex-wrap: wrap; justify-content: space-between; margin-top: 8px; gap: 8px; }
+  body[data-vp-discovery="swipe"]:not([data-sp-view="swipe"]) .sp-top-actions > * { position: static; width: auto; min-height: 44px; font-size: 12px; }
+  body[data-vp-discovery="swipe"]:not([data-sp-view="swipe"]) .sp-family-button { position: static; width: auto; max-width: 48%; padding: 6px; font-size: 11px; }
+  body[data-vp-discovery="swipe"]:not([data-sp-view="swipe"]) .sp-filter-row { width: auto; flex-wrap: wrap; }
+  body[data-vp-discovery="swipe"] .sp-layout.is-list .sp-plan { position: static; padding: 14px 0; border: 0; }
+  body[data-vp-discovery="swipe"] .sp-layout.is-list .sp-plan-head { flex-wrap: wrap; }
+  body[data-vp-discovery="swipe"] .sp-plan-head .sp-text { font-size: 12px; }
+  body[data-vp-discovery="swipe"] .sp-catalog-card :is(p,small) { font-size: 12px; }
+  body[data-vp-discovery="swipe"] .sp-catalog-dock { position: sticky; bottom: 0; z-index: 8; padding: 12px 0 max(12px,env(safe-area-inset-bottom)); background: var(--discovery-paper); border-top: 1px solid var(--discovery-line); }
+
+  body[data-vp-discovery="feed"] .r-layout { display: block; width: 100%; max-width: none; margin: 0; height: calc(100dvh - var(--vp-discovery-header-height)); }
+  body[data-vp-discovery="feed"] .r-intro { display: none; }
+  body[data-vp-discovery="feed"] .r-app { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; margin: 0; border-radius: 0; box-shadow: none; }
+  body[data-vp-discovery="feed"] .r-header { flex: none; min-height: 48px; padding: 2px 10px; }
+  body[data-vp-discovery="feed"] .r-app > .picker-switch { flex: none; margin: 0 10px 6px; }
+  body[data-vp-discovery="feed"] .r-stage { flex: 1; min-height: 0; }
+  body[data-vp-discovery="feed"] .r-photo { flex: 1 1 48%; min-height: 112px; }
+  body[data-vp-discovery="feed"] .r-content { padding: 0 18px 10px; }
+  body[data-vp-discovery="feed"] .r-content h2 { margin-bottom: 6px; font-size: 29px; line-height: 1.13; }
+  body[data-vp-discovery="feed"] .r-price { margin-bottom: 6px; font-size: 15px; }
+  body[data-vp-discovery="feed"] .r-facts { margin-bottom: 6px; font-size: 12px; line-height: 1.5; }
+  body[data-vp-discovery="feed"] .r-source { margin-block: 6px; }
+  body[data-vp-discovery="feed"] .r-photo-note { bottom: 10px; left: 18px; font-size: 11px; }
+  body[data-vp-discovery="feed"] .r-dock { flex: none; min-height: 64px; padding: 8px 12px max(10px,env(safe-area-inset-bottom)); gap: 8px; border-radius: 0; }
+  body[data-vp-discovery="feed"] .r-dock button { min-height: 46px; padding: 9px 8px; font-size: 12px; }
+  body[data-vp-discovery="feed"] .r-navigation { top: 112px; right: 10px; gap: 6px; }
+  body[data-vp-discovery="feed"] .r-onboarding { top: 112px; left: 12px; right: 66px; padding: 11px 40px 11px 12px; }
+  body[data-vp-discovery="feed"] .r-onboarding strong { font-size: 12px; }
+  body[data-vp-discovery="feed"] .r-onboarding p { font-size: 11px; line-height: 1.5; }
+  body[data-vp-discovery="feed"] .r-status { bottom: 78px; font-size: 12px; }
+  body[data-vp-discovery="feed"] .r-end { justify-content: flex-start; padding: 20px 22px; gap: 12px; }
+  body[data-vp-discovery="feed"] .r-end-icon { width: 48px; height: 48px; margin: 0; }
+  body[data-vp-discovery="feed"] .r-end h2 { font-size: 32px; }
+  body[data-vp-discovery="feed"] .r-end .r-actions { gap: 8px; margin-top: 0; }
+  body[data-vp-discovery="feed"] .r-end .r-actions > * { min-height: 44px; padding: 8px 16px; }
+}
+
+/* Short screens and zoom: return to page scrolling instead of shrinking type. */
+@media (max-width: 760px) and (max-height: 560px) {
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] #main.sp-wrap { height: auto; min-height: 0; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] :is(#sp-root,.sp-layout,.sp-selection) { height: auto; display: block; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-deck { min-height: 250px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-card { height: auto; min-height: 250px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-photo { height: 130px; flex-basis: 130px; min-height: 130px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-card-body { overflow: visible; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-action-dock { position: sticky; bottom: 0; z-index: 10; border-top: 1px solid var(--discovery-line); }
+  body[data-vp-discovery="feed"] .r-layout { height: auto; }
+  body[data-vp-discovery="feed"] .r-app { height: max(520px,calc(100dvh - var(--vp-discovery-header-height))); }
+  body[data-vp-discovery="feed"] .r-dock { position: sticky; bottom: 0; z-index: 10; }
+  body[data-vp-discovery="feed"] .r-navigation { position: absolute; inset: 112px 10px auto auto; margin: 0; flex-direction: row; transform: none; }
+  body[data-vp-discovery="feed"] .r-onboarding { max-height: 160px; overflow-y: auto; }
+}
+@media (max-width: 359px) {
+  body[data-vp-discovery] .picker-switch a { font-size: 11px; }
+  body[data-vp-discovery="swipe"] .sp-mobile-heading h1 { font-size: 22px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-card-title h2 { font-size: 26px; }
+  body[data-vp-discovery="swipe"] .sp-mobile-list { gap: 4px; padding-inline: 7px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-decision { gap: 4px; font-size: 11px; }
+  body[data-vp-discovery="feed"] .r-content { padding-inline: 14px; }
+  body[data-vp-discovery="feed"] .r-content h2 { font-size: 27px; }
+}
+
+/* Filter context is part of the app, so the remaining card space adapts. */
+body[data-vp-discovery] .discovery-context { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 8px 16px; margin: 0; padding: 0 12px; color: var(--discovery-ink); font-size: 12px; line-height: 1.45; }
+body[data-vp-discovery] .discovery-context > :first-child { min-width: 0; }
+body[data-vp-discovery] .discovery-context a { display: inline-flex; flex: none; align-items: center; min-height: 44px; color: inherit; font-size: 12px; font-weight: 600; }
+body[data-vp-discovery="feed"] .r-app > .discovery-context { color: #eeebf8; background: #211f55; }
+@media (max-width: 760px) {
+  body[data-vp-discovery="feed"] main.r-layout { padding: 0; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-photo { flex-basis: 52%; max-height: 300px; }
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-action-dock { padding-bottom: max(20px,env(safe-area-inset-bottom)); }
+  body[data-vp-discovery="feed"] .r-photo-missing { flex: 1 1 40%; min-height: 112px; }
+  body[data-vp-discovery] .discovery-context { padding-inline: 4px; }
+  body[data-vp-discovery="feed"] .discovery-context { padding-inline: 14px; }
+}
+@media (max-width: 760px) and (max-height: 560px) {
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-photo { flex-basis: 130px; max-height: none; }
+}
+@media (max-width: 760px) {
+  /* The header already opens the shared list; keep the focused dock for decisions. */
+  body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-action-dock > .sp-ticket-continue { display: none; }
+}
+@media (max-width: 760px) {
+  /* Armenian uses the existing wider text face; give the title its own line. */
+  html[lang="hy"] body[data-vp-discovery="swipe"][data-sp-view="swipe"] .sp-mobile-header { display: grid; grid-template-columns: 44px minmax(0,1fr) auto; grid-template-rows: auto 44px; gap: 0 6px; padding-top: 4px; }
+  html[lang="hy"] body[data-vp-discovery="swipe"] .sp-mobile-heading { display: contents; }
+  html[lang="hy"] body[data-vp-discovery="swipe"] .sp-mobile-heading h1 { grid-column: 1 / -1; grid-row: 1; font-size: 22px; line-height: 1.3; }
+  html[lang="hy"] body[data-vp-discovery="swipe"] .sp-mobile-exit { grid-column: 1; grid-row: 2; }
+  html[lang="hy"] body[data-vp-discovery="swipe"] .sp-demo-label { grid-column: 2; grid-row: 2; white-space: normal; }
+  html[lang="hy"] body[data-vp-discovery="swipe"] .sp-mobile-list { grid-column: 3; grid-row: 2; }
+}

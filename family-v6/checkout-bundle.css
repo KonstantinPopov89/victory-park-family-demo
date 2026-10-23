@@ -1078,6 +1078,13 @@ body[data-v5] .home-quick-action:focus-visible{outline:3px solid #d80b8c;outline
  body[data-vp-home] .v5-brand img{width:56px!important;height:40px!important}
  body[data-vp-home] .v5-nav a,body[data-vp-home] .v5-history{font-size:12px!important}
 }
+/* Direct entrances to the two shared-interest discovery modes. */
+.home-discovery{display:flex;gap:12px 24px;flex-wrap:wrap;margin-top:22px;padding-block:16px;border-block:1px solid var(--vp-line);max-width:510px}
+.home-discovery a{display:flex;align-items:center;gap:12px;flex:1 1 190px;min-height:58px;color:var(--vp-blue);text-decoration:none}
+.home-discovery svg{flex:none;width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:1.7}
+.home-discovery span{display:grid;gap:5px;min-width:0}.home-discovery strong{font-size:15px;line-height:1.35}.home-discovery small{font-size:12px;line-height:1.5}
+.home-discovery a:hover strong{text-decoration:underline;text-underline-offset:4px}.home-discovery a:focus-visible{outline:3px solid var(--vp-pink);outline-offset:5px;border-radius:3px}
+@media(max-width:700px){.home-discovery{display:grid;gap:8px;margin-top:18px;padding-block:10px}.home-discovery a{min-height:58px}.home-discovery strong{font-size:15px}.home-discovery small{font-size:12px}}
 
 /* /victory-park-family-demo/family-v6/fonts.css */
 @font-face{font-family:"Bebas Neue";src:url("/victory-park-family-demo/family-v6/design-assets/bebas-latin.woff") format("woff");font-display:swap;unicode-range:U+0000-024F,U+2000-206F}@font-face{font-family:"Bebas Neue";src:url("/victory-park-family-demo/family-v6/assets/fonts/BebasNeue-Cyrillic.ttf") format("truetype");font-display:swap;unicode-range:U+0400-04FF}@font-face{font-family:Montserrat;src:url("/victory-park-family-demo/family-v6/assets/fonts/montserrat-latin.woff") format("woff");font-weight:400 700;font-display:swap;unicode-range:U+0020-024F,U+2000-206F,U+2116,U+2190-2192,U+2212}@font-face{font-family:Montserrat;src:url("/victory-park-family-demo/family-v6/assets/fonts/montserrat-cyr.woff") format("woff");font-weight:400 700;font-display:swap;unicode-range:U+0400-04FF}

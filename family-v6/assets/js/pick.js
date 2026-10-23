@@ -208,7 +208,11 @@
   }
 
   /* ---------- SCR-41 колода ---------- */
-  var deckEl = D.querySelector("[data-deck]"), mode, items, idx = 0, packs, history_ = [];
+  var deckEl = D.querySelector("[data-deck]"), mode, items, idx = 0, packs, history_ = [], deckTransition = null;
+  function finishDeckTransition() {
+    if (!deckTransition) return;
+    clearTimeout(deckTransition.timer); idx = deckTransition.nextIndex; deckTransition = null;
+  }
   function packSize() { return +C.opt("vpPack") || 8; }
   function buildItems() {
     var P = party(), useF = q.get("f") === "pick" && P.kids.some(function (b) { return b !== null; });
@@ -238,6 +242,7 @@
     if (el) el.textContent = it && it.a ? (it.k + 1) + "/" + it.n : "";
   }
   function setMode(m, log) {
+    finishDeckTransition();
     var prev = mode; mode = m; C.set(C.LS(), "vpDeckMode", m);
     [].forEach.call(D.querySelectorAll("[data-mode]"), function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-mode") === m)); });
     if (log && prev !== m) C.log("deck_mode_switch", { from: prev, to: m });
@@ -281,13 +286,15 @@
     if (D.readyState === "complete") go(); else window.addEventListener("load", go, { once: true });
   }
   function decide(yes, slug) {
+    if (deckTransition || !items[idx] || !items[idx].a || items[idx].a.slug !== slug) return;
     var card = deckEl.querySelector(".card"), hint = deckEl.querySelector(".hint"); if (hint) hint.remove();
     var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
     history_.push({ idx: idx, slug: slug, yes: yes, wasSelected: inList(slug) });
     if (yes) add(slug, "swipe"); else C.log("deck_skip", { slug: slug, mode: "swipe" });
-    var next = function () { idx = Math.min(items.length - 1, idx + 1); render41(); };
-    if (card && !reduce) { card.style.transition = "transform .26s cubic-bezier(.2,.8,.2,1), opacity .26s"; card.style.transform = "translateX(" + (yes ? 130 : -130) + "%) rotate(" + (yes ? 14 : -14) + "deg)"; card.style.opacity = "0"; setTimeout(next, 240); }
-    else if (card) { card.style.transition = "opacity .2s"; card.style.opacity = "0"; setTimeout(next, 180); } else next();
+    deckTransition = { nextIndex: Math.min(items.length - 1, idx + 1), timer: null };
+    var next = function () { finishDeckTransition(); render41(); };
+    if (card && !reduce) { card.style.transition = "transform .26s cubic-bezier(.2,.8,.2,1), opacity .26s"; card.style.transform = "translateX(" + (yes ? 130 : -130) + "%) rotate(" + (yes ? 14 : -14) + "deg)"; card.style.opacity = "0"; deckTransition.timer = setTimeout(next, 240); }
+    else if (card) { card.style.transition = "opacity .2s"; card.style.opacity = "0"; deckTransition.timer = setTimeout(next, 180); } else next();
   }
   /* сведённая сборка: жест из версии A (family-v3 swipe.js bindDrag): дуга большого пальца может начаться вертикально,
      горизонталь фиксируется при |dx| >= 8 и |dx| > 0,9|dy|; порог 14 % ширины в пределах 44–56 px или флик (32 px и 0,42 px/мс);
@@ -320,6 +327,7 @@
     el.addEventListener("lostpointercapture", function (e) { if (e.target === el && d) fin(e, true); });
   }
   function deckInit() {
+    finishDeckTransition();
     buildItems(); idx = 0; history_ = [];
     var m = q.get("mode"); m = m === "swipe" || m === "feed" ? m : (C.get(C.LS(), "vpDeckMode") === "swipe" ? "swipe" : "feed");
     var close = D.querySelector("[data-deck-close]"); if (close && q.get("from") === "catalog") close.href = url("attractions");
@@ -333,13 +341,16 @@
       if (t.hasAttribute("data-mode")) setMode(t.getAttribute("data-mode"), true);
       if (t.hasAttribute("data-yes")) decide(true, items[idx].a.slug);
       if (t.hasAttribute("data-no")) decide(false, items[idx].a.slug);
-      if (t.hasAttribute("data-undo") && history_.length) { var hst = history_.pop(); if (hst.yes && !hst.wasSelected) remove(hst.slug); idx = hst.idx; C.log("deck_undo", { slug: hst.slug }); render41(); }
+      if (t.hasAttribute("data-undo") && history_.length) { finishDeckTransition(); var hst = history_.pop(); if (hst.yes && !hst.wasSelected) remove(hst.slug); idx = hst.idx; C.log("deck_undo", { slug: hst.slug }); render41(); }
       if (t.hasAttribute("data-heart")) { var s = t.getAttribute("data-heart"); if (inList(s)) { remove(s); C.log("deck_undo", { slug: s }); t.setAttribute("aria-pressed", "false"); t.lastChild.textContent = ""; t.innerHTML = '<svg aria-hidden="true"><use href="#i-heart"/></svg>' + h("in_list"); } else { add(s, "feed"); t.setAttribute("aria-pressed", "true"); t.innerHTML = '<svg aria-hidden="true"><use href="#i-heart"/></svg>' + h("in_list_done"); } }
       if (t.hasAttribute("data-fnext") || t.hasAttribute("data-fprev")) { var i = +(t.getAttribute("data-fnext") || t.getAttribute("data-fprev")) + (t.hasAttribute("data-fnext") ? 1 : -1); var sl = deckEl.querySelector('[data-i="' + Math.max(0, i) + '"]'); if (sl) sl.scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }); }
-      if (t.hasAttribute("data-nextpack")) { var pi = +t.getAttribute("data-nextpack"); for (var k = 0; k < items.length; k++) if (items[k].a && items[k].pack === pi) { idx = k; break; } render41(); }
-      if (t.hasAttribute("data-restart")) { idx = 0; history_ = []; render41(); }
+      if (t.hasAttribute("data-nextpack")) { finishDeckTransition(); var pi = +t.getAttribute("data-nextpack"); for (var k = 0; k < items.length; k++) if (items[k].a && items[k].pack === pi) { idx = k; break; } render41(); }
+      if (t.hasAttribute("data-restart")) { finishDeckTransition(); idx = 0; history_ = []; render41(); }
     });
-    D.addEventListener("keydown", function (e) { if (mode !== "swipe" || !items[idx] || !items[idx].a) return; if (e.key === "ArrowRight") decide(true, items[idx].a.slug); if (e.key === "ArrowLeft") decide(false, items[idx].a.slug); });
+    D.addEventListener("keydown", function (e) {
+      if (mode !== "swipe" || !items[idx] || !items[idx].a || deckTransition || e.repeat || e.altKey || e.ctrlKey || e.metaKey || e.target.closest("input,textarea,select,a,summary,[contenteditable=true]")) return;
+      if (e.key === "ArrowRight" || e.key === "ArrowLeft") { e.preventDefault(); decide(e.key === "ArrowRight", items[idx].a.slug); }
+    });
   }
 
   /* ---------- SCR-42 ---------- */
