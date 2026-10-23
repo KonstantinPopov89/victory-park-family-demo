@@ -1,7 +1,7 @@
-import {STORAGE,transact,read,captureOrder,selectResume,BUSY} from './store.mjs?vpv=826d2347b76aefd2';
+import {STORAGE,transact,read,captureOrder,selectResume,BUSY} from './store.mjs?vpv=9bc87cabf414934c';
 import {header as siteHeader,footer as siteFooter,decorate,label} from './chrome.mjs?vpv=3c4d356fd494a573';
 import {EVENTS, SESSIONS, SEATS, SCENARIOS, defaultState, availability, total, reduce, restore, tick, canHold, isClosed} from './engine.mjs?vpv=bdfd963ca366b2b7';
-import {translate} from './i18n.mjs?vpv=f8d384e99e17dc5d';
+import {translate} from './i18n.mjs?vpv=714f3ee69cd220d0';
 import {quizCopy} from './quiz-copy.mjs?vpv=8b767c720bc9bcdc';
 import {issuedSnapshot, startsNewBooking, mapSnapshotFor} from './journey.mjs?vpv=034ecffd3ba4bf7c';
 

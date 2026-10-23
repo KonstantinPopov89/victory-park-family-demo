@@ -1,7 +1,7 @@
-import {STORAGE,transact,read,captureOrder,selectResume,BUSY} from './store.mjs?vpv=826d2347b76aefd2';
+import {STORAGE,transact,read,captureOrder,selectResume,BUSY} from './store.mjs?vpv=9bc87cabf414934c';
 import {header as siteHeader,footer as siteFooter,decorate,label} from './chrome.mjs?vpv=3c4d356fd494a573';
 import {EVENTS, SESSIONS, SEATS, SCENARIOS, defaultState, availability, total, reduce, restore, tick} from './engine.mjs?vpv=bdfd963ca366b2b7';
-import {translate} from './i18n.mjs?vpv=f8d384e99e17dc5d';
+import {translate} from './i18n.mjs?vpv=714f3ee69cd220d0';
 import {issuedSnapshot, startsNewBooking, sessionChoice, chooseFormSession, payForm} from './form-journey.mjs?vpv=9f896080320fc2eb';
 
 
