@@ -15,7 +15,10 @@
   function update(a){
     const target=a.dataset.vpLang||a.dataset.langLink;if(!languages.includes(target))return;
     const tail=isHome?'/':path.replace(/^\/(ru|en|hy)(?=\/|$)/,'');
-    a.href=base+target+(tail.startsWith('/')?tail:'/'+tail)+location.search+location.hash;
+    const query=new URLSearchParams(location.search);
+    if(query.has('lang'))query.set('lang',target);
+    const search=query.toString();
+    a.href=base+target+(tail.startsWith('/')?tail:'/'+tail)+(search?'?'+search:'')+location.hash;
     if(target===(locale||'ru'))a.setAttribute('aria-current','page');else a.removeAttribute('aria-current');
   }
   function ready(){document.querySelectorAll('[data-vp-lang],[data-lang-link]').forEach(update);}
