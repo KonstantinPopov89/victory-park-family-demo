@@ -3888,6 +3888,7 @@ var qrcode = function() {
 /* Victory Park v3. Local teaching prototype: no payment, sending or analytics. */
 (() => {
 'use strict';
+ function releaseURL(url){return window.VPReleaseURL ? window.VPReleaseURL(url) : url;}
 const PROMO='vp.family.v5.promotion', COMPANY='vp.family.v5.company';
 const quick=document.body.dataset.checkout==='quick';
 // Quick checkout buys the selected rights; missing profile data is checked before riding.
@@ -4228,7 +4229,7 @@ function saveAccess(){
  const objectUrl=URL.createObjectURL(new Blob([window.VPI18n ? VPI18n.translateHTML(html) : html],{type:'text/html;charset=utf-8'}));const a=document.createElement('a');a.href=objectUrl;a.download=order.id+'-access.html';a.click();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);announce('Данные заказа подготовлены для сохранения.');
 }
 document.addEventListener('click',e=>{if(busy){e.preventDefault();e.stopImmediatePropagation();return;}const switcher=e.target.closest('[data-checkout-switch]');if(switcher){try{const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);if(localStorage.getItem(KEY)!==raw)throw new Error('storage');}catch{e.preventDefault();warning='Не удалось сохранить выбор. Оставайтесь на этой странице, чтобы завершить покупку.';render();}return;}const detail=e.target.closest('[data-open-details]');if(detail){e.preventDefault();const d=$('#details-'+detail.dataset.openDetails);if(d){d.open=true;jump('#details-'+detail.dataset.openDetails);}return;}const b=e.target.closest('[data-action]');if(!b)return;const act=b.dataset.action;if(busy)return;
-if(act==='recalculate-company'){location.href=companyRoute();return;}
+if(act==='recalculate-company'){location.href=releaseURL(companyRoute());return;}
 if(act==='review-order'){reviewOrder();return;}
 if(act==='back-to-products'){reviewing=false;reviewedToken='';params.delete('checkout');try{history.replaceState(history.state,'',location.pathname+(params.size?'?'+params.toString():'')+location.hash);}catch{}render();jump(directEntry?'#direct':'#recommendations');return;}
 if(act==='fix-order'){focusField(b.dataset.target);return;}
@@ -4431,10 +4432,11 @@ window.VPQR=function(value){
 ;
 /* /victory-park-family-demo/family-v6/v5.js */
 (()=>{'use strict';
+ const assetVersions=/* vp-asset-versions:start */{"hy-fonts.css":"3be0b3d029ad2107"}/* vp-asset-versions:end */;
  const base=new URL('.',document.currentScript.src).pathname,q=new URLSearchParams(location.search),review=q.get('review')==='1';document.documentElement.dataset.review=review?'1':'0';
  const C={ru:{demo:'Демо: цены для примера, без списаний.',single:'Билет на катание',pack:'Пакет катаний',pass:'Безлимит на 3 аттракциона',example:'В демо',from:'от',buy:'Выбрать',hours:'Сегодня: часы работы уточняются',rule:'Уточните условия и оплату сопровождения на кассе перед покупкой.',pdf:'Сохранить в PDF / печать',share:'Отправить в мессенджер',order:'Номер заказа',qr:'Образец QR. Не действует для прохода.',entrance:'Это образец. Перед посещением купите действующий билет на кассе.',allow:'Разрешить аналитику',deny:'Без аналитики',consent:'Разрешить сбор событий этого демо? Имена, номера карт и контакты не записываются.',empty:'Список пока пуст',swipe:'Выбрать свайпом',topup:'Пополнить карту'},en:{demo:'Demo: example prices, no charge.',single:'Single ride ticket',pack:'Ride package',pass:'3-ride unlimited pass',example:'Demo price',from:'from',buy:'Choose',hours:'Today: opening hours are being updated',rule:'Ask at the cash desk about accompanying adults and their payment before buying.',pdf:'Save as PDF / print',share:'Share in a messenger',order:'Order number',qr:'Sample QR. Not valid for admission.',entrance:'This is a sample. Buy a valid ticket at the cash desk before visiting.',allow:'Allow analytics',deny:'No analytics',consent:'Allow demo events to be recorded? Names, card numbers and contact details are excluded.',empty:'Your list is empty',swipe:'Choose by swiping',topup:'Top up your card'},hy:{demo:'Ցուցադրություն․ գները օրինակ են, առանց գանձման։',single:'Մեկ զբոսանքի տոմս',pack:'Զբոսանքների փաթեթ',pass:'3 ատրակցիոնի անսահմանափակ տոմս',example:'Ցուցադրական գին',from:'սկսած',buy:'Ընտրել',hours:'Այսօր․ աշխատանքային ժամերը ճշտվում են',rule:'Գնելուց առաջ դրամարկղում ճշտեք ուղեկցման և ուղեկցողի վճարման պայմանները։',pdf:'Պահպանել PDF / տպել',share:'Ուղարկել մեսենջերով',order:'Պատվերի համար',qr:'QR նմուշ։ Մուտքի համար չի գործում։',entrance:'Սա նմուշ է։ Այցից առաջ գործող տոմս գնեք դրամարկղում։',allow:'Թույլատրել վերլուծությունը',deny:'Առանց վերլուծության',consent:'Թույլատրե՞լ գրանցել ցուցադրության իրադարձությունները։ Անուններ, քարտի համարներ և կոնտակտներ չեն գրանցվում։',empty:'Ցանկը դեռ դատարկ է',swipe:'Ընտրել սահեցնելով',topup:'Լիցքավորել քարտը'}};
  const lang=()=>['ru','hy','en'].includes(document.documentElement.lang)?document.documentElement.lang:'ru',copy=()=>C[lang()],money=n=>new Intl.NumberFormat('ru-RU').format(n).replace(/ /g,'\u00a0')+'\u00a0֏';
- function hyFont(){let el=document.querySelector('[data-hy-font]');if(lang()==='hy'&&!el){el=document.createElement('link');el.rel='stylesheet';el.href=base+'hy-fonts.css';el.dataset.hyFont='';document.head.append(el)}else if(lang()!=='hy'&&el)el.remove()}
+ function hyFont(){let el=document.querySelector('[data-hy-font]');if(lang()==='hy'&&!el){el=document.createElement('link');el.rel='stylesheet';el.href=base+'hy-fonts.css?vpv='+assetVersions['hy-fonts.css'];el.dataset.hyFont='';document.head.append(el)}else if(lang()!=='hy'&&el)el.remove()}
  hyFont();
  let storedConsent;try{storedConsent=localStorage.getItem('vp.v5.analyticsConsent')}catch{}
  const events=[];window.dataLayer=window.dataLayer||[];const utm={};try{Object.assign(utm,JSON.parse(sessionStorage.getItem('vp.v5.utm')||'{}'))}catch{}for(const k of ['utm_source','utm_medium','utm_campaign','utm_content'])if(q.has(k))utm[k]=q.get(k).slice(0,120);try{sessionStorage.setItem('vp.v5.utm',JSON.stringify(utm))}catch{}

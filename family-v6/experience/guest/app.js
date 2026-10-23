@@ -1,6 +1,7 @@
 /* Victory Park v3. Local teaching prototype: no payment, sending or analytics. */
 (() => {
 'use strict';
+ function releaseURL(url){return window.VPReleaseURL ? window.VPReleaseURL(url) : url;}
 const PROMO='vp.family.v5.promotion', COMPANY='vp.family.v5.company';
 const quick=document.body.dataset.checkout==='quick';
 // Quick checkout buys the selected rights; missing profile data is checked before riding.
@@ -341,7 +342,7 @@ function saveAccess(){
  const objectUrl=URL.createObjectURL(new Blob([window.VPI18n ? VPI18n.translateHTML(html) : html],{type:'text/html;charset=utf-8'}));const a=document.createElement('a');a.href=objectUrl;a.download=order.id+'-access.html';a.click();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);announce('Данные заказа подготовлены для сохранения.');
 }
 document.addEventListener('click',e=>{if(busy){e.preventDefault();e.stopImmediatePropagation();return;}const switcher=e.target.closest('[data-checkout-switch]');if(switcher){try{const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);if(localStorage.getItem(KEY)!==raw)throw new Error('storage');}catch{e.preventDefault();warning='Не удалось сохранить выбор. Оставайтесь на этой странице, чтобы завершить покупку.';render();}return;}const detail=e.target.closest('[data-open-details]');if(detail){e.preventDefault();const d=$('#details-'+detail.dataset.openDetails);if(d){d.open=true;jump('#details-'+detail.dataset.openDetails);}return;}const b=e.target.closest('[data-action]');if(!b)return;const act=b.dataset.action;if(busy)return;
-if(act==='recalculate-company'){location.href=companyRoute();return;}
+if(act==='recalculate-company'){location.href=releaseURL(companyRoute());return;}
 if(act==='review-order'){reviewOrder();return;}
 if(act==='back-to-products'){reviewing=false;reviewedToken='';params.delete('checkout');try{history.replaceState(history.state,'',location.pathname+(params.size?'?'+params.toString():'')+location.hash);}catch{}render();jump(directEntry?'#direct':'#recommendations');return;}
 if(act==='fix-order'){focusField(b.dataset.target);return;}

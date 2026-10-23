@@ -1,6 +1,7 @@
 /* Парк Победы, прототип T34, проход 4. Ядро: метки источника, события (SCR-30), меню (SCR-28), панель прототипа (SCR-35), состояния экранов. Без библиотек. */
 (function () {
   "use strict";
+ function releaseURL(url){return window.VPReleaseURL ? window.VPReleaseURL(url) : url;}
 if(new URLSearchParams(location.search).get("review")!=="1")document.documentElement.classList.add("v5-guest");
   var W = window, D = document, LANGS = ["hy", "ru", "en"], UTM = ["utm_source", "utm_medium", "utm_campaign", "utm_content"];
   function st(kind) { try { var s = W[kind]; var k = "__vp"; s.setItem(k, "1"); s.removeItem(k); return s; } catch (e) { return null; } }
@@ -183,16 +184,16 @@ if(new URLSearchParams(location.search).get("review")!=="1")document.documentEle
   /* ---------- входы без языка ---------- */
   function qrGo(target, q) {
     set(SS, "vpNewEntry", "1");
-    location.replace("../../" + pickLang() + "/" + (target ? target + "/" : "") + "index.html?" + q);
+    location.replace(releaseURL("../../" + pickLang() + "/" + (target ? target + "/" : "") + "index.html?" + q));
   }
   function langEntry(target) {
     var q = qs();
-    D.addEventListener("click", function (e) { var a = e.target.closest("[data-lang-pick]"); if (a) { set(LS, "vpLang", a.getAttribute("data-lang-pick")); a.href += location.search; } });
+    D.addEventListener("click", function (e) { var a = e.target.closest("[data-lang-pick]"); if (a) { set(LS, "vpLang", a.getAttribute("data-lang-pick")); var languageUrl = new URL(a.href); new URLSearchParams(location.search).forEach(function (value, key) { languageUrl.searchParams.set(key, value); }); a.href = languageUrl.href; } });
     if (q.has("stay")) return;
     set(SS, "vpNewEntry", "1");
     /* PR-1-01: путь от корня прототипа (data-root), а не от текущей папки: /links/ → ../ru/links/ */
     var rt = (D.body && D.body.getAttribute("data-root")) || "";
-    location.replace(rt + pickLang() + "/" + target + "index.html" + location.search + location.hash);
+    location.replace(releaseURL(rt + pickLang() + "/" + target + "index.html" + location.search + location.hash));
   }
 
   /* ---------- R08 п. 4: ленивые картинки ниже первого экрана (data-lz), запас 200 px ---------- */
@@ -220,9 +221,9 @@ if(new URLSearchParams(location.search).get("review")!=="1")document.documentEle
     // языковые ссылки: та же страница, метка и параметры сохраняются
     var q = location.search, hsh = location.hash;
     var ll = D.querySelectorAll("a[data-lang-link]");
-    for (var i = 0; i < ll.length; i++) { var to = ll[i].getAttribute("data-lang-link"); if (to !== "fa") ll[i].setAttribute("href", ll[i].getAttribute("href") + q + hsh); }
+    for (var i = 0; i < ll.length; i++) { var to = ll[i].getAttribute("data-lang-link"); if (to !== "fa") { var languageUrl = new URL(ll[i].getAttribute("href"), D.baseURI); new URLSearchParams(q).forEach(function (value, key) { languageUrl.searchParams.set(key, value); }); if (hsh) languageUrl.hash = hsh; ll[i].setAttribute("href", languageUrl.href); } }
     var kq = D.querySelectorAll("a[data-keepq]");
-    for (var j = 0; j < kq.length; j++) kq[j].setAttribute("href", kq[j].getAttribute("href") + q);
+    for (var j = 0; j < kq.length; j++) { var keptUrl = new URL(kq[j].getAttribute("href"), D.baseURI); new URLSearchParams(q).forEach(function (value, key) { keptUrl.searchParams.set(key, value); }); kq[j].setAttribute("href", keptUrl.href); }
     // без хранилища метка идёт в адресе внутренних ссылок
     if (!SS && utm) {
       var p = UTM.map(function (k) { return utm[k] ? k + "=" + encodeURIComponent(utm[k]) : ""; }).filter(Boolean).join("&");

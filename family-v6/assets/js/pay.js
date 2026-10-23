@@ -1,6 +1,7 @@
 /* Парк Победы, прототип T34. Путь покупки: SCR-07, варианты покупки (SCR-06, SCR-11, SCR-16), SCR-08a/b/c, SCR-09. Оплата имитирована. */
 (function () {
   "use strict";
+ function releaseURL(url){return window.VPReleaseURL ? window.VPReleaseURL(url) : url;}
   var C = window.VPCORE, D = document, VP = window.VP || { str: {} };
   if (!C) return;
   var L = C.lang(), R = C.root(), SCR = C.screen(), q = C.qs();
@@ -31,7 +32,7 @@
   function unfinished(o) { return !!o && (["pending","delay"].indexOf(o.resultStatus)>=0 || !o.resultStatus && C.get(SS(),"vpPending")==="1"); }
   function literal(ru,en,hy){return L==='hy'?hy:L==='en'?en:ru;}
   function siteLang() { var l = q.get("lang"); return ["hy", "ru", "en"].indexOf(l) >= 0 ? l : (["hy", "ru", "en"].indexOf(L) >= 0 ? L : "hy"); }
-  function go(path) { var url=new URL(R+path,location.href);if(q.get('review')==='1')url.searchParams.set('review','1');location.href=url.href; }
+  function go(path) { var url=new URL(R+path,location.href);if(q.get('review')==='1')url.searchParams.set('review','1');location.href=releaseURL(url.href); }
 
   /* ---------- формы покупки ---------- */
   function setupForm(f) {
@@ -180,7 +181,7 @@
     C.log("pay_redirect", { provider: "idram", order_ref: o ? o.id : "" });
     var b = D.querySelector("[data-go-provider]"); if (b) { b.href = R + to; }
     /* R08 п. 6: ?stay=1 оставляет экран без автоперехода (для замера и показа), как SCR-01 */
-    if (!C.qs().has("stay")) setTimeout(function () { location.href = R + to; }, 1600);
+    if (!C.qs().has("stay")) setTimeout(function () { location.href = releaseURL(R + to); }, 1600);
   }
   if (SCR === "SCR-08a") {
     fillSum(); C.log("widget_loaded", { provider: "idram", order_ref: (order() || {}).id || "" });

@@ -1,6 +1,7 @@
 /* Парк Победы, прототип T34, проход 2. Подбор и статусы: SCR-02 (итог), SCR-14, SCR-40, SCR-41, SCR-42, SCR-43 (модули M01–M12). */
 (function () {
   "use strict";
+ function releaseURL(url){return window.VPReleaseURL ? window.VPReleaseURL(url) : url;}
   var C = window.VPCORE, D = document, VP = window.VP, W = window;
   if (!C || !VP) return;
   var L = C.lang(), R = C.root(), SCR = C.screen(), q = C.qs(), A = VP.attr, BY = {};
@@ -148,7 +149,7 @@
     var srcp = /\/pick\//.test(D.referrer) ? "deck" : /\/plan\//.test(D.referrer) ? "plan" : /attractions\/index/.test(D.referrer) ? "catalog" : "link";
     C.log("attraction_view", { slug: slug, source: srcp });
     function ab_upd() { if (inList(slug)) { ab.innerHTML = h("to_sum"); ab.setAttribute("data-in", "1"); } else { ab.innerHTML = h("in_list"); ab.removeAttribute("data-in"); } }
-    ab.addEventListener("click", function () { if (ab.getAttribute("data-in")) { location.href = url("plan"); } else { add(slug, "attraction"); ab_upd(); } });
+    ab.addEventListener("click", function () { if (ab.getAttribute("data-in")) { location.href = releaseURL(url("plan")); } else { add(slug, "attraction"); ab_upd(); } });
     ab_upd();
     D.addEventListener("vp:interests", ab_upd);
     var bk = D.querySelector("[data-back]"); if (bk && !catalogueFilter() && D.referrer && D.referrer.indexOf(location.host) >= 0 && history.length > 1) bk.addEventListener("click", function (e) { e.preventDefault(); history.back(); });
@@ -203,7 +204,7 @@
     wa.addEventListener("change", render);
     function changed() { saveParty(P); C.log("pick_party", { adults: P.adults, children: P.kids.length }); render(); }
     render();
-    var dk = D.querySelector('[data-cta="pick-deck"]'); if (dk) dk.href += "?f=pick";
+    var dk = D.querySelector('[data-cta="pick-deck"]'); if (dk) { var deckUrl = new URL(dk.href); deckUrl.searchParams.set("f", "pick"); dk.href = deckUrl.href; }
   }
 
   /* ---------- SCR-41 колода ---------- */

@@ -1,6 +1,7 @@
 /* Presentation-only localization. Product IDs, amounts, input values and stored orders stay canonical. */
 (() => {
   'use strict';
+ function releaseURL(url){return window.VPReleaseURL ? window.VPReleaseURL(url) : url;}
   const scriptURL = document.currentScript.src;
   const base = new URL('.', scriptURL).pathname;
   const languages = ['ru', 'en', 'hy'];
@@ -127,7 +128,7 @@
     try{localStorage.setItem('vpLang',next);}catch{}
     const url=languageURL(next);
     window.VPPostPurchase?.prepareLanguageNavigation(url);
-    location.assign(url.pathname+url.search+url.hash);
+    location.assign(releaseURL(url.pathname+url.search+url.hash));
   }
   function translateHTML(html) {
     const parsed=new DOMParser().parseFromString(html,'text/html');

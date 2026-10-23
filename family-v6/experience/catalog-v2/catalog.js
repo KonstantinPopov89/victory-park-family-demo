@@ -1,5 +1,6 @@
 (() => {
   'use strict';
+ function releaseURL(url){return window.VPReleaseURL ? window.VPReleaseURL(url) : url;}
   const api = window.VPCatalog;
   if (!api) return;
   const grid = document.getElementById('catalog-grid');
@@ -43,7 +44,7 @@
   }
   function closeDetails() { if (dialog.open) dialog.close(); }
   function openDetails(id, trigger) {
-    if (api.rides.some(ride => ride.id === id)) { location.replace(`rides/${encodeURIComponent(id)}.html`); return; }
+    if (api.rides.some(ride => ride.id === id)) { location.replace(releaseURL(`rides/${encodeURIComponent(id)}.html`)); return; }
     const ride = api.rides.find(item => item.id === id);
     if (!ride) return;
     returnFocus = trigger || grid.querySelector(`[data-details="${id}"]`);

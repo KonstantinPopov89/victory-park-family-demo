@@ -1,5 +1,6 @@
 'use strict';
 (() => {
+ function releaseURL(url){return window.VPReleaseURL ? window.VPReleaseURL(url) : url;}
   const dialog = document.querySelector('#detail-dialog');
   if (!dialog) return;
   const experiences = {
@@ -21,7 +22,7 @@
     document.body.classList.add('dialog-open');
   }
   document.querySelectorAll('[data-experience]').forEach(button => {
-    button.addEventListener('click', () => { location.href = 'rides/' + experiences[button.dataset.experience].ride + '.html'; });
+    button.addEventListener('click', () => { location.href = releaseURL('rides/' + experiences[button.dataset.experience].ride + '.html'); });
   });
   dialog.querySelectorAll('[data-close-dialog], .dialog-close').forEach(button => button.addEventListener('click', () => dialog.close()));
   dialog.addEventListener('close', () => {

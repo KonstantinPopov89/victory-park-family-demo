@@ -57,7 +57,7 @@
       return;
     }
     win.VPO_REDIRECTING = true;
-    win.location.replace(result.href);
+    win.location.replace(win.VPReleaseURL ? win.VPReleaseURL(result.href) : result.href);
   }
   return { destination: destination, receiptMatches: receiptMatches, start: start };
 }));

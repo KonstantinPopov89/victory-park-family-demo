@@ -1,6 +1,7 @@
 /* Locale navigation keeps the path, query and section. Commercial state belongs to the existing engines. */
 (() => {
   'use strict';
+ function releaseURL(url){return window.VPReleaseURL ? window.VPReleaseURL(url) : url;}
   const base=new URL('.',document.currentScript.src).pathname;
   const path='/'+location.pathname.slice(base.length).replace(/^\//,'');
   const languages=['ru','en','hy'];
@@ -8,7 +9,7 @@
   const isHome=document.documentElement.hasAttribute('data-vp-home');
   let remembered='ru';try{remembered=localStorage.getItem('vpLang')||'ru';}catch{}
   if(isHome&&(path==='/'||path==='/index.html')&&languages.includes(remembered)&&remembered!=='ru'){
-    location.replace(base+remembered+'/'+location.search+location.hash);return;
+    location.replace(releaseURL(base+remembered+'/'+location.search+location.hash));return;
   }
   if(locale)try{localStorage.setItem('vpLang',locale);}catch{}
   function update(a){

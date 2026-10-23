@@ -1,6 +1,7 @@
 /* Shared navigation for a non-transactional design demo. */
 (() => {
 'use strict';
+ function releaseURL(url){return window.VPReleaseURL ? window.VPReleaseURL(url) : url;}
 const menu=document.getElementById('vp-mobile-nav'),toggle=document.getElementById('vp-menu-toggle');
 function closeMenu(focus=false){if(!menu||!toggle)return;menu.hidden=true;toggle.setAttribute('aria-expanded','false');toggle.setAttribute('aria-label','Открыть меню');if(focus)toggle.focus();}
 toggle?.addEventListener('click',()=>{const open=menu.hidden;menu.hidden=!open;toggle.setAttribute('aria-expanded',String(open));toggle.setAttribute('aria-label',open?'Закрыть меню':'Открыть меню');});
@@ -11,6 +12,6 @@ document.querySelectorAll('[data-vp-about]').forEach(el=>el.addEventListener('cl
 info?.querySelector('button')?.addEventListener('click',()=>info.close());info?.addEventListener('close',()=>returnFocus?.focus());
 if(document.body.dataset.page==='picker'&&window.VP){
  const rid=new URLSearchParams(location.search).get('ride');
- if(VP.realRides.some(r=>r.id===rid)) location.replace('rides/'+encodeURIComponent(rid)+'.html');
+ if(VP.realRides.some(r=>r.id===rid)) location.replace(releaseURL('rides/'+encodeURIComponent(rid)+'.html'));
 }
 })();
