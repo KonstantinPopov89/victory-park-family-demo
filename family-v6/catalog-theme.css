@@ -21,3 +21,41 @@ body[data-vp-catalog] .tr{text-decoration:none}
 body[data-vp-catalog] .catalog-detail-copy .btn[data-add]{background:var(--cobalt);border-color:var(--cobalt);color:#fff}
 body[data-vp-catalog] .catalog-detail-copy .btn[data-add]:hover{background:#454292;border-color:#454292;color:#fff}
 @media(max-width:390px){body[data-vp-catalog] .acard{grid-template-columns:104px minmax(0,1fr)}body[data-vp-catalog] .acard :is(img,.noph.thumb){width:104px}}
+
+/* Catalogue utilities are distinct from category filters. */
+.catalog-context{position:relative;margin-top:8px}
+.catalog-context .catalog-about{margin-top:0}
+.catalog-context .catalog-about>summary{max-width:60%;width:fit-content}
+.catalog-context>.v5-price-anchor{position:absolute;inset:0 0 auto auto;min-height:44px;display:inline-flex;align-items:center}
+
+@media(max-width:700px){
+ body[data-vp-catalog="index"]{--catalog-space:20px}
+ body[data-vp-catalog="index"] .v5-header{grid-template-columns:max-content minmax(0,1fr) max-content;padding:6px 20px!important;gap:0 8px}
+ body[data-vp-catalog="index"] .v5-brand img{width:56px!important;height:40px!important}
+ body[data-vp-catalog="index"] .v5-nav a,
+ body[data-vp-catalog="index"] .v5-history{font-size:12px!important}
+ body[data-vp-catalog="index"] .catalog-intro{display:block;padding-block:24px 12px}
+ body[data-vp-catalog="index"] .catalog-intro h1.disp{font-size:44px;margin:0 0 16px;line-height:1.05}
+ html[lang=hy] body[data-vp-catalog="index"] .catalog-intro h1.disp{font-size:30px;line-height:1.2}
+ body[data-vp-catalog="index"] .catalog-intro .filters{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:0 0 8px;padding:0}
+ body[data-vp-catalog="index"] .catalog-intro .chip{grid-column:span 2;font-size:13px;min-height:44px;padding:8px;white-space:normal;text-align:center}
+ body[data-vp-catalog="index"] .catalog-intro .chip:is([data-filter=kids],[data-filter=games],[data-filter=unl]){grid-column:span 3}
+ body[data-vp-catalog="index"] .catalog-context{margin-top:0}
+ body[data-vp-catalog="index"] .catalog-about .prose{font-size:15px;line-height:1.65;margin:12px 0}
+ body[data-vp-catalog="index"] .catalog-intro-media{transform:none;box-shadow:none;padding:0;margin:16px 0 8px;background:transparent}
+ body[data-vp-catalog="index"] .catalog-intro-media picture img{height:200px;border-radius:8px}
+ body[data-vp-catalog="index"] .catalog-intro-media .photo-note:empty{display:none}
+ body[data-vp-catalog="index"] .catalog-jump{display:none}
+ body[data-vp-catalog="index"] .catalog-status-wrap{padding-bottom:16px}
+ .catalog-mobile-status>summary{min-height:44px;display:list-item;padding:10px 0;cursor:pointer;font-size:14px;font-weight:600;line-height:1.6}
+ body[data-vp-catalog="index"] .catalog-mobile-status .now{padding:16px;margin-top:8px}
+ body[data-vp-catalog="index"] .catalog-mobile-status .now>h2{display:none}
+ body[data-vp-catalog="index"] .catalog-mobile-status .now .nowsum{font-size:14px}
+ body[data-vp-catalog="index"] .seg{margin:0 0 12px}
+ body[data-vp-catalog="index"] .catalog-facts{margin-bottom:16px}
+ body[data-vp-catalog="index"] .catalog-facts p{font-size:13px;line-height:1.5}
+ body[data-vp-catalog="index"] .cat{gap:12px}
+ body[data-v5][data-vp-catalog="index"] a.acard{display:grid;grid-template-columns:104px minmax(0,1fr);align-items:stretch}
+ body[data-vp-catalog="index"] .acard :is(img,.noph.thumb){width:104px;height:100%;min-height:160px}
+ body[data-vp-catalog="index"] .acard .tx{padding:16px 14px;gap:8px}
+}

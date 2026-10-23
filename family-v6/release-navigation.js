@@ -1,6 +1,6 @@
 /* Keep navigation from a fresh release away from HTML cached by an older one. */
 (()=>{'use strict';
- const release=/* vp-release:start */"13"/* vp-release:end */;
+ const release=/* vp-release:start */"14"/* vp-release:end */;
  const base=new URL('.',document.currentScript.src).pathname;
  function releaseURL(input){
   const value=String(input);

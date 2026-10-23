@@ -3,6 +3,37 @@
 const base=new URL('.',document.currentScript.src).pathname;
 const screen=document.body.dataset.screen;
 const lang=document.documentElement.lang;
+// On a phone, the catalogue leads. Keep the original park introduction in its
+// native disclosure, and restore its desktop placement when the viewport grows.
+if(screen==='SCR-14'){
+ const intro=document.querySelector('.catalog-intro');
+ const about=intro?.querySelector('.catalog-about');
+ const prose=intro?.querySelector('.catalog-intro-copy > .prose');
+ const media=intro?.querySelector('.catalog-intro-media');
+ const context=intro?.querySelector('.catalog-context');
+ if(about&&prose&&media&&context){
+  const mobile=matchMedia('(max-width:700px)');
+  const status=document.querySelector('.catalog-status-wrap > .now');
+  const statusHost=status?.parentElement;
+  const statusDisclosure=document.createElement('details');
+  statusDisclosure.className='catalog-mobile-status';
+  const statusTitle=document.createElement('summary');
+  statusTitle.textContent=status?.querySelector('[data-guest-status-heading]')?.textContent||'';
+  statusDisclosure.append(statusTitle);
+  const adapt=()=>{
+   if(mobile.matches){
+    about.querySelector('summary').after(prose);
+    about.append(media);
+    if(status&&statusTitle.textContent){statusHost.append(statusDisclosure);statusDisclosure.append(status);}
+   }else{
+    context.before(prose);
+    intro.append(media);
+    if(status){statusHost.append(status);statusDisclosure.remove();}
+   }
+  };
+  adapt();mobile.addEventListener('change',adapt);
+ }
+}
 const copy={ru:{prototype:'Прототип',review:'Текст требует проверки'},en:{prototype:'Prototype',review:'Text needs review'},hy:{prototype:'Նախատիպ',review:'Տեքստը պետք է ստուգել'}}[lang]||{prototype:'Prototype',review:'Text needs review'};
 function filterLinks(){
  if(screen!=='SCR-14'&&screen!=='SCR-43')return;
