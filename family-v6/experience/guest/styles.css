@@ -385,3 +385,10 @@ dialog::backdrop { background: #15133699; }
 
 /* Reserve the first viewport before the interactive content is rendered. */
 body[data-page] #main { min-height: 100vh; min-height: 100svh; }
+
+/* Brief format comparison at the existing purchase controls. */
+.format-choice { display:flex; flex-direction:column; gap:6px; align-items:center; justify-content:flex-start; }
+.format-choice > span { min-width:0; max-width:100%; overflow-wrap:anywhere; }
+.format-description { display:block; font-size:12px; line-height:1.45; font-weight:400; }
+.product-tabs .format-choice { flex:1 1 140px; white-space:normal; }
+.quick-tabs .format-choice { padding-block:10px; }

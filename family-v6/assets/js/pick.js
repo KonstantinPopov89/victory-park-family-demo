@@ -102,19 +102,41 @@
     return f + '<span class="flag d">' + h(a.unl ? "unl_in" : "unl_out") + "</span>";
   }
   var CAT = { extreme: "cat_extreme", family: "cat_family", kids: "cat_kids", games: "cat_games" };
+  function catalogueFilter() {
+    var params = new URLSearchParams(location.search), value = params.get("cat");
+    return Object.prototype.hasOwnProperty.call(CAT, value) || value === "unl" ? value : (params.get("filter") === "unl" ? "unl" : "");
+  }
 
   /* ---------- SCR-14 ---------- */
   if (SCR === "SCR-14") {
-    var cat = q.get("cat") || (q.get("filter") === "unl" ? "unl" : "");
+    var cat = "";
     var fb = D.querySelectorAll("[data-filter]");
-    function filt(c) {
+    function filterURL(c) {
+      var current = new URL(location.href);
+      current.searchParams.delete("cat"); current.searchParams.delete("filter");
+      if (c) current.searchParams.set(c === "unl" ? "filter" : "cat", c);
+      history.replaceState(history.state, "", current.pathname + current.search + current.hash);
+    }
+    function filt(c, updateURL) {
       cat = c;
+      if (updateURL) filterURL(c);
       [].forEach.call(fb, function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-filter") === c)); });
       var li = D.querySelectorAll("[data-catalog] > li");
       [].forEach.call(li, function (x) { x.hidden = !(!c || (c === "unl" ? x.getAttribute("data-unl") === "1" : x.getAttribute("data-cat") === c)); });
+      // Keep language links usable with a normal click or opening in a new tab.
+      [].forEach.call(D.querySelectorAll("a[data-vp-lang],a[data-lang-link]"), function (a) {
+        var target = new URL(a.href, location.href);
+        if (target.origin !== location.origin) return;
+        target.search = location.search; target.hash = location.hash;
+        a.href = target.href;
+      });
+      D.dispatchEvent(new CustomEvent("vp:catalog-filter"));
     }
-    [].forEach.call(fb, function (b) { b.addEventListener("click", function () { filt(b.getAttribute("data-filter")); C.log("cta_click", { cta: "filter-" + (b.getAttribute("data-filter") || "all") }); }); });
-    filt(cat);
+    [].forEach.call(fb, function (b) { b.addEventListener("click", function () { filt(b.getAttribute("data-filter"), true); C.log("cta_click", { cta: "filter-" + (b.getAttribute("data-filter") || "all") }); }); });
+    function restoreFilter() { filt(catalogueFilter()); }
+    W.addEventListener("popstate", restoreFilter);
+    W.addEventListener("pageshow", restoreFilter);
+    restoreFilter();
     if (location.hash === "#now") C.log("status_view", { source: "home_link" });
     var ml = D.querySelectorAll("[data-mode-link]");
     [].forEach.call(ml, function (m) { m.addEventListener("click", function () { var to = m.getAttribute("data-mode-link"); C.set(C.LS(), "vpDeckMode", to); C.log("deck_mode_switch", { from: "list", to: to }); m.href += (m.href.indexOf("?") >= 0 ? "&" : "?") + "from=catalog"; }); });
@@ -129,7 +151,7 @@
     ab.addEventListener("click", function () { if (ab.getAttribute("data-in")) { location.href = url("plan"); } else { add(slug, "attraction"); ab_upd(); } });
     ab_upd();
     D.addEventListener("vp:interests", ab_upd);
-    var bk = D.querySelector("[data-back]"); if (bk && D.referrer && D.referrer.indexOf(location.host) >= 0 && history.length > 1) bk.addEventListener("click", function (e) { e.preventDefault(); history.back(); });
+    var bk = D.querySelector("[data-back]"); if (bk && !catalogueFilter() && D.referrer && D.referrer.indexOf(location.host) >= 0 && history.length > 1) bk.addEventListener("click", function (e) { e.preventDefault(); history.back(); });
   }
 
   /* ---------- SCR-40 ---------- */

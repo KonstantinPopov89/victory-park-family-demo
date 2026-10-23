@@ -40,7 +40,7 @@
       const ul=document.createElement('ul');ul.className='v6-interest-list';
       for(const id of ids){const ride=(window.VP?.attr||[]).find(a=>a.slug===id);if(!ride)continue;const li=document.createElement('li'),link=document.createElement('a'),button=document.createElement('button');link.href=base+lang()+'/attractions/'+id+'/';link.textContent=ride.name;button.type='button';button.dataset.v6Remove=id;button.textContent=labels[0];button.setAttribute('aria-label',labels[0]+': '+ride.name);li.append(link,button);ul.append(li)}
       interests.append(ul);if(removedInterest){const undo=document.createElement('button');undo.type='button';undo.dataset.v6Restore='';undo.textContent=labels[1];interests.append(undo)}
-      const buy=document.createElement('a');buy.href=base+'experience/guest/quick.html?lang='+lang();buy.textContent=labels[2];buy.className='v6-list-buy';interests.append(buy);
+      const buy=document.createElement('a');buy.href=base+'experience/guest/quick.html?lang='+lang();buy.textContent=interests.dataset.interestSource==='real'?{ru:'Открыть демопокупку',en:'Open the purchase demo',hy:'Բացել գնման ցուցադրությունը'}[lang()]:labels[2];if(interests.dataset.interestSource==='real')buy.setAttribute('aria-describedby','real-list-boundary');buy.className='v6-list-buy';interests.append(buy);
     }
   }
   const service=document.querySelector('[data-service-placeholder]');if(service){if(!review)for(const a of document.querySelectorAll('.v5-languages a')){a.href=base+a.lang+'/attractions/';a.removeAttribute('data-locale');a.removeAttribute('data-vp-lang');a.removeAttribute('data-lang-link');}
