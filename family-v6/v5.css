@@ -48,3 +48,21 @@ body[data-checkout=quick] .quick-flow:has(>.v5-format-heading){display:block!imp
 }
 
 body[data-checkout=quick] #app:empty{min-height:100svh}
+
+/* Returning visitors can reach card top-up and ride availability before the hero. */
+.home-quick-actions{display:flex;gap:12px;padding-block:16px 0}
+body[data-v5] .home-quick-action{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:12px 20px;border:1px solid #2f2e7d;border-radius:8px;color:#2f2e7d;font-size:14px;font-weight:600;line-height:1.5;text-align:center;text-decoration:none}
+body[data-v5] .home-quick-action:first-child{background:#2f2e7d;color:#fff}
+body[data-v5] .home-quick-action:hover{background:#f1edfa}
+body[data-v5] .home-quick-action:first-child:hover{background:#454292}
+body[data-v5] .home-quick-action:focus-visible{outline:3px solid #d80b8c;outline-offset:4px}
+@media(max-width:700px){
+ .home-quick-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-top:16px}
+ body[data-v5] .home-quick-action{min-width:0;min-height:48px;padding:12px;font-size:13px;overflow-wrap:anywhere}
+}
+
+@media(max-width:700px){
+ body[data-vp-home] .v5-header{grid-template-columns:max-content minmax(0,1fr) max-content;padding:6px 20px!important;gap:0 8px}
+ body[data-vp-home] .v5-brand img{width:56px!important;height:40px!important}
+ body[data-vp-home] .v5-nav a,body[data-vp-home] .v5-history{font-size:12px!important}
+}

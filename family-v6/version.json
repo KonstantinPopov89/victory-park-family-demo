@@ -9,7 +9,7 @@
   "demo": true,
   "payments": "simulated",
   "prototype": "family-v6",
-  "revision": 14,
+  "revision": 15,
   "default_purchase": {
     "product": "unlimited",
     "quantity": 3,
