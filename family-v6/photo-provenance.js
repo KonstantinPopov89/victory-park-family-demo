@@ -18,8 +18,14 @@
   function url(slug, size) { return root+slug+'-'+(size||780)+'.webp'; }
   function slug(photo) { return String(photo||'').match(/photos-r17\/([a-z0-9-]+)-(?:390|780|1440)\.webp/)?.[1]; }
   function srcset(photo) { var name=slug(photo);return name?[390,780,1440].map(function(size){return url(name,size)+' '+size+'w';}).join(', '):''; }
+  var portraitRoot = '/victory-park-family-demo/family-v6/assets/photos-portrait/';
+  var portraitNames = ['moto','tornado'];
+  var focalPoints = {"koleso":50,"kobra":67.6,"autodrom":18,"gorki":56.4,"pendulum":88.4,"orbita":26,"lebedi":54.8,"pirat":42,"arbuz":50,"bashnya":50,"shary":50,"planeta":42,"cep":74,"raketa":58,"avtoralli":51.6,"mars":50,"syurpriz":46.8,"zamok":50,"vodnye-lebedi":56.4,"solnyshko":50,"begemot":34,"sloniki":70.8,"labirint-detskiy":75.6,"svetofor":56.4,"batuty":37.2,"poezd":85.2,"kapik":40.4,"labirint":50,"vr-cinema":93.2,"vr-2":26,"dark-vr":50,"tir":50,"avtomaty":22.8};
+  function discovery(photo) { var name=slug(photo);return portraitNames.includes(name)?portraitRoot+name+'-780.webp':photo; }
+  function discoverySrcset(photo) { var name=slug(photo);return portraitNames.includes(name)?[390,780,1440].map(function(w){return portraitRoot+name+'-'+w+'.webp '+w+'w';}).join(', '):srcset(photo); }
+  function focal(photo) { var name=slug(photo);return (focalPoints[name]??50)+'% 50%'; }
   window.VPPhoto = Object.freeze({
-    provenance:'ai-generated-demo', url:url, slug:slug, srcset:srcset,
+    provenance:'ai-generated-demo', url:url, slug:slug, srcset:srcset, discovery:discovery, discoverySrcset:discoverySrcset, focal:focal,
     caption:function(){return captions[language()];}, note:function(){return notes[language()];}
   });
   function ready() {
