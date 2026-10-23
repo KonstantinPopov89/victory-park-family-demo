@@ -73,3 +73,12 @@ body[data-v5] .home-quick-action:focus-visible{outline:3px solid #d80b8c;outline
 .home-discovery span{display:grid;gap:5px;min-width:0}.home-discovery strong{font-size:15px;line-height:1.35}.home-discovery small{font-size:12px;line-height:1.5}
 .home-discovery a:hover strong{text-decoration:underline;text-underline-offset:4px}.home-discovery a:focus-visible{outline:3px solid var(--vp-pink);outline-offset:5px;border-radius:3px}
 @media(max-width:700px){.home-discovery{display:grid;gap:8px;margin-top:18px;padding-block:10px}.home-discovery a{min-height:58px}.home-discovery strong{font-size:15px}.home-discovery small{font-size:12px}}
+
+/* Keep long guest headings inside narrow mobile viewports. */
+@media(max-width:420px){
+ body[data-page=picker] .hero h1,html[lang=hy] body[data-v5] .v5-info>h1{overflow-wrap:anywhere!important}
+ html:not([lang=hy]) body[data-page=picker] .hero h1{font-size:clamp(62px,20vw,70px)!important}
+}
+
+/* Preserve the label and ride name as separate lines in adjacent-ride links. */
+body[data-v5] .ride-more>a[href]{display:block;min-width:0;flex:1 1 0;overflow-wrap:anywhere}

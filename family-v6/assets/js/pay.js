@@ -59,7 +59,7 @@
       var d = card ? card.value : "", l4 = d.length >= 4 ? d.slice(-4) : "", x = total();
       if (sum) {
         if (product === "topup") {
-          sum.querySelector("[data-sum-line]").innerHTML = !l4&&!x ? h("sum_empty") : h("sum_line", {l4:l4||"····",x:x?amd(x):h("amount_short")});
+          sum.querySelector("[data-sum-line]").innerHTML = !l4&&!x ? h("sum_empty") : h("sum_line", {l4:l4||"····",x:x?amd(x):s("amount_short").t});
           sum.querySelector("[data-sum-check]").innerHTML = cardOk() && d ? h("sum_check", { grp: grp(d) }) : "";
         } else if (product === "nocard") {
           sum.innerHTML = amount ? h("nocard_sum", { a: amd(amount), x: amd(x) }) : "";
