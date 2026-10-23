@@ -1,4 +1,4 @@
-import {translate} from './i18n.mjs?vpv=447a9564fe565483';
+import {translate} from './i18n.mjs?vpv=f8d384e99e17dc5d';
 import {EVENTS,SESSIONS,defaultState,restore,total} from './engine.mjs?vpv=bdfd963ca366b2b7';
 export const STORAGE='vp.family.v6.sessions.v1';
 export const BUSY=['processing','unknown','pending','security'];

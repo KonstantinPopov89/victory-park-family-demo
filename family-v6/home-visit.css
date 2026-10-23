@@ -75,3 +75,16 @@ html[lang=hy] .home-services h2{font-family:"Noto Sans Armenian",sans-serif!impo
  html[lang=hy] body[data-vp-home] .hero h1{font-size:25px!important}
  body[data-vp-home] .home-visit-info{margin-bottom:8px}
 }
+
+/* Visible event context before entering either session route. */
+body[data-vp-home] .home-services{grid-column:1/-1}
+.home-session-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.home-session{min-width:0;border:1px solid #d8d5e2;border-radius:16px;padding:20px;background:#fff}
+.home-session h3{font:600 18px/1.4 Montserrat,sans-serif!important;letter-spacing:0;margin:0 0 8px}
+.home-services .home-session-date{font-size:15px;font-weight:600;color:#2f2e7d;margin-bottom:16px}
+.home-session-date small{display:block;font-size:12px;font-weight:400;color:#625e76;margin-top:4px}
+.home-session-details{display:inline-flex;align-items:center;min-height:44px;font-size:12px;margin-top:6px;text-underline-offset:3px}
+.home-services .home-session [data-vp-action-group]{grid-template-columns:1fr 1fr}
+.home-session [data-vp-cta]{font-size:13px;min-height:48px;white-space:normal}
+html[lang=hy] .home-session h3{font-family:"Noto Sans Armenian",sans-serif!important}
+@media(max-width:720px){.home-session-grid{grid-template-columns:1fr;gap:14px}.home-session{padding:16px}.home-session h3{font-size:17px!important}.home-session [data-vp-cta]{font-size:12px;padding-inline:8px}}

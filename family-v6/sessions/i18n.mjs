@@ -1,5 +1,6 @@
 export const messages = {
   "ru": {
+    "quantitySuggestion": "Предложенное количество: {n}.",
     "park": "Victory Park",
     "city": "Ереван",
     "events": "Афиша",
@@ -148,6 +149,7 @@ export const messages = {
     "previousTicket": "Предыдущий билет"
   },
   "hy": {
+    "quantitySuggestion": "Առաջարկվող քանակը՝ {n}։",
     "park": "Victory Park",
     "city": "Երևան",
     "events": "Միջոցառումներ",
@@ -296,6 +298,7 @@ export const messages = {
     "previousTicket": "Նախորդ տոմսը"
   },
   "en": {
+    "quantitySuggestion": "Suggested group size: {n}.",
     "park": "Victory Park",
     "city": "Yerevan",
     "events": "What’s on",

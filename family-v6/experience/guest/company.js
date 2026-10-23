@@ -6,7 +6,7 @@ const app=document.getElementById('company-app'),esc=x=>String(x??'').replace(/[
 const source=new URLSearchParams(location.search).get('source'),connected=source==='real'||new URLSearchParams(location.search).get('intent')==='selected';
 const PLAN=connected?'vp.family.v5.company.real':'vp.family.v5.company';
 const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key)||'null')||fallback;}catch{return fallback;}};
-let state=connected?VP3.previewRealSelection(read(KEY,null)):VP3.sanitizeState(read(KEY,null)),plan=VPCompany.normalize(read(PLAN,null)),promotion=VPC.normalizePromotion(read(PROMO,null)),message='',result=null,expanded=new Set(),focusId='';
+let state=connected?VP3.previewRealSelection(read(KEY,null)):VP3.sanitizeState(read(KEY,null)),plan=VPCompany.normalize(read(PLAN,null)),promotion=VPC.normalizePromotion(read(PROMO,null)),message='',result=null,expanded=new Set(),focusId='',familyNotice='';
 if(!plan.companionId&&state.companionId&&!state.companionAutoSelected){plan.companionId=state.companionId;plan.adultRoles[state.companionId]='companion';}
 // Optional trip counts: exact planning is entered explicitly and kept in its URL.
 plan.mode=connected||new URLSearchParams(location.search).get('mode')==='exact'?'exact':'flexible';
@@ -15,7 +15,24 @@ const button=(action,label,attrs='',cls='cp-button')=>`<button type="button" cla
 function savePlan(){try{localStorage.setItem(PLAN,JSON.stringify(plan));return true;}catch{message='Не удалось сохранить расчёт. Разрешите локальное хранение, чтобы передать заказ в покупку.';return false;}}
 function pending(){const o=read('vp.family.v5.order',null),lock=read('vp.family.v5.payment',null);return (o&&['pending','issuance','partial'].includes(o.status))||!!lock;}
 function notify(text){document.getElementById('announce').textContent=text;}
-function refresh(){state=connected?VP3.previewRealSelection(read(KEY,state)):VP3.sanitizeState(read(KEY,state));promotion=VPC.normalizePromotion(read(PROMO,promotion));}
+function reconcilePartyPlan(){
+ if(!connected)return;
+ const before=plan,next=VPCompany.realPlan(state,before),removed=JSON.stringify(before.assignments)!==JSON.stringify(next.assignments);
+ if(removed)familyNotice='removed';else if(before.partyFingerprint&&before.partyFingerprint!==next.partyFingerprint)familyNotice='changed';
+ plan=next;
+ if(JSON.stringify(before)!==JSON.stringify(next))savePlan();
+}
+function familyNoticeHTML(){
+ if(!familyNotice)return '';
+ const texts={
+  ru:{removed:'Катания удалённых участников убраны из расчёта. Остальной выбор сохранён.',changed:'Состав компании обновлён. Проверьте участников и число катаний.'},
+  en:{removed:'Rides for removed group members are no longer in the plan. Other choices are preserved.',changed:'Your group has changed. Check the riders and ride counts.'},
+  hy:{removed:'Հեռացված մասնակիցների զբոսանքները հանվել են հաշվարկից։ Մնացած ընտրությունը պահպանված է։',changed:'Խմբի կազմը թարմացվել է։ Ստուգեք մասնակիցներին և զբոսանքների քանակը։'}
+ };
+ const copy=texts[window.VPI18n?.language||document.documentElement.lang]||texts.ru;
+ return '<p class="cp-notice" data-family-plan-notice data-i18n-skip role="status">'+esc(copy[familyNotice])+'</p>';
+}
+function refresh(){state=connected?VP3.previewRealSelection(read(KEY,state)):VP3.sanitizeState(read(KEY,state));promotion=VPC.normalizePromotion(read(PROMO,promotion));reconcilePartyPlan();}
 function partyPanel(){return `<details class="cp-party" id="cp-party-details"><summary>Наша компания · ${state.party.length} чел.</summary><div class="cp-party-list">${state.party.map(p=>`<div><strong>${esc(p.label)}</strong><span>${p.age===null?'Возраст неизвестен':p.age+' лет'}${p.height!==null?' · '+p.height+' см':''}</span>${p.role==='adult'&&!connected?`<div class="cp-chips">${button('role','Гуляет рядом',`data-person="${p.id}" data-role="walk" aria-pressed="${(plan.adultRoles[p.id]||'walk')==='walk'}"`)}${button('role','Катается',`data-person="${p.id}" data-role="ride" aria-pressed="${plan.adultRoles[p.id]==='ride'}"`)}</div>`:''}</div>`).join('')}</div><a class="cp-link" href="${familyURL()}">Изменить компанию</a></details>`;}
 function companionPanel(){const adults=state.party.filter(p=>p.role==='adult');return `<section class="cp-companion"><h2>Кто поедет с ребёнком?</h2><p>Один взрослый может сопровождать детей по очереди. Гуляющему рядом билет не нужен. Сопровождение входит в выбранное число поездок взрослого; если детям нужно больше, учтём необходимые поездки.</p><div class="cp-chips">${adults.map(p=>button('companion',esc(p.label),`data-person="${p.id}" aria-pressed="${plan.companionId===p.id&&plan.adultRoles[p.id]==='companion'}"`)).join('')}${plan.companionId?button('no-companion','Никто не поедет'):''}</div>${!adults.length?'<a href="${familyURL()}">Добавить взрослого в компанию</a>':''}</section>`;}
 function needsCompanion(){if(state.cart.lines.some(l=>{const p=person(l.personId);return p&&p.role==='child'&&(l.productId==='ticket'?[l.rideId]:l.productId==='unlimited'?VP3.products.unlimited.includedRideIds:[]).some(rid=>VP3.admission(rid,p).needsCompanion);}))return true;if(plan.mode==='flexible')return plan.flexiblePeople.some(pid=>{const p=person(pid);return p&&VP3.products.unlimited.includedRideIds.some(rid=>VP3.admission(rid,p).needsCompanion);});return state.selections.demo.some(rid=>Object.keys(plan.assignments[rid]||{}).some(pid=>person(pid)&&VP3.admission(rid,person(pid)).needsCompanion&&!plan.deferred.includes(rid)));}
@@ -32,7 +49,7 @@ function realView(){
  const lang=window.VPI18n?.language||document.documentElement.lang,base=new URL('../../',location.href).pathname;
  document.title='Выбрать билеты · Victory Park';
  const focus=document.activeElement?.id;
- app.innerHTML=`<section data-real-context><div class="cp-breadcrumb"><a data-real-list href="${base}${lang}/plan/">К сохранённым аттракционам</a></div><header class="cp-heading"><h1>Выбрать билеты</h1><p>Укажите, кто хочет кататься. Затем выберите вариант и проверьте заказ.</p></header><p class="cp-notice" data-real-boundary>Демопокупка для вашего списка. Цены и возрастные ориентиры вымышлены. Реальные допуск и сопровождение уточняются у парка.</p>${message?`<p class="cp-error" role="status">${esc(message)}</p>`:''}${pending()?'<p class="cp-notice">Предыдущая оплата ещё не завершена. Список сохранён. <a href="tickets.html">Проверить её статус</a></p>':''}${!state.selections.demo.length?`<section class="cp-empty"><h2>Сначала выберите аттракционы</h2><p>Сохраните понравившееся в ленте или свайп-подборе. Лайки сами не создают заказ.</p><a class="cp-button cp-primary" data-vp-cta="primary" href="${base}${lang}/attractions/">К аттракционам</a></section>`:!state.party.length?`<section class="cp-empty"><h2>Кто идёт с вами?</h2><p>Добавьте детей и взрослых, чтобы назначить поездки. Можно оставить возраст неизвестным.</p><a class="cp-button cp-primary" data-vp-cta="primary" href="${familyURL()}">Указать компанию</a></section>`:`${partyPanel()}<p><a class="cp-link" href="${familyURL()}">Изменить компанию</a></p>${exactContent()}`}<p class="cp-footnote">Деньги не списываются. Лайки остаются в вашем списке.</p></section>`;
+ app.innerHTML=`<section data-real-context><div class="cp-breadcrumb"><a data-real-list href="${base}${lang}/plan/">К сохранённым аттракционам</a></div><header class="cp-heading"><h1>Выбрать билеты</h1><p>Укажите, кто хочет кататься. Затем выберите вариант и проверьте заказ.</p></header><p class="cp-notice" data-real-boundary>Демопокупка для вашего списка. Цены и возрастные ориентиры вымышлены. Реальные допуск и сопровождение уточняются у парка.</p>${familyNoticeHTML()}${message?`<p class="cp-error" role="status">${esc(message)}</p>`:''}${pending()?'<p class="cp-notice">Предыдущая оплата ещё не завершена. Список сохранён. <a href="tickets.html">Проверить её статус</a></p>':''}${!state.selections.demo.length?`<section class="cp-empty"><h2>Сначала выберите аттракционы</h2><p>Сохраните понравившееся в ленте или свайп-подборе. Лайки сами не создают заказ.</p><a class="cp-button cp-primary" data-vp-cta="primary" href="${base}${lang}/attractions/">К аттракционам</a></section>`:!state.party.length?`<section class="cp-empty"><h2>Кто идёт с вами?</h2><p>Добавьте детей и взрослых, чтобы назначить поездки. Можно оставить возраст неизвестным.</p><a class="cp-button cp-primary" data-vp-cta="primary" href="${familyURL()}">Указать компанию</a></section>`:`${partyPanel()}<p><a class="cp-link" href="${familyURL()}">Изменить компанию</a></p>${exactContent()}`}<p class="cp-footnote">Деньги не списываются. Лайки остаются в вашем списке.</p></section>`;
  if(focus)document.getElementById(focus)?.focus({preventScroll:true});
 }
 
@@ -58,5 +75,5 @@ savePlan();render();notify(result?.offers?.length?'Расчёт обновлён
 document.addEventListener('vp:interests',()=>{if(realContext()){refresh();render();}});
 window.addEventListener('pageshow',()=>{if(realContext()){refresh();render();}});
 window.addEventListener('storage',e=>{if([KEY,PROMO].includes(e.key)){refresh();message='Данные изменились в другой вкладке. Расчёт обновлён.';render();}});
-render();
+reconcilePartyPlan();render();
 })();
