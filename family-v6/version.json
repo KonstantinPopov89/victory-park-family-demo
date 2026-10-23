@@ -1,5 +1,5 @@
 {
-  "version": 5,
+  "version": 6,
   "name": "Victory Park",
   "languages": [
     "ru",
@@ -8,7 +8,11 @@
   ],
   "demo": true,
   "payments": "simulated",
-  "prototype": "family-v5",
-  "revision": 10,
-  "published": false
+  "prototype": "family-v6",
+  "revision": 11,
+  "default_purchase": {
+    "product": "unlimited",
+    "quantity": 3,
+    "when": "fresh_only"
+  }
 }
