@@ -3,17 +3,17 @@
 'use strict';
 const BASE=Date.parse('2026-10-14T11:10:00Z'), MIN=60000, TTL=5*MIN, KEY='victory-availability-pages-v1';
 const RIDES=[
- {id:'autodrom',catalogId:'autodrom',photo:'assets/autodrom.webp',name:'Автодром',aliases:'машинки'},
- {id:'vr-travel',catalogId:'VR-for-2',photo:'assets/VR-for-2.webp',name:'Виртуальное путешествие',aliases:'vr'},
- {id:'vr-reality',catalogId:'VR-cinema',photo:'assets/VR-cinema.webp',name:'Виртуальная реальность',aliases:'vr кинотеатр'},
- {id:'tower',catalogId:'rotating-tower',photo:'assets/rotating-tower.webp',name:'Вращающаяся башня',aliases:'башня'},
- {id:'wheel',catalogId:'wheel-of-happiness',photo:'assets/wheel-of-happiness.webp',name:'Колесо счастья',aliases:'колесо обозрения'},
- {id:'rocket',catalogId:'rocket',photo:'assets/rocket.webp',name:'Космический корабль',aliases:'ракета'},
- {id:'pendulum',catalogId:'pendulum',photo:'assets/pendulum.webp',name:'Метроном',aliases:'маятник'},
- {id:'ufo',catalogId:'moto-ufo',photo:'assets/moto-ufo.webp',name:'Мощный НЛО',aliases:'нло'},
- {id:'swan',catalogId:'water-swan',photo:'assets/water-swan.webp',name:'Плавающий лебедь',aliases:'лебеди лодки'},
- {id:'planet',catalogId:'planet',photo:'assets/planet.webp',name:'Планета',aliases:'планета'},
- {id:'mars',catalogId:'mars-ride',photo:'assets/mars-ride.webp',name:'Полет на Марс',aliases:'полёт марс'}];
+ {id:'autodrom',catalogId:'autodrom',photo:'/victory-park-family-demo/family-v6/assets/photos-r17/autodrom-780.webp',name:'Автодром',aliases:'машинки'},
+ {id:'vr-travel',catalogId:'VR-for-2',photo:'/victory-park-family-demo/family-v6/assets/photos-r17/vr-2-780.webp',name:'Виртуальное путешествие',aliases:'vr'},
+ {id:'vr-reality',catalogId:'VR-cinema',photo:'/victory-park-family-demo/family-v6/assets/photos-r17/vr-cinema-780.webp',name:'Виртуальная реальность',aliases:'vr кинотеатр'},
+ {id:'tower',catalogId:'rotating-tower',photo:'/victory-park-family-demo/family-v6/assets/photos-r17/bashnya-780.webp',name:'Вращающаяся башня',aliases:'башня'},
+ {id:'wheel',catalogId:'wheel-of-happiness',photo:'/victory-park-family-demo/family-v6/assets/photos-r17/koleso-780.webp',name:'Колесо счастья',aliases:'колесо обозрения'},
+ {id:'rocket',catalogId:'rocket',photo:'/victory-park-family-demo/family-v6/assets/photos-r17/raketa-780.webp',name:'Космический корабль',aliases:'ракета'},
+ {id:'pendulum',catalogId:'pendulum',photo:'/victory-park-family-demo/family-v6/assets/photos-r17/pendulum-780.webp',name:'Метроном',aliases:'маятник'},
+ {id:'ufo',catalogId:'moto-ufo',photo:'/victory-park-family-demo/family-v6/assets/photos-r17/moto-780.webp',name:'Мощный НЛО',aliases:'нло'},
+ {id:'swan',catalogId:'water-swan',photo:'/victory-park-family-demo/family-v6/assets/photos-r17/vodnye-lebedi-780.webp',name:'Плавающий лебедь',aliases:'лебеди лодки'},
+ {id:'planet',catalogId:'planet',photo:'/victory-park-family-demo/family-v6/assets/photos-r17/planeta-780.webp',name:'Планета',aliases:'планета'},
+ {id:'mars',catalogId:'mars-ride',photo:'/victory-park-family-demo/family-v6/assets/photos-r17/mars-780.webp',name:'Полет на Марс',aliases:'полёт марс'}];
 const LABELS={open:'Работает',paused:'Пауза',closed:'Не работает',unknown:'Уточняем'};
 const copy=o=>JSON.parse(JSON.stringify(o));
 const clock=t=>new Intl.DateTimeFormat('ru-RU',{timeZone:'Asia/Yerevan',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).format(t);

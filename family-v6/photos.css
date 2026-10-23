@@ -1,0 +1,18 @@
+/* r17 source frames are 3:2. Keep the complete ride visible in narrow discovery frames. */
+.vp-photo-provenance{flex-basis:100%;max-width:72ch;margin:20px auto 0;padding:0 20px 16px;font:400 12px/1.5 var(--body,Montserrat,sans-serif);color:inherit;opacity:.8}
+footer .vp-photo-provenance{margin-inline:0;padding:0;grid-column:1/-1}
+.vp-photo-caption{font-size:12px;line-height:1.5;color:#625d7b}
+.r-photo,.sp-photo{background:#2f2e7d}
+.photo-main,.photo-small{background:#e8e7ed}
+.r-photo img,.sp-photo>img,.photo-main img,.photo-small img{object-fit:contain!important;object-position:center!important}
+.catalog-detail-media picture img{height:auto!important;aspect-ratio:3/2!important;object-fit:contain!important;background:#e8e7ed}
+.catalog-theme .acard img,.acard img{object-position:center}
+img[src*="photos-r17/pendulum-"]{object-position:70% center}
+.r-photo img[src*="photos-r17/"],.sp-photo>img[src*="photos-r17/"]{object-position:center!important}
+
+/* Keep the generated landscape scenes whole without blank bands in the photo frames. */
+.hero-art .photo-main{top:24px;bottom:auto;height:auto}
+.hero-art .photo-main img,.hero-art .photo-small img{display:block;height:auto;aspect-ratio:3/2}
+.hero-art .photo-small{height:auto;bottom:45px;background:white}
+@media(max-width:900px){.hero-art{height:360px!important}.hero-art .photo-main{top:0}.hero-art .photo-small{bottom:14px}}
+@media(max-width:500px){.hero-art{height:290px!important}.hero-art .photo-small{bottom:0}}

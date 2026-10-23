@@ -69,6 +69,8 @@
       next=next.replace(/Tinder/g,{ru:'Выбрать свайпом',hy:'Ընտրել սահեցնելով',en:'Choose by swiping'}[language]);
       next=next.replace(/(^|[^А-Яа-яЁё])учебн(?:ый|ая|ое|ые|ого|ых|ым|ую|ой|ом|ые)\s*/gi,'$1').replace(/ուսումնական\s+/gi,'').replace(/teaching\s+/gi,'');
     }
+    // Preserve translation keys, but omit decorative trailing arrows on main actions.
+    if(node.parentElement.closest('[data-vp-cta]'))next=next.replace(/\s*[↗→]\s*$/u,'');
     texts.set(node,{source,last:next});
     if(node.data!==next)node.data=next;
   }

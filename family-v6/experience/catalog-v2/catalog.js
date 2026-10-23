@@ -33,7 +33,7 @@
     savedButton.setAttribute('aria-pressed', String(savedOnly));
     document.getElementById('catalog-empty').hidden = !savedOnly || selected.length > 0;
     document.getElementById('catalog-saved-bar').hidden = selected.length === 0;
-    document.getElementById('catalog-summary').textContent = savedOnly ? 'Ваш список интересного. Это ещё не заказ.' : 'Настоящие фотографии парка';
+    document.getElementById('catalog-summary').textContent = savedOnly ? 'Ваш список интересного. Это ещё не заказ.' : 'Сгенерированные изображения аттракционов';
     const note = document.getElementById('catalog-storage-note');
     note.textContent = api.getError(); note.hidden = !api.getError();
   }
@@ -50,7 +50,7 @@
     returnFocus = trigger || grid.querySelector(`[data-details="${id}"]`);
     returnScroll = window.scrollY;
     openedRide = id;
-    dialog.innerHTML = `<div class="catalog-dialog-head"><img src="${ride.photo}" width="640" height="420" alt="${escape(ride.name)} в Парке Победы"><button type="button" class="catalog-dialog-close" data-close aria-label="Закрыть подробности">×</button></div><div class="catalog-dialog-content"><p class="catalog-eyebrow">${escape(ride.kind)}</p><h2 id="catalog-dialog-title">${escape(ride.name)}</h2><p class="catalog-dialog-copy">${escape(ride.description)}</p><section class="catalog-dialog-rules" aria-labelledby="catalog-rules-title"><h3 id="catalog-rules-title">Перед катанием</h3><dl><div><dt>Рост и возраст</dt><dd>Уточняются</dd></div><div><dt>Сопровождение взрослым</dt><dd>Уточняется</dd></div><div><dt>Интенсивность</dt><dd>Не подтверждена</dd></div><div><dt>Цена и работа в день визита</dt><dd>Уточняются</dd></div></dl><p class="catalog-dialog-note">Правила парка пока не добавлены в прототип. Сохранить интересное можно сейчас. Перед покупкой и катанием уточните допуск у парка, особенно для ребёнка.</p></section><div class="catalog-dialog-footer">${saveButton(ride, api.getSaved().includes(id))}<a href="index.html#visit">Контакты парка ↗</a></div></div>`;
+    dialog.innerHTML = `<div class="catalog-dialog-head"><img src="${ride.photo}" width="640" height="420" alt="${escape(ride.name)}"><button type="button" class="catalog-dialog-close" data-close aria-label="Закрыть подробности">×</button></div><div class="catalog-dialog-content"><p class="catalog-eyebrow">${escape(ride.kind)}</p><h2 id="catalog-dialog-title">${escape(ride.name)}</h2><p class="catalog-dialog-copy">${escape(ride.description)}</p><section class="catalog-dialog-rules" aria-labelledby="catalog-rules-title"><h3 id="catalog-rules-title">Перед катанием</h3><dl><div><dt>Рост и возраст</dt><dd>Уточняются</dd></div><div><dt>Сопровождение взрослым</dt><dd>Уточняется</dd></div><div><dt>Интенсивность</dt><dd>Не подтверждена</dd></div><div><dt>Цена и работа в день визита</dt><dd>Уточняются</dd></div></dl><p class="catalog-dialog-note">Правила парка пока не добавлены в прототип. Сохранить интересное можно сейчас. Перед покупкой и катанием уточните допуск у парка, особенно для ребёнка.</p></section><div class="catalog-dialog-footer">${saveButton(ride, api.getSaved().includes(id))}<a href="index.html#visit">Контакты парка ↗</a></div></div>`;
     document.body.classList.add('catalog-dialog-open');
     dialog.showModal();
     dialog.querySelector('[data-close]').focus({preventScroll:true});

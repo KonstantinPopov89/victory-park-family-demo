@@ -177,6 +177,10 @@ body[data-vp-picker=deck] :is(.seg,.swipe-btns,.side) .tr{min-width:0;overflow-w
 body[data-vp-picker=deck] .swipe-btns .undo{flex:1}
 .picker-entry-links{display:flex;flex-wrap:wrap;gap:12px 28px;margin:18px 0 8px}
 .picker-entry-links a{display:inline-flex;align-items:center;min-height:44px;color:var(--cobalt);font-weight:600;font-size:14px}
+/* Let the Armenian list title fit narrow screens without reducing its type size. */
+@media(max-width:420px){
+ html[lang=hy] body[data-vp-picker=plan] .v5-info>h1{min-width:0;overflow-wrap:anywhere!important}
+}
 @media(max-width:420px){
  body[data-vp-picker=deck] .deck-top{flex-wrap:wrap;row-gap:0}
  body[data-vp-picker=deck] .deck-top .seg{flex:1;min-width:0}

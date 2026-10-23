@@ -1,0 +1,83 @@
+/* Main actions are explicit opt-ins. Choices, gestures and utilities keep their semantics.
+   This layer comes last; specificity bridges the legacy page/theme styles. */
+:root {
+  --vp-action-ink: #2f2e7d;
+  --vp-action-hover: #454292;
+  --vp-action-line: #c8c5dc;
+  --vp-action-radius: 10px;
+}
+:root body[data-v5] [data-vp-cta][data-vp-cta] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  gap: 8px;
+  min-width: 44px;
+  min-height: 52px;
+  max-width: 100%;
+  padding: 12px 18px;
+  border: 1px solid var(--vp-action-line);
+  border-radius: var(--vp-action-radius);
+  background: #fff;
+  color: var(--vp-action-ink);
+  box-shadow: none;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: normal;
+  text-align: center;
+  text-transform: none;
+  text-decoration: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color .16s ease-out, border-color .16s ease-out;
+}
+:root body[data-v5] [data-vp-cta="primary"][data-vp-cta] {
+  background: var(--vp-action-ink);
+  border-color: var(--vp-action-ink);
+  color: #fff;
+}
+@media (hover: hover) {
+  :root body[data-v5] [data-vp-cta][data-vp-cta]:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: #f1eff9;
+    border-color: var(--vp-action-ink);
+  }
+  :root body[data-v5] [data-vp-cta="primary"][data-vp-cta]:hover:not(:disabled):not([aria-disabled="true"]) {
+    background: var(--vp-action-hover);
+    border-color: var(--vp-action-hover);
+  }
+}
+:root body[data-v5] [data-vp-cta][data-vp-cta]:focus-visible {
+  outline: 3px solid #d80b8c;
+  outline-offset: 3px;
+}
+:root body[data-v5] [data-vp-cta][data-vp-cta]:is(:disabled,[aria-disabled="true"]) {
+  background: #edeaf4;
+  border-color: #c8c5dc;
+  color: #625d7b;
+  opacity: 1;
+  cursor: not-allowed;
+}
+:root body[data-v5] [data-vp-cta][data-vp-cta][aria-busy="true"] { cursor: wait; }
+:root body[data-v5] [data-vp-cta] > .arrow { display: none; }
+:root body[data-v5] [data-vp-action-group] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+:root body[data-v5] [data-vp-action-group] > [data-vp-cta] {
+  flex: 1 1 180px;
+  margin: 0;
+}
+/* The desktop photo collage intentionally extends into the hero grid gap. */
+:root body[data-v5] .hero-actions { max-width: 510px; }
+@media (max-width: 700px) {
+  :root body[data-v5] [data-vp-action-group] { flex-direction: column; }
+  :root body[data-v5] [data-vp-action-group] > [data-vp-cta] { flex: 0 0 auto; width: 100%; }
+  :root body[data-v5] :is(.hero-actions,.product-teaser,.visit-actions) [data-vp-cta] { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root body[data-v5] [data-vp-cta][data-vp-cta] { transition: none; }
+}

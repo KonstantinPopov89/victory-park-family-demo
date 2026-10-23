@@ -1,0 +1,269 @@
+{
+  "version": 1,
+  "set": "photos-r17",
+  "origin": "ai-generated-demo",
+  "exactInstallationClaim": false,
+  "userApprovedTypicalDemoRides": true,
+  "sizes": [
+    390,
+    780,
+    1440
+  ],
+  "aspectRatio": "3:2",
+  "catalog": [
+    {
+      "id": "wheel-of-happiness",
+      "slug": "koleso",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/koleso-780.webp",
+      "identityProof": "prototype-builder-crosswalk",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-kobra",
+      "slug": "kobra",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/kobra-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "autodrom",
+      "slug": "autodrom",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/autodrom-780.webp",
+      "identityProof": "builder-source-name-and-id",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-gorki",
+      "slug": "gorki",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/gorki-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "pendulum",
+      "slug": "pendulum",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/pendulum-780.webp",
+      "identityProof": "builder-source-name-and-id",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-orbita",
+      "slug": "orbita",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/orbita-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-lebedi",
+      "slug": "lebedi",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/lebedi-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-pirat",
+      "slug": "pirat",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/pirat-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-arbuz",
+      "slug": "arbuz",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/arbuz-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "rotating-tower",
+      "slug": "bashnya",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/bashnya-780.webp",
+      "identityProof": "builder-source-name-and-id",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-shary",
+      "slug": "shary",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/shary-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "planet",
+      "slug": "planeta",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/planeta-780.webp",
+      "identityProof": "builder-source-name-and-id",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-cep",
+      "slug": "cep",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/cep-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "moto-ufo",
+      "slug": "moto",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/moto-780.webp",
+      "identityProof": "builder-source-name-and-id",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "rocket",
+      "slug": "raketa",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/raketa-780.webp",
+      "identityProof": "builder-source-name-and-id",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-avtoralli",
+      "slug": "avtoralli",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/avtoralli-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "mars-ride",
+      "slug": "mars",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/mars-780.webp",
+      "identityProof": "builder-source-name-and-id",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-syurpriz",
+      "slug": "syurpriz",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/syurpriz-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-zamok",
+      "slug": "zamok",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/zamok-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "water-swan",
+      "slug": "vodnye-lebedi",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/vodnye-lebedi-780.webp",
+      "identityProof": "builder-source-name-and-id",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-solnyshko",
+      "slug": "solnyshko",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/solnyshko-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-begemot",
+      "slug": "begemot",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/begemot-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-tornado",
+      "slug": "tornado",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/tornado-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-sloniki",
+      "slug": "sloniki",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/sloniki-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-labirint-detskiy",
+      "slug": "labirint-detskiy",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/labirint-detskiy-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-svetofor",
+      "slug": "svetofor",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/svetofor-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-batuty",
+      "slug": "batuty",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/batuty-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-poezd",
+      "slug": "poezd",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/poezd-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-kapik",
+      "slug": "kapik",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/kapik-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-labirint",
+      "slug": "labirint",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/labirint-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "VR-cinema",
+      "slug": "vr-cinema",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/vr-cinema-780.webp",
+      "identityProof": "builder-source-name-and-id",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "VR-for-2",
+      "slug": "vr-2",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/vr-2-780.webp",
+      "identityProof": "builder-source-name-and-id",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-dark-vr",
+      "slug": "dark-vr",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/dark-vr-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-tir",
+      "slug": "tir",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/tir-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    },
+    {
+      "id": "park-avtomaty",
+      "slug": "avtomaty",
+      "image": "/victory-park-family-demo/family-v6/assets/photos-r17/avtomaty-780.webp",
+      "identityProof": "catalog-entry",
+      "imageOrigin": "ai-generated-demo"
+    }
+  ],
+  "additionalScenes": [
+    "park-overview",
+    "zoo",
+    "food",
+    "dino",
+    "events",
+    "carousel",
+    "teacups"
+  ]
+}

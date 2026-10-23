@@ -82,7 +82,7 @@
   function side() {
     var ul = D.querySelector("[data-dk-list]"); if (!ul) return;
     var chosen = list().map(function (slug) { return BY[slug]; }).filter(Boolean);
-    ul.innerHTML = chosen.length ? chosen.map(function (a) { return '<li>' + (a.img ? '<img src="' + R + 'assets/img/' + a.img + '-43-390.webp" width="72" height="54" alt="" loading="lazy">' : '') + '<a href="' + url('attractions/' + a.slug) + '">' + nm(a) + '</a></li>'; }).join('') : '<li class="unified-list-empty">' + h('list_preview_empty') + '</li>';
+    ul.innerHTML = chosen.length ? chosen.map(function (a) { return '<li>' + (a.img ? '<img src="' + R + 'assets/photos-r17/' + a.img + '-390.webp" width="72" height="54" alt="" loading="lazy">' : '') + '<a href="' + url('attractions/' + a.slug) + '">' + nm(a) + '</a></li>'; }).join('') : '<li class="unified-list-empty">' + h('list_preview_empty') + '</li>';
   }
 
   function add(s, src) { var l = list(); if (l.indexOf(s) < 0) { l.push(s); C.setList(l); } C.log("deck_add", { slug: s, source: src || "", list_n: l.length }); }
@@ -226,15 +226,15 @@
   function cardHtml(a, eager) {
     var PH = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 293'/%3E";
     /* R08 п. 4: карточки ниже первой грузятся по мере прокрутки (data-lz, VPCORE.lazy) */
-    var img = a.img ? '<img ' + (eager ? "" : 'data-lz="' + R + "assets/img/" + a.img + '-43-390.webp" ') + 'src="' + (eager ? R + "assets/img/" + a.img + '-43-390.webp' : PH) + '" ' + (eager ? "" : "data-") + 'srcset="' + R + "assets/img/" + a.img + "-43-390.webp 390w, " + R + "assets/img/" + a.img + '-43-780.webp 780w" sizes="(min-width:600px) 560px, 100vw" width="390" height="293" alt="" ' + (eager ? 'fetchpriority="high"' : 'decoding="async"') + ' draggable="false">' : noph(a, "band");
+    var img = a.img ? '<img ' + (eager ? "" : 'data-lz="' + R + "assets/photos-r17/" + a.img + '-390.webp" ') + 'src="' + (eager ? R + "assets/photos-r17/" + a.img + '-390.webp' : PH) + '" ' + (eager ? "" : "data-") + 'srcset="' + R + "assets/photos-r17/" + a.img + "-390.webp 390w, " + R + "assets/photos-r17/" + a.img + '-780.webp 780w" sizes="(min-width:600px) 560px, 100vw" width="390" height="293" alt="" ' + (eager ? 'fetchpriority="high"' : 'decoding="async"') + ' draggable="false">' : noph(a, "band");
     return '<article class="card" data-card="' + a.slug + '">' + img + '<div class="tx">' + (a.img ? '<p class="photo-note">' + unc("illus_price") + "</p>" : "") +
       '<h2 class="disp">' + nm(a) + '</h2><p class="meta"><span>' + h(CAT[a.cat]) + "</span>" + flags(a) + '</p><p class="meta"><b class="num">' + amd(a.price) + "</b> " + h("by_cash") + (a.img ? "" : " " + unc()) + '</p><p class="meta">' + stHtml(a.slug) + ' <span class="demo">' + h("demo") + "</span></p>" +
       '<p><a class="link" href="' + url("attractions/" + a.slug) + '" data-attr="' + a.slug + '">' + h("more") + " →</a></p></div></article>";
   }
   function endHtml(pi) {
     var nxt = packs[pi + 1], n = list().length;
-    if (!nxt) return '<div class="packend"><h2 class="disp">' + h("deck_end") + "</h2><p>" + h("list_n", { n: n }) + '</p><p><a class="btn pri full" href="' + url("plan") + '" data-cta="deck-sum" data-test="deck-sum">' + (n ? h("to_sum") : h("topup")) + '</a></p><p><button class="btn" type="button" data-restart>' + h("restart") + '</button> <a class="link" href="' + url("attractions") + '">' + h("all_prices") + "</a></p></div>";
-    return '<div class="packend"><h2 class="disp">' + h("pack_end", { n: n }) + '</h2><p><a class="btn pri full" href="' + url("plan") + '" data-cta="deck-sum" data-test="deck-sum">' + h("to_sum") + '</a></p><p><button class="btn full" type="button" data-test="deck-nextpack" data-nextpack="' + (pi + 1) + '">' + h("next_pack", { c: (VP.str[CAT[nxt.cat]] || [nxt.cat])[0] }) + "</button></p></div>";
+    if (!nxt) return '<div class="packend"><h2 class="disp">' + h("deck_end") + "</h2><p>" + h("list_n", { n: n }) + '</p><p><a class="btn pri full" href="' + url("plan") + '" data-vp-cta="primary" data-cta="deck-sum" data-test="deck-sum">' + (n ? h("to_sum") : h("topup")) + '</a></p><p><button class="btn" type="button" data-restart>' + h("restart") + '</button> <a class="link" href="' + url("attractions") + '">' + h("all_prices") + "</a></p></div>";
+    return '<div class="packend"><h2 class="disp">' + h("pack_end", { n: n }) + '</h2><p><a class="btn pri full" href="' + url("plan") + '" data-vp-cta="primary" data-cta="deck-sum" data-test="deck-sum">' + h("to_sum") + '</a></p><p><button class="btn full" type="button" data-vp-cta="secondary" data-test="deck-nextpack" data-nextpack="' + (pi + 1) + '">' + h("next_pack", { c: (VP.str[CAT[nxt.cat]] || [nxt.cat])[0] }) + "</button></p></div>";
   }
   function count() {
     side();
@@ -282,7 +282,7 @@
     preload();
   }
   function preload() {
-    var go = function () { for (var k = idx + 1, n = 0; k < items.length && n < 2; k++) { if (items[k].a && items[k].a.img) { var im = new Image(); im.src = R + "assets/img/" + items[k].a.img + "-43-390.webp"; n++; } } };
+    var go = function () { for (var k = idx + 1, n = 0; k < items.length && n < 2; k++) { if (items[k].a && items[k].a.img) { var im = new Image(); im.src = R + "assets/photos-r17/" + items[k].a.img + "-390.webp"; n++; } } };
     if (D.readyState === "complete") go(); else window.addEventListener("load", go, { once: true });
   }
   function decide(yes, slug) {
@@ -380,7 +380,7 @@
     if (!l.length) {
       hd += '<h2 class="disp" style="margin-top:8px">' + h("plan_empty") + "</h2><p>" + h("plan_empty_t") + "</p>" + stepper("a", P.adults, "adults") + stepper("k", P.kids.length, "children");
       planBox.innerHTML = hd + '<p style="margin-top:12px"><a class="link" href="' + url("pick") + '">' + h("pick_more") + "</a></p>";
-      D.querySelector("[data-plan-cta]").innerHTML = '<a class="btn pri full" href="' + url("pay") + '" data-cta="plan-topup" data-test="plan-topup">' + h("topup") + "</a>";
+      D.querySelector("[data-plan-cta]").innerHTML = '<a class="btn pri full" href="' + url("pay") + '" data-vp-cta="primary" data-cta="plan-topup" data-test="plan-topup">' + h("topup") + "</a>";
       C.log("plan_view", { items: 0, sum_shown: "нет" }); return;
     }
     hd += '<p class="lead" data-test="plan-summary"><b>' + (hidePrices ? h("prices_hidden") : h("plan_sum", { n: l.length, x: amd(X), p: VP.period })) + "</b> " + unc() + "</p><p class=\"src\">" + h("per_one") + "</p>";
@@ -405,8 +405,8 @@
       if (CO.errors.length) hd += '<p class="state-msg">' + h("need_adult") + "</p>";
     }
     planBox.innerHTML = hd;
-    var unlLink = CO && chosen === "mixed" && !hidePrices ? '<a class="btn full" style="margin-top:8px" href="' + url("unlimited", "#buy") + '" data-plan-unl>' + h("co_unl_btn", { n: CO.offers.filter(function (o) { return o.id === "mixed"; })[0].passes.length }) + "</a>" : "";
-    D.querySelector("[data-plan-cta]").innerHTML = (hidePrices || !X ? '<a class="btn pri full" href="' + url("pay") + '" data-cta="plan-topup" data-test="plan-topup">' + h("topup") + "</a>" : '<a class="btn pri full" href="' + url("pay", "?amount=" + X + "&for=plan") + '" data-test="plan-topup" data-plan-topup="' + X + '">' + h("topup_x", { x: amd(X) }) + "</a>") + unlLink;
+    var unlLink = CO && chosen === "mixed" && !hidePrices ? '<a class="btn full" style="margin-top:8px" href="' + url("unlimited", "#buy") + '" data-vp-cta="secondary" data-plan-unl>' + h("co_unl_btn", { n: CO.offers.filter(function (o) { return o.id === "mixed"; })[0].passes.length }) + "</a>" : "";
+    D.querySelector("[data-plan-cta]").innerHTML = (hidePrices || !X ? '<a class="btn pri full" href="' + url("pay") + '" data-vp-cta="primary" data-cta="plan-topup" data-test="plan-topup">' + h("topup") + "</a>" : '<a class="btn pri full" href="' + url("pay", "?amount=" + X + "&for=plan") + '" data-test="plan-topup" data-vp-cta="primary" data-plan-topup="' + X + '">' + h("topup_x", { x: amd(X) }) + "</a>") + unlLink;
     C.log("plan_view", { items: l.length, sum_shown: hidePrices ? "нет" : "да" });
   }
   if (SCR === "SCR-42") {

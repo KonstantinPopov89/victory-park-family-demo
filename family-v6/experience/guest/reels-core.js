@@ -25,12 +25,12 @@
   }
   function facts(input) {
     var ride = resolve(input), rule = rulesFor(ride), lines = [], cardLines = [];
-    var generated = !!(ride && typeof ride.photo === 'string' && ride.photo.indexOf('assets/demo-') === 0);
+    var generated = !!(ride && typeof ride.photo === 'string' && ride.photo.indexOf('/photos-r17/') >= 0);
     var result = {
       price: ride && hasPrice(ride.price) ? money(ride.price) + ' за человека за одно катание' : 'Стоимость уточняется',
       lines: lines,
       cardLines: cardLines,
-      source: generated ? 'Сгенерированная иллюстрация' : ride && ride.photo ? 'Фото парка' : 'Изображение не указано',
+      source: ride && ride.photo ? 'Изображение для демо · ИИ' : 'Изображение не указано',
       disclaimer: ride && ride.fictional
         ? 'Учебные цены и условия. Лайк не подтверждает допуск; настоящие правила уточните у парка.'
         : 'Действующие условия, стоимость и работу аттракциона уточните у парка. Лайк не подтверждает допуск.'

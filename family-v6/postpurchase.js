@@ -100,15 +100,15 @@
     return `<section class="vp-postpurchase" data-i18n-skip data-vp-receipt="${esc(encodeURIComponent(JSON.stringify(model)))}">
       ${items.length > 1 ? `<label class="pp-selector">${esc(t('choose'))} <span>${items.length}</span><select data-pp-select aria-label="${esc(t('choose'))}">${items.map((x,i) => `<option value="${i}">${i+1}. ${esc(tr(x.title))}${x.recipient ? ' · '+esc(tr(x.recipient)) : ''}</option>`).join('')}</select></label>` : ''}
       <div class="pp-layout"><div data-pp-card>${card(first)}</div><div class="pp-tools">
-      <button class="pp-primary" type="button" data-pp-action="save">${esc(t(receiptOnly ? 'saveReceipt' : 'save'))}</button>
+      <button class="pp-primary" data-vp-cta="primary" type="button" data-pp-action="save">${esc(t(receiptOnly ? 'saveReceipt' : 'save'))}</button>
       <p class="pp-hint">${esc(t('saveHint'))}</p>
       <p class="pp-status" data-pp-file-status role="status"></p>
       <details class="pp-wallet"><summary>${esc(t('wallet'))}</summary><p class="pp-hint">${esc(t('walletNote'))}</p>
-        <button type="button" data-pp-action="apple">${esc(t('apple'))}</button><button type="button" data-pp-action="google">${esc(t('google'))}</button></details>
+        <button type="button" data-vp-cta="secondary" data-pp-action="apple">${esc(t('apple'))}</button><button type="button" data-vp-cta="secondary" data-pp-action="google">${esc(t('google'))}</button></details>
       <details class="pp-send"><summary>${esc(t('send'))}</summary>
         <form data-pp-form novalidate><label>${esc(t('contact'))}<input data-pp-contact name="contact" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="254" placeholder="${esc(t('placeholder'))}"></label>
         <p class="pp-hint">${esc(t('contactHint'))}</p><p class="pp-hint">${esc(t('optional'))}</p>
-        <button type="submit" class="pp-secondary">${esc(t('sendDemo'))}</button><p class="pp-status" data-pp-send-status role="status"></p></form>
+        <button type="submit" class="pp-secondary" data-vp-cta="secondary">${esc(t('sendDemo'))}</button><p class="pp-status" data-pp-send-status role="status"></p></form>
         <details class="pp-demo-options" data-review-only><summary>${esc(t('demoControls'))}</summary><label><input type="checkbox" data-pp-failure> ${esc(t('simulate'))}</label></details>
       </details>
       <details class="pp-code"><summary>${esc(t('code'))}</summary><code data-pp-manual>${esc(first.code)}</code><button type="button" data-pp-action="copy">${esc(t('copy'))}</button><p class="pp-status" data-pp-copy-status role="status"></p></details>

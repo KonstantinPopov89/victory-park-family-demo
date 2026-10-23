@@ -138,7 +138,7 @@
       if(unfinished(previous)){
         var notice=f.querySelector('[data-pending-order]');if(!notice){notice=D.createElement('p');notice.setAttribute('data-pending-order','');notice.setAttribute('role','status');f.appendChild(notice);}
         notice.textContent=literal('Предыдущая операция ещё проверяется. Откройте её результат, не оплачивайте повторно.','The previous operation is still being checked. Open its result; do not pay again.','Նախորդ գործարքը դեռ ստուգվում է։ Բացեք արդյունքը, կրկին մի վճարեք։');
-        var link=D.createElement('a');link.textContent=literal('Проверить заказ','Check order','Ստուգել պատվերը');var pendingUrl=new URL(R+L+'/pay/result/index.html',location.href);pendingUrl.searchParams.set('order',previous.id);if(q.get('review')==='1')pendingUrl.searchParams.set('review','1');link.href=pendingUrl.href;notice.appendChild(link);return;
+        var link=D.createElement('a');link.dataset.vpCta='primary';link.textContent=literal('Проверить заказ','Check order','Ստուգել պատվերը');var pendingUrl=new URL(R+L+'/pay/result/index.html',location.href);pendingUrl.searchParams.set('order',previous.id);if(q.get('review')==='1')pendingUrl.searchParams.set('review','1');link.href=pendingUrl.href;notice.appendChild(link);return;
       }
       var x = total(), id = "VP" + Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase();
       var o = { id: id, amount: x, last4: card ? card.value.slice(-4) : "", product: product, qty: qty, lang: L, utm: C.utm(), ts: new Date().toISOString() };

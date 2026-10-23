@@ -12,9 +12,9 @@
     ['water-swan', 'Плавающий лебедь'], ['wheel-of-happiness', 'Колесо счастья'], ['autodrom', 'Автодром'],
     ['mars-ride', 'Полет на Марс'], ['planet', 'Планета'], ['moto-ufo', 'Мощный НЛО'], ['pendulum', 'Метроном'],
     ['rotating-tower', 'Вращающаяся башня'], ['rocket', 'Космический корабль'], ['VR-cinema', 'Виртуальная реальность'], ['VR-for-2', 'Виртуальное путешествие']
-  ].map(function (x) { return { id: x[0], name: x[1], photo: 'assets/' + x[0] + '.webp', price: null, intensity: null, ageRange: null, ageBasis: null, rules: null, operation: 'unknown', fictional: false }; }));
+  ].map(function (x) { return { id: x[0], name: x[1], photo: '/victory-park-family-demo/family-v6/assets/photos-r17/' + {"wheel-of-happiness":"koleso","autodrom":"autodrom","pendulum":"pendulum","rotating-tower":"bashnya","planet":"planeta","moto-ufo":"moto","rocket":"raketa","mars-ride":"mars","water-swan":"vodnye-lebedi","VR-cinema":"vr-cinema","VR-for-2":"vr-2"}[x[0]] + '-780.webp', photoProvenance: 'ai-generated-demo', price: null, intensity: null, ageRange: null, ageBasis: null, rules: null, operation: 'unknown', fictional: false }; }));
   function demo(id, name, price, intensity, ages, symbol, min, max, soloMin) {
-    return { id: id, name: name, price: price, photo: null, intensity: intensity, ageRange: ages,
+    return { id: id, name: name, price: price, photo: '/victory-park-family-demo/family-v6/assets/photos-r17/' + {"demo-calm":"poezd","demo-thrill":"gorki","demo-together":"teacups","demo-small":"carousel","demo-unknown":"cep"}[id] + '-780.webp', photoProvenance: 'ai-generated-demo', intensity: intensity, ageRange: ages,
       ageBasis: ages ? 'Учебная редакционная подсказка, не правило допуска и не описание реального парка.' : null,
       symbol: symbol, rules: min === null ? null : { min: min, max: max, soloMin: soloMin, companionMin: 140, companionMax: 210, companionRatio: 1 }, operation: 'open', fictional: true };
   }
