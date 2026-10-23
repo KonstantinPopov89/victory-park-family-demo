@@ -1,0 +1,91 @@
+/* Functional consolidation in the existing v5 visual system. */
+.unified-page{max-width:1120px;margin-inline:auto}
+.unified-page h1{max-width:22ch;margin:0 0 20px;font-size:clamp(32px,4vw,54px);line-height:1.1}
+.unified-page h2{margin:0 0 12px;font-size:clamp(26px,3vw,34px);line-height:1.2}
+.unified-demo-note{max-width:75ch;margin:0 0 24px;padding:14px 0;border-block:1px solid #dddbeb;color:#2f2e7d;font-size:14px;line-height:1.6}
+.unified-lead{max-width:70ch;margin:20px 0 28px;line-height:1.65}
+.unified-columns{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:48px;align-items:start}
+.unified-columns>*{min-width:0}
+.unified-form{max-width:620px;margin:0;padding:0;background:transparent;border:0}
+.unified-form .field{margin-block:20px}
+.unified-form :is(input,select){max-width:100%;font-size:16px}
+.unified-form .summary{margin-block:20px;overflow-wrap:anywhere}
+.unified-form :is(.consent,.missing){font-size:14px;line-height:1.6}
+.unified-form .consent{margin-block:20px}
+.unified-form .btn{white-space:normal;min-height:48px}
+.unified-form .amounts{display:flex;flex-wrap:wrap;gap:8px}
+.unified-form .amounts>*{flex:1 1 112px;min-width:0;max-width:100%}
+.unified-form .amounts .other{flex-basis:100%;font-size:16px}
+.unified-form .stepper{flex-wrap:wrap}
+.unified-form .stepper button{min-width:48px;min-height:48px}
+.unified-help{padding-block:20px;border-block:1px solid #dddbeb;line-height:1.65}
+.unified-section{margin-block:36px;max-width:75ch}
+.unified-section p{line-height:1.65}
+.unified-options{list-style:none;margin:24px 0 36px;padding:0;display:grid;grid-template-columns:1fr 1fr;column-gap:40px}
+.unified-options li{border-bottom:1px solid #dddbeb;min-width:0}
+.unified-options a{display:flex!important;min-height:72px;align-items:center;padding:16px 0;color:#2f2e7d;font-weight:600;line-height:1.5;text-underline-offset:4px}
+.unified-related{display:flex;flex-wrap:wrap;gap:16px 28px;margin-top:36px;padding-top:20px;border-top:1px solid #dddbeb}
+.unified-related a{min-height:44px;display:inline-flex;align-items:center;color:#2f2e7d}
+.unified-included{columns:2;column-gap:36px;padding-inline-start:20px}
+.unified-included li{break-inside:avoid;padding-block:4px}
+.unified-payment{min-width:0;max-width:760px}
+.unified-payment .wrap{padding-inline:0!important;max-width:100%}
+.unified-payment .paybox{margin:24px 0;max-width:620px;width:100%;padding:0}
+.unified-payment .paybar{display:none}
+.unified-payment .payfoot{padding:20px 0;text-align:start}
+.unified-payment .langs{justify-content:flex-start!important;flex-wrap:wrap}
+.unified-payment .langs a{min-height:44px;min-width:72px}
+.unified-payment .summary{overflow-wrap:anywhere}
+.unified-payment :is(.btn,input){font-size:16px;white-space:normal}
+.unified-payment [data-postpurchase-b]{margin-block:24px}
+.unified-deck-grid{display:flex;flex:1;min-height:0;min-width:0}
+.unified-deck-grid>[data-deck]{min-width:0;width:100%}
+.unified-list-preview{display:none}
+body[data-unified-demo] :is(a,button,input,select,summary):focus-visible{outline:3px solid #2f2e7d;outline-offset:3px}
+body[data-unified-demo] ::selection{background:#ffd400;color:#2f2e7d}
+@media(min-width:1100px){
+ .unified-deck-grid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:24px;padding-inline-end:24px}
+ .unified-list-preview{display:flex;flex-direction:column;min-height:0;max-height:100%;padding:16px 0 24px;border-inline-start:1px solid #dddbeb;padding-inline-start:24px}
+ .unified-list-preview h2{font-size:28px;margin:0 0 16px}
+ .unified-list-preview ul{list-style:none;display:grid;align-content:start;gap:14px;min-height:0;overflow-y:auto;scrollbar-color:#bfb9d5 #fffdf5;margin:0 0 20px;padding:0;flex:1}
+ .unified-list-preview li{display:flex;gap:12px;align-items:center;min-width:0}
+ .unified-list-preview li img{width:72px;height:54px;object-fit:cover;flex:none;border-radius:4px}
+ .unified-list-preview li a{min-width:0;line-height:1.5;color:#2f2e7d;overflow-wrap:anywhere}
+ .unified-list-preview .unified-list-empty{font-size:14px;line-height:1.65;align-items:start}
+ .unified-list-preview>.btn{flex:none;min-height:48px}
+ body[data-vp-picker=deck] .unified-deck-grid .card .tx{padding:24px;gap:12px}
+ body[data-vp-picker=deck] .unified-deck-grid .card h2.disp{font-size:36px}
+}
+@media(max-width:760px){
+ .unified-columns{grid-template-columns:1fr;gap:28px}
+ .unified-options{grid-template-columns:1fr;gap:0}
+ .unified-options a{min-height:64px}
+ .unified-included{columns:1}
+ .unified-related{gap:8px 20px}
+ .unified-page .unified-payment .langs{padding-inline:0!important}
+}
+@media(max-height:600px){
+ .unified-deck-grid{min-height:420px}
+ .unified-list-preview{max-height:420px}
+}
+@media(prefers-reduced-motion:reduce){.unified-page *{scroll-behavior:auto}}
+
+.unified-receipt{margin-block:28px;border-block:1px solid #dddbeb;padding-block:14px}
+.unified-receipt summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;font-weight:600}
+.unified-receipt-details{margin:16px 0 24px}
+.unified-receipt-details>div{display:grid;grid-template-columns:minmax(80px,.45fr) minmax(0,1fr);gap:12px;padding-block:8px;border-bottom:1px solid #eae8f2;font-size:14px}
+.unified-receipt-details dt{font-weight:600}
+.unified-receipt-details dd{margin:0;overflow-wrap:anywhere}
+/* The footer and consent must not compress the ride into an unreadable strip. */
+body[data-unified-demo][data-vp-picker=deck]{height:auto;min-height:100dvh;overflow-y:auto}
+body[data-unified-demo][data-vp-picker=deck] main{flex:none}
+body[data-unified-demo][data-vp-picker=deck] .unified-deck-grid{flex:none;height:clamp(440px,calc(100dvh - 220px),680px);min-height:440px;margin-bottom:28px}
+body[data-unified-demo][data-vp-picker=deck] .unified-deck-grid>[data-deck]{height:100%;min-height:0}
+html:not([data-review="1"]) body[data-unified-demo][data-vp-picker=deck] .card .photo-note:has(.unc){display:none}
+@media(max-width:800px){
+ body[data-unified-demo][data-vp-picker=deck] .unified-deck-grid{height:640px;min-height:640px}
+ body[data-unified-demo][data-vp-picker=deck] .card{grid-template-rows:180px 1fr}
+ body[data-unified-demo][data-vp-picker=deck] .card>img{height:180px;min-height:180px;max-height:180px}
+ body[data-unified-demo][data-vp-picker=deck] .card .tx{gap:8px}
+}
+.unified-form .summary:empty{display:none}

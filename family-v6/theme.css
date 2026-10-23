@@ -1,0 +1,41 @@
+/* Shared visual finish. Existing product engines and their state stay authoritative. */
+
+:root{--paper:#fffdf5;--soft:#f1edfa;--line:#d8d4e3;--cobalt:#2f2e7d;--ink:#2f2e7d;--radius:12px;--control-radius:8px}
+body[data-vp-theme]{background:#fffdf5;color:#2f2e7d}body[data-vp-theme]::selection{background:#ffd400;color:#2f2e7d}
+html:has(body[data-vp-theme]){scrollbar-color:#2f2e7d #fffdf5}
+body[data-vp-theme] :where(a,button,input,select,summary):focus-visible{outline:3px solid #d80b8c;outline-offset:4px}
+body[data-vp-theme] :where(input,select,textarea){caret-color:#d80b8c}
+body[data-vp-theme] h1,body[data-vp-theme] .disp{font-family:VPFinishDisplay,Arial,sans-serif;letter-spacing:-.015em}
+body[data-vp-theme=a] .vp-header{background:#fffdf5}body[data-vp-theme=a] .vp-nav-wrap{max-width:1280px}
+body[data-vp-theme=a] .vp-primary{border-radius:8px}body[data-vp-theme=a] .vp-demo-bar{font-size:12px}
+body[data-vp-theme=a] .quick-demo-bar{font-size:12px;padding-block:8px;background:#eee9f8;color:#2f2e7d}
+body[data-vp-theme=a] .quick-header{min-height:90px;border-bottom:1px solid #d8d4e3;margin-bottom:28px}
+body[data-vp-theme=a] .quick-logo img{width:88px;height:62px}
+body[data-vp-theme=a] .quick-back{font-size:14px}
+body[data-vp-theme=a] .quick-flow>h1{font-family:VPFinishDisplay,Arial,sans-serif;text-transform:uppercase;font-size:48px;margin:22px 0}
+body[data-vp-theme=a] .checkout-switch{border:0;background:#eee9f8;border-radius:9px;padding:5px}
+body[data-vp-theme=a] .checkout-switch a[aria-current=page]{background:white;color:#2f2e7d;box-shadow:0 2px 7px #2f2e7d13}
+body[data-vp-theme=a] .quick-tabs{gap:0;border-bottom:1px solid #bfb9d5;margin:20px 0 28px}
+body[data-vp-theme=a] .quick-tab{background:transparent;border:0;border-radius:0;border-bottom:3px solid transparent;min-height:54px;box-shadow:none}
+body[data-vp-theme=a] .quick-tab[aria-pressed=true]{color:#2f2e7d;background:transparent;border-bottom-color:#d80b8c;box-shadow:none}
+body[data-vp-theme=a] .quick-layout{gap:50px}
+body[data-vp-theme=a] .quick-product-heading{margin-bottom:22px}
+body[data-vp-theme=a] .quick-product-heading strong{font-size:24px}
+body[data-vp-theme=a] .quick-product-heading small{font-size:13px}
+body[data-vp-theme=a] .quick-product h2{font-size:23px;line-height:1.3}
+body[data-vp-theme=a] .quick-product .quantity-choice{margin:24px 0}
+body[data-vp-theme=a] .quantity-pill,body[data-vp-theme=a] .package-size{border-radius:8px;min-height:50px}
+body[data-vp-theme=a] .quick-order{border-radius:12px;padding:26px;border-color:#cbc4dc;box-shadow:0 12px 36px #2f2e7d06}
+body[data-vp-theme=a] .quick-order-heading h2{font-family:VPFinishDisplay,Arial,sans-serif;font-size:32px}
+body[data-vp-theme=a] .btn-primary{background:#2f2e7d;color:white;border-radius:8px}
+body[data-vp-theme=a] .quick-desktop-action>.btn{min-height:56px;background:#ffd400;color:#2f2e7d;border:0;font-weight:600}
+body[data-vp-theme=a] .quick-context{margin-top:38px;padding-top:20px;border-top:1px solid #d8d4e3}
+body[data-vp-theme=a] .quick-footer{padding-bottom:30px}
+body[data-vp-theme=a] .catalog-grid .ride-card{border-radius:10px;box-shadow:none}
+body[data-vp-theme=a] .v3-hero h1{font-size:clamp(48px,6vw,80px)}
+body[data-vp-theme=b] .hd,body[data-vp-theme=b] header{background:#fffdf5}
+body[data-vp-theme=b] .btn{border-radius:8px}body[data-vp-theme=b] .blk.alt{background:#f1edfa}
+body[data-vp-theme=b] .bar{background:#fffdf5}body[data-vp-theme=b] .wrap{max-width:1280px}
+body[data-vp-theme=b] .unc{font-size:13px;line-height:1.5}
+@media(max-width:700px){body[data-vp-theme=a] .quick-header{min-height:72px;margin-bottom:14px}body[data-vp-theme=a] .quick-logo img{width:68px;height:48px}body[data-vp-theme=a] .quick-back{font-size:12px}body[data-vp-theme=a] .quick-tabs{margin:16px 0 22px}body[data-vp-theme=a] .quick-tab{min-height:48px}body[data-vp-theme=a] .quick-layout{gap:28px}body[data-vp-theme=a] .quick-order{padding:20px}body[data-vp-theme=a] .quick-product h2{font-size:20px}body[data-vp-theme=a] .quick-product-heading strong{font-size:20px}body[data-vp-theme=a] .checkout-dock{background:#fffdf5;box-shadow:0 -6px 22px #2f2e7d0a}body[data-vp-theme=a] .checkout-dock .btn{background:#ffd400;color:#2f2e7d;min-height:50px;border:0}body[data-vp-theme=a] .quick-demo-bar{font-size:11px}}
+@media(prefers-reduced-motion:reduce){body[data-vp-theme] *,body[data-vp-theme] *::before,body[data-vp-theme] *::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}

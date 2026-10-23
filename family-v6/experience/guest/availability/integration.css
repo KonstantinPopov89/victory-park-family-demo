@@ -1,0 +1,13 @@
+/* Shared family-v3 frame around the isolated availability demonstration. */
+body[data-page]>.shell{padding-top:16px}
+.vp-about-inline{max-width:760px;margin:24px auto;padding:20px;color:#2f2e7d;background:#fff;font-size:13px}
+.vp-about-inline>summary{cursor:pointer;font-weight:600;min-height:44px;padding:10px 0}
+.vp-about-inline h2{font-size:22px;margin:8px 0}
+.vp-about-inline p{margin:12px 0;max-width:65ch}
+.availability-demo-links{display:flex;flex-wrap:wrap;gap:8px 20px;margin-top:12px;font-size:12px}
+.availability-demo-links a,.availability-context-link{display:inline-flex;align-items:center;min-height:44px}
+.availability-context-link{font-size:12px;margin-top:8px}
+.vp-footer{margin-top:40px;padding-bottom:40px}
+@media(max-width:1040px){.vp-desktop-nav{gap:16px}.vp-nav-wrap{gap:16px;padding-inline:20px}}
+@media(max-width:900px){.vp-desktop-nav{display:none}.vp-menu-toggle{display:flex}.vp-primary{margin-left:auto}}
+@media(max-width:480px){body[data-page]>.shell{padding-top:10px}.vp-about-inline{margin:16px 0}.vp-primary{padding-inline:12px}}

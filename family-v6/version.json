@@ -1,0 +1,14 @@
+{
+  "version": 5,
+  "name": "Victory Park",
+  "languages": [
+    "ru",
+    "hy",
+    "en"
+  ],
+  "demo": true,
+  "payments": "simulated",
+  "prototype": "family-v5",
+  "revision": 10,
+  "published": false
+}

@@ -1,0 +1,225 @@
+/* A smaller family flow, using the first prototype's brand and layout. */
+.v3-hero { padding-block:24px; gap:24px; }
+.v3-hero h1 { font-size:clamp(44px,7vw,78px); }
+.v3-hero .hero-photo img { height:210px; }
+.v3-hero .hero-copy > p:not(.eyebrow) { margin-top:14px; }
+.v3-hero .hero-copy > .btn { margin-top:14px; }
+.family-panel { margin-block:12px 24px; padding:16px; }
+.family-panel > summary { gap:10px; line-height:1.5; font-size:14px; }
+.family-panel > summary::after { display:none; }
+.family-edit { flex:none; font-size:12px; text-decoration:underline; }
+.family-intro { font-size:13px; max-width:75ch; }
+.party { gap:10px; }
+.person { padding:12px; }
+.person-head { margin-bottom:6px; gap:8px; }
+.person-head .remove-person { width:44px; padding:0; font-size:24px; text-decoration:none; }
+.age-inline { display:flex; gap:8px; align-items:center; font-size:13px; }
+.age-inline label { flex:1; }
+.age-inline input { width:88px!important; flex:none; }
+.age-inline > span { flex:none; }
+.person .field-error:empty { display:none; }
+.person .field-error { display:block; margin-top:6px; }
+.family-panel .btn-row { gap:8px; }
+.family-panel .btn-row .btn { flex:1; }
+.group-title { display:flex; align-items:center; gap:12px; font-size:21px; margin-bottom:16px; }
+.group-title > span { font:600 12px Montserrat,sans-serif; border-radius:50%; width:27px; height:27px; display:grid;place-items:center;background:var(--soft); }
+.catalog-group + .catalog-group { margin-top:32px; }
+.catalog-groups { min-width:0; }
+.age-hint { min-height:40px; }
+.ride-body { gap:10px; }
+.ride-actions > .btn { width:100%; }
+.ride-details { border-top:1px solid var(--line); margin-top:2px; padding-top:2px; font-size:12px; }
+.ride-details p { font-size:12px; margin-bottom:8px; }
+.height-row { margin-block:12px; }
+.height-row > label { font-weight:600; }
+.height-input { display:flex;align-items:center;gap:8px;margin-block:6px; }
+.height-input input { max-width:130px; }
+.person-filter > summary { font-weight:400!important;min-height:44px; }
+.person-filter .chips { margin-top:0; }
+.person-filter { width:auto;min-width:86px; }
+.plan-panel > h2 { display:flex;justify-content:space-between;align-items:center; }
+.plan-count { font:600 14px Montserrat,sans-serif; padding:7px 12px;background:var(--soft);border-radius:99px; }
+.compact-plan-item { display:flex;gap:10px;align-items:flex-start; }
+.compact-plan-item > img { width:54px;height:48px;object-fit:cover;border-radius:6px;flex:none; }
+.compact-plan-item > div { flex:1;min-width:0; }
+.compact-plan-item .btn { padding:0;width:44px;height:44px;flex:none;font-size:24px;text-decoration:none; }
+.compact-plan-item a { display:inline-flex;min-height:44px;align-items:center;font-size:12px; }
+.plan-symbol { width:38px;height:38px;display:grid;place-items:center;background:var(--soft);border-radius:50%;flex:none; }
+.empty-list { padding-block:18px; }
+.plan-panel > .btn { width:100%; }
+.undo-banner { margin-block:12px;padding:10px 12px;background:var(--soft);font-size:12px;border-radius:8px; }
+.undo-banner .btn { min-height:44px;padding:6px; }
+.demo-tools { padding:16px 20px;margin-block:32px;border-top:1px solid var(--line);font-size:12px; }
+.demo-tools > summary { color:var(--muted); }
+.rider-section { padding:22px;background:var(--yellow);border-radius:16px;border:1px solid #cdae16; }
+.rider-section h2 { font-size:38px;margin-bottom:10px; }
+.rider-section > p { font-size:13px;max-width:74ch; }
+.rider-choices { display:grid;grid-template-columns:1fr;gap:10px;margin-block:16px; }
+.rider-choice { display:flex;align-items:center;gap:12px;width:100%;min-height:64px;padding:12px;background:white;border:1px solid #c4c0d7;border-radius:10px;text-align:left;font-size:13px;font-weight:600; }
+.rider-choice > span:not(.avatar) { min-width:0; }
+.rider-choice small { display:block;font-size:11px;font-weight:400; }
+.rider-choice[aria-pressed=true] { border:2px solid var(--cobalt);padding:11px;background:#f1effc; }
+.rider-check { margin-left:auto;font-size:20px; }
+.saved-summary { font-size:12px;color:var(--muted);margin-block:18px; }
+.saved-summary a { display:inline-flex;min-height:44px;align-items:center; }
+.offer-rights { padding:12px;background:var(--soft);border-radius:8px;font-size:12px; }
+.offer-rights p + p { margin-top:6px; }
+.offer-exclusions { padding:10px 12px;border-left:3px solid #b88b15;background:var(--warning-bg);color:var(--warning-ink);font-size:12px!important; }
+.offer details { font-size:12px; }
+.offer details p + p { margin-top:8px; }
+.quantity-choice { margin-top:14px; }
+.quantity-label { display:block;font-size:12px;margin-bottom:7px; }
+.quantity-pills { display:flex;flex-wrap:wrap;gap:7px; }
+.quantity-pill { display:inline-flex;min-width:44px;min-height:44px;justify-content:center;align-items:center;background:white;border:1px solid #b9b7d0;border-radius:8px;padding:8px 11px;font-size:13px; }
+.quantity-pill[aria-pressed=true] { color:white;background:var(--cobalt);border-color:var(--cobalt); }
+.custom-quantity-form { margin-top:12px; }
+.custom-quantity-form label { display:block;font-size:12px;margin-bottom:6px; }
+.custom-quantity-form input { width:85px!important; }
+.inline-recipient { border-top:1px solid var(--line);padding-top:16px;margin-top:16px;display:grid;gap:10px; }
+.inline-recipient .field-error:empty { display:none; }
+.cart-line-price { display:flex;justify-content:space-between;align-items:center;gap:8px; }
+.cart-panel .order-terms p { font-size:12px; }
+.cart-panel .pay-button { margin-top:14px;width:100%; }
+.cart-panel .pay-button + .helper { margin-top:10px; }
+.technical-scenario { margin-top:24px;border-top:1px solid var(--line); }
+.technical-scenario summary { font-size:11px!important;font-weight:400!important;color:var(--muted); }
+.technical-scenario label { font-size:12px; }
+.receipt { margin-block:32px; }
+.receipt h1 { font-size:clamp(40px,6vw,64px);margin-block:16px; }
+.demo-ticket-grid { display:grid;gap:16px;margin-block:24px; }
+.demo-ticket { border:2px solid var(--cobalt);border-radius:14px;padding:18px;min-width:0;background:var(--paper); }
+.ticket-top { display:flex;gap:10px;justify-content:space-between;align-items:center;font-size:10px;margin-bottom:16px; }
+.ticket-code { font:12px/1.6 monospace;overflow-wrap:anywhere; }
+.ticket-demo { font-size:11px!important;font-weight:600; }
+.copy-section { margin-block:24px;padding-block:16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line); }
+.copy-section form { display:grid;gap:10px;margin-top:16px;max-width:430px; }
+.receipt-actions { margin-top:24px; }
+.vp-about-inline { width:min(1280px,calc(100% - 32px));margin:24px auto;padding:16px;border-top:1px solid var(--line);font-size:12px; }
+body[data-page] { padding-bottom:82px; }
+body.keyboard-open .mobile-bar { display:none; }
+@media(max-width:599px){
+ .v3-hero { grid-template-columns:minmax(0,1fr) 104px!important;gap:14px;padding-block:20px; }
+ .v3-hero h1 { font-size:37px;line-height:1.03; }
+ .v3-hero .eyebrow { font-size:9px;margin-bottom:9px;letter-spacing:.06em; }
+ .v3-hero .hero-photo img { height:158px;border-radius:40px 8px 40px 8px; }
+ .v3-hero .hero-photo figcaption { font-size:9px;line-height:1.3; }
+ .v3-hero .hero-copy > p:not(.eyebrow) { font-size:12px;line-height:1.5; }
+ .v3-hero .hero-copy > .btn { font-size:11px;padding:5px 0;margin:5px 0 0; }
+ .family-panel .party { grid-template-columns:1fr; }
+ .family-panel > summary { align-items:flex-start; }
+ .family-panel .btn-row .btn { font-size:12px;padding-inline:10px; }
+ .content-layout,.buy-layout { gap:20px; }
+ .rider-section { padding:16px; }
+ .rider-section h2 { font-size:34px; }
+ .plan-panel,.cart-panel { padding:18px; }
+ .offer { gap:12px; }
+ .section-head h2 { font-size:38px; }
+ .product-tabs .chip { flex:1;padding-inline:10px; }
+ .mobile-bar { padding-block:10px calc(10px + env(safe-area-inset-bottom)); }
+ .receipt { padding:18px; }
+}
+@media(max-width:359px){.v3-hero { grid-template-columns:minmax(0,1fr) 82px!important;gap:10px; }.v3-hero h1{font-size:33px}.v3-hero .hero-photo img{height:142px}.family-edit{font-size:11px}.family-panel{padding:13px}.family-panel .btn-row .btn{font-size:11px;padding-inline:8px}.rider-section{padding:14px}.quantity-pills{gap:5px}.quantity-pill{padding-inline:9px}}
+@media(min-width:600px){.rider-choices{grid-template-columns:repeat(2,minmax(0,1fr))}.demo-ticket-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.v3-hero .hero-photo img{height:230px}.family-panel{padding:20px}}
+@media(min-width:1000px){body[data-page]{padding-bottom:0}.v3-hero{padding-block:30px;gap:48px}.v3-hero .hero-photo img{height:260px}.party{grid-template-columns:repeat(4,minmax(0,1fr))}.family-panel .btn-row{max-width:460px}.person-head h3{font-size:12px}.person-head{gap:5px}.person-head .avatar{width:27px;height:27px}.rider-choices{grid-template-columns:repeat(4,minmax(0,1fr))}.rider-choice{gap:8px}.rider-choice .avatar{width:28px;height:28px}.plan-panel,.cart-panel{max-height:none;position:sticky;top:24px}.offers{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Exact child ages in one compact, inline panel. Adult is a category. */
+.age-summary {display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;width:100%;padding:8px 10px;border:1px solid #b9b7d0;border-radius:8px;background:white;text-align:left;font-size:13px;}
+.age-summary > span:last-child {font-size:11px;text-decoration:underline;}
+.age-summary[aria-expanded=true] {background:var(--soft);}
+.adult-age {display:flex;align-items:center;justify-content:space-between;min-height:44px;font-size:13px;}
+.adult-age strong {font-size:16px;}
+.age-panel {margin-top:8px;}
+.age-grid {display:grid;grid-template-columns:repeat(5,minmax(44px,1fr));gap:4px;}
+.age-choice {display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:4px;border:1px solid #b9b7d0;border-radius:7px;background:white;font-size:14px;line-height:1.25;}
+.age-choice[data-value="0"] {font-size:11px;}
+.age-choice[aria-pressed=true] {color:white;background:var(--cobalt);border-color:var(--cobalt);}
+.age-unknown {grid-column:span 2;font-size:12px;}
+.direct-entry-head {margin-top:14px;}
+.direct-entry-layout {margin-top:0;}
+.direct-entry-layout .direct-products {margin-top:0;}
+.direct-entry-layout .section-head {margin-top:14px;}
+.direct-entry-layout .section-head h1,.direct-entry-layout .section-head h2 {font-size:clamp(34px,5vw,46px);}
+@media(min-width:600px){.party {grid-template-columns:repeat(auto-fit,minmax(240px,1fr));}}
+
+body.family-editing .mobile-bar {display:none;}
+.person {scroll-margin-block:24px 110px;}
+.ride-visual {margin:0;}
+.generated-label {font-size:10px!important;line-height:1.45;color:var(--muted);padding:8px 12px;}
+.product .generated-label {padding:0;margin-top:10px;}
+.product-intro {display:flex;gap:14px;align-items:center;}
+.product-intro > img {width:88px;height:88px;object-fit:cover;border-radius:10px;flex:none;}
+.product-intro > div {min-width:0;}
+.product-intro h3 {font-size:18px;}
+.product-intro .offer-price {font-size:23px;margin-block:10px 0;}
+@media(min-width:600px){.product-intro > img {width:104px;height:104px;}}
+
+.person-head .adult-age {display:inline-flex;flex:none;min-height:28px;padding:3px 6px;border-radius:6px;background:var(--soft);}
+.person-head .adult-age strong {font-size:12px;}
+.person:has(.adult-age) .person-head {margin-bottom:0;}
+
+/* The same basket follows the visitor from family planning to promotions. */
+.saved-context{margin:12px 0 24px;font-size:13px;line-height:1.65}.saved-context p{margin:6px 0}.saved-context a{display:inline-flex;align-items:center;min-height:44px}
+.cart-promotion{border-top:1px solid var(--line,#ddd);padding-top:20px;margin-top:20px}.cart-promotion h3{font-size:18px;margin-bottom:14px}.cart-promotion label{display:block;font-size:13px;line-height:1.6;margin-bottom:8px}.cart-promotion select,.cart-promotion input[type=date]{font:inherit;font-size:16px;width:100%;min-height:48px;border:1px solid #9695ae;border-radius:10px;padding:10px;background:#fff;color:var(--ink,#2f2e7d);box-sizing:border-box}.cart-promotion .btn-text{white-space:normal;text-align:left}.promotion-date{margin:16px 0}.promotion-date .btn-row{margin-bottom:12px}.promotion-check{display:flex!important;align-items:flex-start;gap:10px;margin-top:16px}.promotion-check input{width:22px;height:22px;flex-shrink:0;margin-top:3px;accent-color:#2f2e7d}.price-breakdown{display:grid;grid-template-columns:1fr auto;gap:8px;font-size:13px;margin:20px 0}.receipt-lines{padding-left:20px;line-height:1.8}.cart-panel h2:focus{outline:none}.cart-panel :focus-visible{outline:3px solid #2f2e7d;outline-offset:3px}
+
+/* Accompaniment is visible information, never another checklist. */
+.companion-badge{display:flex;align-items:center;gap:8px;align-self:flex-start;max-width:100%;padding:8px 10px;background:var(--yellow);border:1px solid #cdae16;border-radius:8px;font-size:12px;line-height:1.4;color:var(--ink,#2f2e7d)}
+.companion-badge>span{display:grid;place-items:center;flex:none;width:30px;height:30px;border:1px solid currentColor;border-radius:50%;font-size:11px;font-weight:700}
+.companion-badge strong{min-width:0}
+.admission-note{font-size:12px!important;line-height:1.5;margin:0!important;color:var(--muted)}
+.product .companion-badge{margin-top:14px}
+.purchase-people{padding:16px;background:var(--soft);border:1px solid var(--line);border-radius:12px;margin:0 0 20px;scroll-margin-top:20px}
+.recipient-head h3{font-size:18px;margin-bottom:6px}
+.recipient-head .helper{margin:0}
+.purchase-people .chips{margin-block:14px}
+.recipient-choices .chip{min-height:48px;white-space:normal;text-align:left;line-height:1.5}
+.recipient-product-state{display:block;font-size:11px;margin-top:2px}
+.recipient-choices .chip:disabled{opacity:1;color:var(--ink,#2f2e7d);background:#e5e2fa;cursor:default}
+.purchase-people .btn-row{gap:8px}
+.purchase-people .btn-row .btn{font-size:12px;white-space:normal}
+.purchase-child-age{margin-top:12px;max-width:360px}
+.companion-controls{padding:14px;background:#f1effc;border:1px solid #c4c0d7;border-radius:10px;margin:14px 0 20px;scroll-margin-top:20px}
+.companion-controls h3{font-size:17px;line-height:1.4;margin-bottom:8px}
+.companion-controls p{font-size:13px;line-height:1.55}
+.companion-controls .chips{gap:6px;margin:12px 0 0}
+.companion-controls .chip{min-height:48px;white-space:normal;line-height:1.4;text-align:left}
+.context-fix{margin-top:14px;font-size:13px;scroll-margin-top:20px}
+.context-fix:first-child{margin-top:0}
+.context-fix .child-age{margin-top:8px}
+.context-fix .height-input input{font-size:16px;min-height:48px}
+.context-fix .btn{font-size:12px;white-space:normal;text-align:left}
+.is-companion-line{border-left:3px solid var(--cobalt);padding-left:12px}
+.auto-line-label{display:block;font-size:11px!important;font-weight:600;color:var(--cobalt);margin:6px 0}
+.accompaniment-note{font-size:12px!important;line-height:1.5;margin:12px 0;padding-left:10px;border-left:2px solid var(--line)}
+.line-recipient-fix{padding:12px;background:var(--soft);border-radius:8px;margin-top:12px}
+.line-recipient-fix .chips{gap:6px;margin:8px 0 0}
+.line-recipient-fix .chip{white-space:normal;min-height:44px}
+.offer-price small{display:block;font-size:12px;font-weight:400;line-height:1.5;margin-top:6px}
+.cart-line h3,.cart-line p,.offer-rights p{overflow-wrap:anywhere}
+@media(max-width:599px){.purchase-people{padding:14px}.purchase-people .btn-row .btn{flex:1;padding-inline:10px}.recipient-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.recipient-choices .chip{width:100%;padding:10px}.companion-controls .age-grid{grid-template-columns:repeat(4,minmax(44px,1fr))}.cart-panel .total{gap:10px}.cart-panel .total strong{font-size:23px}}
+
+/* Keep the next action close; review is a separate, compact page state. */
+body[data-page=tickets]{padding-bottom:110px}
+.riders-summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;background:var(--soft);border-radius:12px;font-size:13px}
+.riders-summary p{margin:4px 0 0}.riders-summary .btn{flex:none}
+.single-offer-heading{display:flex;gap:14px;align-items:center}.single-offer-heading img{width:76px;height:76px;object-fit:cover;border-radius:10px;flex:none}.single-offer-heading h3{margin-top:8px}
+.offer-people{font-weight:600}.offer-companion{font-size:12px!important;margin:0;color:var(--cobalt)}
+.single-offer .offer-price{margin:0}.single-offer .offer-exclusions{margin:0}.single-offers{grid-template-columns:1fr}.offer .btn{white-space:normal}
+.more-offers-title{margin:32px 0 16px;font-size:24px}.replacement-notice{font-size:12px!important;color:var(--ink);padding:10px;border:1px solid var(--line);border-radius:8px}
+.cart-preview{background:white;border:1px solid var(--line);border-radius:16px;padding:20px}.cart-preview h2{font-size:30px}.cart-preview p{font-size:13px;margin:12px 0}.cart-preview>.btn{width:100%}
+.review-page{max-width:680px;margin:0 auto;padding:10px 0 32px}.review-page>h1{font-size:36px;margin:8px 0 16px}.review-page>h1:focus{outline:none}.review-cart{position:static;max-height:none;padding:18px}
+.review-cart .undo-banner{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px;padding:0 8px;font-size:12px}
+.review-cart .companion-controls{margin:0 0 14px;padding:10px 12px}.review-cart .companion-controls:has(>p:only-child){padding:0;background:transparent;border:0}.review-cart .companion-controls p{margin:0}
+.cart-group{border-bottom:1px solid var(--line);padding:12px 0}.cart-group:first-of-type{padding-top:0}.cart-group h3{font-size:21px;margin:0 0 12px}.cart-person{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;font-size:13px;padding:7px 0}.cart-person>div{min-width:0}.cart-person strong{overflow-wrap:anywhere}.cart-person>strong{flex:none}.cart-person small{display:block;color:var(--muted);font-size:11px;line-height:1.5}.cart-person.is-companion-line{border:0;padding-left:0}.cart-edit{font-size:12px}.cart-edit>summary{min-height:44px;display:flex;align-items:center;text-decoration:underline;cursor:pointer}.cart-edit-person{padding:12px;background:var(--soft);margin-bottom:8px;border-radius:8px;font-size:12px}.cart-edit-person>.btn{margin-left:8px}
+.review-cart .optional-promotion{margin:4px 0}.review-cart .optional-promotion>summary,.review-cart .order-terms>summary{display:flex;align-items:center;min-height:44px;font-size:12px;cursor:pointer}.review-cart .total{margin:12px 0}.review-validity{font-size:12px;margin:0;line-height:1.5}.review-complete{font-size:12px;line-height:1.6;margin:8px 0;color:var(--muted)}
+.review-cart .demo-scenarios{margin-top:22px}.review-cart .notice{padding:10px;margin:6px 0;font-size:12px}
+.checkout-dock{gap:10px}.checkout-dock .btn{min-height:48px;white-space:normal;max-width:58%;line-height:1.3}.checkout-dock strong{font-size:16px;line-height:1.5}.checkout-dock small{font-size:10px;line-height:1.4}.checkout-dock>div{flex:1}
+.review-cart .total{padding-block:8px}
+@media(max-width:599px){body[data-page=tickets] .v3-hero{padding:12px 0 20px;grid-template-columns:1fr!important}body[data-page=tickets] .v3-hero .hero-photo,body[data-page=tickets] .v3-hero .eyebrow,body[data-page=tickets] .v3-hero .hero-copy>p{display:none}body[data-page=tickets] .v3-hero h1{font-size:34px}body[data-page=tickets] .v3-hero h1 br{display:none}body[data-page=tickets] .v3-hero h1 span:before{content:' '}.rider-section{padding:16px}.rider-section h2{font-size:29px}.rider-choices{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rider-choice{padding:10px;min-height:64px;gap:6px;font-size:12px}.rider-choice[aria-pressed=true]{padding:9px}.rider-choice .avatar{display:none}.offer{padding:18px;gap:12px}.offer-price{font-size:27px}.buy-layout{margin-top:16px}.review-cart{padding:14px}.review-page>h1{font-size:32px}.review-cart .pay-button{display:none}.review-cart .companion-controls h3{font-size:18px}.saved-summary{font-size:12px}.review-page>.btn{padding:6px 0}.single-offer-heading h3{font-size:23px}}
+@media(max-width:359px){.checkout-dock{padding-inline:12px}.checkout-dock strong{font-size:14px}.checkout-dock .btn{font-size:11px;padding-inline:10px}.rider-choice{font-size:11px}.review-page>h1{font-size:30px}.cart-person{font-size:12px}.single-offer-heading img{width:64px;height:64px}.single-offer-heading h3{font-size:22px}}
+@media(min-width:1000px){body[data-page=tickets]{padding-bottom:0}.cart-preview{position:sticky;top:24px}.single-offers{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Combined checkout: chosen contents precede optional alternatives. */
+.checkout-flow{max-width:1000px;margin:0 auto}.checkout-heading{margin:12px 0 20px}.checkout-heading h1{font-size:40px;margin:8px 0}.checkout-heading>p{font-size:13px}.checkout-flow>.review-cart{margin:20px 0 28px}.review-cart>h2{font-size:27px;margin-bottom:14px}.review-cart:focus{outline:2px solid var(--cobalt);outline-offset:4px}.purchase-options{margin-top:24px}.self-choice,.purchase-history{padding:16px 0;border-top:1px solid var(--line);margin:20px 0}.self-choice>summary,.purchase-history>summary,.purchase-help>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}.past-order{display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:12px 0}.past-order>span{min-width:0;overflow-wrap:anywhere;font-size:12px}.past-order small{display:block}.past-order .btn{flex:none}.receipt-actions{flex-wrap:wrap}.receipt-actions .btn{white-space:normal}.receipt-instruction{padding:14px;background:var(--soft);border-radius:10px}.purchase-help{margin-top:20px}.copy-section select{width:100%;min-height:44px;font-size:16px}.copy-section details{margin-top:20px}.review-cart .pay-button{display:inline-flex!important;width:100%;min-height:48px;justify-content:center;margin-top:12px}.review-validity{margin-top:8px}.cart-group .cart-person small{font-size:12px}.checkout-flow #cart{scroll-margin-top:16px}.review-page .cart-panel{width:100%}
+@media(max-width:599px){.checkout-heading h1{font-size:32px}.checkout-flow .rider-section{margin-top:12px}.checkout-flow>.review-cart{margin-top:16px}.checkout-flow .offers{grid-template-columns:1fr}.past-order{align-items:flex-start}.past-order .btn{font-size:11px;padding:10px}.checkout-dock .btn{font-size:12px}.review-cart .review-validity{font-size:12px}.receipt h1{overflow-wrap:anywhere}.copy-section input{font-size:16px}.receipt-actions>.btn{min-height:48px}.receipt .badge{overflow-wrap:anywhere;white-space:normal}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}}
