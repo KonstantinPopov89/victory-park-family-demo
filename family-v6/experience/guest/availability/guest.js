@@ -1,84 +1,37 @@
-/* Read-only guest presentation of the same validated local demonstration. */
+/* Read-only demonstration. Catalogue identity is shared; fixture statuses are never live. */
 (function(){
 'use strict';
-const M=window.Availability,$=id=>document.getElementById(id);
-if(!M)return;
-let state,problem='',filter='all',previous=null;
-const rows=new Map();
-function node(tag,text,cls){const n=document.createElement(tag);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;}
-function text(n,value){if(n.textContent!==value)n.textContent=value;}
-function read(initialize=false){
- try{
-  const raw=localStorage.getItem(M.KEY);
-  if(raw){const parsed=JSON.parse(raw);if(!M.validate(parsed))throw Error('schema');state=parsed;problem='';return;}
-  if(initialize){const s=M.presentationSeed();localStorage.setItem(M.KEY,JSON.stringify(s));state=s;problem='';return;}
-  problem='Учебные данные удалены. Работа объектов не подтверждена. В сценариях можно сбросить демонстрацию.';
- }catch(e){problem='Не удалось прочитать учебные данные. Работа объектов не подтверждена. В сценариях можно сбросить демонстрацию.';}
- state=M.presentationSeed(Date.now(),true);
-}
-function buildRows(){M.RIDES.forEach((r,index)=>{
- const li=node('li',undefined,'guest-ride');li.id=r.id;
- const details=node('details');details.id='details-'+r.id;
- const summary=node('summary');summary.id='ride-summary-'+r.id;summary.setAttribute('aria-expanded','false');
- const photo=node('span',undefined,'guest-photo'),img=node('img');img.src=r.photo;img.alt='';img.width=56;img.height=56;img.loading=index<4?'eager':'lazy';img.decoding='async';
- const fallback=node('span','Нет фото','guest-photo-fallback');fallback.hidden=true;
- img.addEventListener('error',()=>{img.hidden=true;fallback.hidden=false;});photo.append(img,fallback);
- const copy=node('span',undefined,'guest-ride-copy'),name=node('span',r.name,'guest-ride-name'),status=node('span','Уточняем','guest-status unknown');copy.append(name,status);summary.append(photo,copy);
- const info=node('div',undefined,'guest-ride-info'),reason=node('p'),source=node('p',undefined,'guest-detail-source'),time=node('p',undefined,'guest-detail-time'),debit=node('p',undefined,'guest-detail-debit'),link=node('a','Об аттракционе');
- link.href='attractions.html?ride='+encodeURIComponent(r.catalogId);link.id='ride-link-'+r.id;info.append(reason,source,time,debit,link);details.append(summary,info);li.append(details);$('rides').append(li);
- details.addEventListener('toggle',()=>summary.setAttribute('aria-expanded',String(details.open)));
- rows.set(r.id,{li,details,summary,status,reason,source,time,debit});
- });}
-function sourceName(r){if(problem)return 'Источник сведений недоступен.';return r.source==='manual'?'Источник: подтверждение дежурного.':r.source==='manual-expired'?'Источник: просроченное подтверждение дежурного.':r.source==='debits'?'Источник: автооценка по списаниям.':r.source==='park'?'Источник: решение по всему парку.':r.source==='park-unknown'?'Состояние парка не подтверждено.':'Источник: данные о списаниях. Работа уточняется.';}
-function stamp(t,now){return M.clock(t)+(M.day(t)!==M.day(now)?', '+M.date(t):'');}
-function detailTime(r,d){
- if(problem)return 'Время проверки неизвестно: сохранённые сведения недоступны.';
- if(r.source==='manual')return 'Дежурный проверил в '+stamp(r.checkedAt,d.now)+'. Следующая проверка: '+stamp(r.expiresAt,d.now)+'. Это не время запуска.';
- if(r.source==='manual-expired')return 'Последняя проверка дежурного: '+stamp(r.checkedAt,d.now)+'. Срок подтверждения истёк.';
- if(r.source==='park')return 'Состояние парка проверено в '+stamp(r.checkedAt,d.now)+'.';
- return 'Последнее успешное чтение источника: '+stamp(state.sources.lime.lastSuccessfulRead,d.now)+'. Это не проверка работы дежурным.';
-}
-function announce(value){text($('update-announcement'),value);}
-function render(){
- const d=M.derive(state),q=$('search').value,ordered=M.RIDES.map(c=>d.rides.find(r=>r.id===c.id));
- const originalMatches=new Set(M.search(ordered,q).map(r=>r.id)),needle=q.trim().toLocaleLowerCase();
- const matched=ordered.filter(r=>originalMatches.has(r.id)||['en','hy'].some(lang=>(window.VPI18n?VPI18n.translate(M.RIDES.find(c=>c.id===r.id).name,lang):'').toLocaleLowerCase().includes(needle))),visible=matched.filter(r=>filter==='all'||r.status==='open'),visibleIds=new Set(visible.map(r=>r.id));
- text($('overview'),(d.park.status==='open'?'Парк открыт':['closed','paused'].includes(d.park.status)?'Парк временно закрыт':'Работу парка уточняем')+' · '+(d.counts.open?'работают '+d.counts.open+' из 11':['closed','paused'].includes(d.park.status)?'аттракционы недоступны':'работа аттракционов не подтверждена'));
- text($('demo-time'),'Учебное время: '+M.clock(d.now)+' · '+M.date(d.now)+' · Ереван'+(state.clock.running?' · идёт':' · зафиксировано'));
- $('system-message').hidden=!problem; text($('system-message'),problem);$('system-message').className='error';
- const offline=state.simulation.offline||!navigator.onLine;$('network').hidden=!offline;text($('network'),'Нет связи. Учебные сведения могут устареть; возврат сети не подтверждает работу.');
- $('park-notice').hidden=d.park.status==='open';text($('park-notice'),d.park.reason);
- $('source-notice').hidden=!!problem||d.limeFresh;text($('source-notice'),'Актуальные данные о списаниях недоступны. Автооценки уточняем, действующие отметки дежурного сохраняются.');
- const weatherFocused=$('weather').contains(document.activeElement);$('weather').hidden=!d.weather.showAlert;if(weatherFocused&&$('weather').hidden)$('filter-all').focus({preventScroll:true});
- text($('weather-rides'),'Возможные ограничения: '+d.weather.ids.map(id=>M.RIDES.find(r=>r.id===id).name).join(', ')+'. Статус каждого указан в списке.');
- text($('weather-time'),'Учебный прогноз от '+stamp(d.weather.checkedAt,d.now)+', действует до '+stamp(d.weather.validUntil,d.now)+'.');
- text($('filter-all'),'Все '+ordered.length);text($('filter-open'),'Работают '+d.counts.open);
- $('filter-all').setAttribute('aria-pressed',String(filter==='all'));$('filter-open').setAttribute('aria-pressed',String(filter==='open'));
- const active=document.activeElement,focusedRide=[...rows.entries()].find(([,r])=>r.li.contains(active));
- ordered.forEach(r=>{const dom=rows.get(r.id);dom.li.dataset.status=r.status;dom.status.className='guest-status '+r.status;text(dom.status,M.LABELS[r.status]);text(dom.reason,problem?'Сохранённые сведения недоступны. Работа аттракциона не подтверждена.':r.reason);text(dom.source,sourceName(r));text(dom.time,detailTime(r,d));
-  const debit=r.lastDebit||M.lastDebit(r);dom.debit.hidden=!debit;text(dom.debit,debit?'Последнее списание: '+stamp(debit.eventAt,d.now)+' ('+M.ageMinutes(debit.eventAt,d.now)+' мин. назад).':'');dom.li.hidden=!visibleIds.has(r.id);
- });
- if(focusedRide&&!visibleIds.has(focusedRide[0])){const oldIndex=M.RIDES.findIndex(r=>r.id===focusedRide[0]);const next=visible.find(r=>M.RIDES.findIndex(c=>c.id===r.id)>oldIndex)||visible[0];(next?rows.get(next.id).summary:$('filter-all')).focus({preventScroll:true});}
- $('clear-search').hidden=!q;$('result-note').hidden=!q; text($('result-note'),'Поиск «'+q+'»: найдено '+visible.length+'. Числа в фильтрах относятся ко всем 11 аттракционам.');
- $('empty').hidden=visible.length>0;$('empty-all').hidden=filter==='all';$('empty-reset').hidden=!q;
- text($('empty-title'),filter==='open'?(q?'Среди работающих не найдено':'Работающих аттракционов не подтверждено'):'Не нашли по этому названию');
- text($('empty-description'),filter==='open'?'Посмотрите все статусы. «Уточняем» не означает, что аттракцион закрыт.':'Попробуйте другое название или сбросьте поиск.');
- if(previous){const changed=ordered.filter(r=>previous.statuses.get(r.id)!==r.status);const disappeared=changed.filter(r=>previous.visible.has(r.id)&&!visibleIds.has(r.id));if(disappeared.length)announce(disappeared.map(r=>r.name+': '+M.LABELS[r.status]).join('. ')+'. Убрано из фильтра «Работают». Показано '+visible.length+'.');else if(changed.length)announce('Статусы обновлены: '+changed.map(r=>r.name+': '+M.LABELS[r.status]).join('. ')+'.');}
- previous={statuses:new Map(ordered.map(r=>[r.id,r.status])),visible:visibleIds};
-}
+const M=window.Availability,$=id=>document.getElementById(id),lang=window.VPI18n?.language||document.documentElement.lang||'ru';
+if(!M||!window.VPSharedCatalog)return;
+const copies={
+ru:{title:'Что работает',demo:'Демонстрация статусов',intro:'Это учебные примеры, а не текущая работа парка. Перед визитом уточните статус у сотрудника.',all:'Все',open:'Работают',unknown:'Уточняем',paused:'Пауза',closed:'Не работают',search:'Название аттракциона',clear:'Очистить поиск',empty:'Ничего не найдено',reset:'Сбросить поиск',unknownNote:'Статус "Уточняем" не означает, что аттракцион закрыт.',explain:'Откуда берутся статусы',explanation:'В демо работа оценивается по учебным списаниям или отметке дежурного. Источник и время показаны в подробностях. Подключения к данным парка нет.',time:'Учебное время',frozen:'зафиксировано',running:'идёт',yerevan:'Ереван',hours:'Часы работы: 10:00-22:00',hoursNote:'Изменения расписания уточните перед визитом. Часы работы не подтверждают состояние каждого аттракциона.',contact:'Уточнить у парка',about:'Об аттракционе',unknownReason:'Для этого аттракциона учебный статус не задан.',sourceNone:'Источник: отсутствует. Реальная работа не подтверждена.',timeNone:'Время проверки неизвестно.',sourceManual:'Пример источника: отметка дежурного.',sourceExpired:'Пример источника: просроченная отметка дежурного.',sourceDebit:'Пример источника: учебные списания.',sourcePark:'Пример источника: решение по всему парку.',sourceSchedule:'Пример источника: учебное расписание.',sourceMapping:'Учебные списания не связаны с этим аттракционом.',checked:'Проверка в демо',until:'Действует до',read:'Чтение учебного источника',debit:'Последнее учебное списание',sourceProblem:'Учебные сведения недоступны. Все статусы показаны как неизвестные.',offline:'Нет связи. Показаны сохранённые учебные сведения.',summary:'Статусы в демо',matches:'Найдено',status:{open:'Работает',paused:'Пауза',closed:'Не работает',unknown:'Уточняем'}},
+en:{title:'What is operating',demo:'Demo operating statuses',intro:'These are examples, not current park operations. Check with park staff before visiting.',all:'All',open:'Operating',unknown:'Unknown',paused:'Paused',closed:'Closed',search:'Ride name',clear:'Clear search',empty:'Nothing found',reset:'Reset search',unknownNote:'An unknown status does not mean the ride is closed.',explain:'Where statuses come from',explanation:'This demo uses sample ride transactions or staff entries. Each ride shows the source and time. No live park data is connected.',time:'Demo time',frozen:'paused',running:'running',yerevan:'Yerevan',hours:'Opening hours: 10:00-22:00',hoursNote:'Check schedule changes before visiting. Opening hours do not confirm each ride is operating.',contact:'Contact the park',about:'About this ride',unknownReason:'No demo status has been assigned to this ride.',sourceNone:'Source: unavailable. Actual operation is unconfirmed.',timeNone:'Check time unknown.',sourceManual:'Example source: staff entry.',sourceExpired:'Example source: expired staff entry.',sourceDebit:'Example source: demo transactions.',sourcePark:'Example source: park-wide decision.',sourceSchedule:'Example source: demo schedule.',sourceMapping:'Demo transactions are not mapped to this ride.',checked:'Demo check',until:'Valid until',read:'Demo source read',debit:'Last demo transaction',sourceProblem:'Demo records are unavailable. All statuses are shown as unknown.',offline:'Offline. Saved demo records are shown.',summary:'Demo statuses',matches:'Found',status:{open:'Operating',paused:'Paused',closed:'Closed',unknown:'Unknown'}},
+hy:{title:'Ինչն է աշխատում',demo:'Ցուցադրական աշխատանքային կարգավիճակներ',intro:'Սրանք օրինակներ են, ոչ թե այգու ընթացիկ աշխատանքը։ Այցից առաջ ճշտեք աշխատակցից։',all:'Բոլորը',open:'Աշխատում են',unknown:'Ճշտվում է',paused:'Դադար',closed:'Չեն աշխատում',search:'Ատրակցիոնի անվանումը',clear:'Մաքրել որոնումը',empty:'Ոչինչ չի գտնվել',reset:'Մաքրել որոնումը',unknownNote:'"Ճշտվում է" կարգավիճակը չի նշանակում, որ ատրակցիոնը փակ է։',explain:'Որտեղից են կարգավիճակները',explanation:'Ցուցադրությունը օգտագործում է ուսումնական գործարքներ կամ հերթապահի նշումներ։ Աղբյուրը և ժամանակը նշված են մանրամասներում։ Այգու իրական տվյալները միացված չեն։',time:'Ցուցադրական ժամանակ',frozen:'կանգնեցված է',running:'ընթանում է',yerevan:'Երևան',hours:'Աշխատանքային ժամերը՝ 10:00-22:00',hoursNote:'Ժամանակացույցի փոփոխությունները ճշտեք այցից առաջ։ Ժամերը չեն հաստատում յուրաքանչյուր ատրակցիոնի աշխատանքը։',contact:'Ճշտել այգում',about:'Ատրակցիոնի մասին',unknownReason:'Այս ատրակցիոնի ցուցադրական կարգավիճակը նշված չէ։',sourceNone:'Աղբյուրը բացակայում է։ Իրական աշխատանքը հաստատված չէ։',timeNone:'Ստուգման ժամանակը հայտնի չէ։',sourceManual:'Աղբյուրի օրինակ՝ հերթապահի նշում։',sourceExpired:'Աղբյուրի օրինակ՝ ժամկետանց նշում։',sourceDebit:'Աղբյուրի օրինակ՝ ուսումնական գործարքներ։',sourcePark:'Աղբյուրի օրինակ՝ ամբողջ այգու որոշում։',sourceSchedule:'Աղբյուրի օրինակ՝ ուսումնական ժամանակացույց։',sourceMapping:'Ուսումնական գործարքները կապված չեն այս ատրակցիոնի հետ։',checked:'Ցուցադրական ստուգում',until:'Գործում է մինչև',read:'Ուսումնական աղբյուրի ընթերցում',debit:'Վերջին ուսումնական գործարքը',sourceProblem:'Ուսումնական տվյալներն անհասանելի են։ Բոլոր կարգավիճակները անհայտ են։',offline:'Կապ չկա։ Ցուցադրվում են պահպանված ուսումնական տվյալները։',summary:'Ցուցադրական կարգավիճակներ',matches:'Գտնվել է',status:{open:'Աշխատում է',paused:'Դադար',closed:'Չի աշխատում',unknown:'Ճշտվում է'}}};
+const c=copies[lang]||copies.ru,esc=s=>String(s??'').replace(/[&<>"']/g,x=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[x]));
+const catalog=VPSharedCatalog.rides.map(r=>{const fixture=M.RIDES.find(x=>x.catalogId===r.id);return{...r,id:fixture?.id||r.id,realId:r.id,fixtureId:fixture?.id,name:r.names?.[lang]||r.name,aliases:fixture?.aliases||''};});
+let state,problem=false,filter='all';const rows=new Map(),main=$('main');
+main.dataset.i18nSkip='';
+main.innerHTML='<header class="page-heading"><h1>'+c.title+'</h1><p class="guest-demo-label">'+c.demo+'</p><p class="guest-demo-intro">'+c.intro+'</p><p class="date" id="demo-time"></p></header><p class="notice" id="system-message" role="status" hidden></p><p class="notice" id="network" hidden></p><section aria-label="'+c.title+'"><label class="guest-search" for="search"><span class="sr-only">'+c.search+'</span><input id="search" type="search" placeholder="'+c.search+'" autocomplete="off"><button id="clear-search" aria-label="'+c.clear+'" hidden>×</button></label><div class="guest-filters" role="group" aria-label="'+c.summary+'">'+['all','open','unknown','paused','closed'].map(k=>'<button type="button" id="filter-'+k+'" data-filter="'+k+'" aria-pressed="'+(k==='all')+'">'+c[k]+'</button>').join('')+'</div><p class="guest-overview" id="overview"></p><p class="small" id="result-note" aria-live="polite"></p><ul class="guest-rides" id="rides"></ul><div class="empty" id="empty" hidden><h2>'+c.empty+'</h2><p>'+c.unknownNote+'</p><button type="button" id="empty-reset">'+c.reset+'</button></div></section><details class="guest-explanation"><summary>'+c.explain+'</summary><p>'+c.explanation+'</p><p>'+c.unknownNote+'</p></details><section class="guest-hours"><h2>'+c.hours+'</h2><p>'+c.hoursNote+'</p><a href="tel:+37495900060">'+c.contact+': +374 95 90 00 60</a></section>';
+function text(id,value){$(id).textContent=value;}
+function read(init=false){try{const raw=localStorage.getItem(M.KEY);if(raw){const parsed=JSON.parse(raw);if(!M.validate(parsed))throw Error('schema');state=parsed;problem=false;return;}if(init){state=M.presentationSeed();localStorage.setItem(M.KEY,JSON.stringify(state));problem=false;return;}}catch{}state=M.presentationSeed(Date.now(),true);problem=true;}
+function stamp(t){const parts=Object.fromEntries(new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Yerevan',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(t).map(p=>[p.type,p.value]));return parts.day+'.'+parts.month+'.'+parts.year+', '+parts.hour+':'+parts.minute;}
+function translate(s){return window.VPI18n?.translate(s,lang)||s;}
+function buildRows(){catalog.forEach((r,i)=>{const li=document.createElement('li');li.className='guest-ride';li.id=r.id;li.innerHTML='<details><summary aria-expanded="false"><span class="guest-photo"><img src="'+esc(r.photo.replace('-780.webp','-390.webp'))+'" alt="" width="56" height="56" loading="'+(i<4?'eager':'lazy')+'"></span><span class="guest-ride-copy"><span class="guest-ride-name">'+esc(r.name)+'</span><span class="guest-status unknown"></span></span></summary><div class="guest-ride-info"><p class="guest-detail-reason"></p><p class="guest-detail-source"></p><p class="guest-detail-time"></p><p class="guest-detail-debit"></p><a href="attractions.html?mode=real&lang='+lang+'&ride='+encodeURIComponent(r.realId)+'">'+c.about+'</a></div></details>';
+const details=li.querySelector('details'),summary=li.querySelector('summary');details.addEventListener('toggle',()=>summary.setAttribute('aria-expanded',String(details.open)));li.querySelector('img').addEventListener('error',e=>e.target.hidden=true);$('rides').append(li);rows.set(r.id,{li,details,summary});});}
+function render(){const focusedRow=[...rows.values()].find(r=>r.li.contains(document.activeElement));const d=M.derive(state),q=$('search').value.trim().toLocaleLowerCase(),ordered=catalog.map(r=>{const known=d.rides.find(x=>x.id===r.fixtureId);return{...r,...(known||{}),name:r.name,status:problem?'unknown':known?.status||'unknown',catalog:r};}),counts={};for(const r of ordered)counts[r.status]=(counts[r.status]||0)+1;
+text('demo-time',c.time+': '+stamp(d.now)+' · '+c.yerevan+' · '+(state.clock.running?c.running:c.frozen));$('system-message').hidden=!problem;text('system-message',c.sourceProblem);$('network').hidden=navigator.onLine&&!state.simulation.offline;text('network',c.offline);
+for(const k of ['all','open','unknown','paused','closed']){text('filter-'+k,c[k]+' '+(k==='all'?ordered.length:counts[k]||0));$('filter-'+k).setAttribute('aria-pressed',String(filter===k));}
+let shown=0;for(const r of ordered){const dom=rows.get(r.id);const haystack=[r.name,r.catalog.aliases,...Object.values(r.catalog.names||{})].join(' ').toLocaleLowerCase().replaceAll('ё','е');const visible=(filter==='all'||r.status===filter)&&haystack.includes(q.replaceAll('ё','е'));dom.li.hidden=!visible;if(visible)shown++;dom.li.dataset.status=r.status;const status=dom.li.querySelector('.guest-status');status.className='guest-status '+r.status;status.textContent=c.status[r.status];
+const source=!r.catalog.fixtureId||problem?c.sourceNone:r.source==='manual'?c.sourceManual:r.source==='manual-expired'?c.sourceExpired:['park','park-unknown'].includes(r.source)?c.sourcePark:r.source==='schedule'?c.sourceSchedule:r.source==='mapping'?c.sourceMapping:c.sourceDebit;
+const reason=problem?c.sourceProblem:!r.catalog.fixtureId?c.unknownReason:translate(r.reason);
+const time=problem||!r.catalog.fixtureId?c.timeNone:r.checkedAt&&(r.source==='manual'||r.source==='manual-expired'||r.source==='park')?c.checked+': '+stamp(r.checkedAt)+(r.expiresAt?'. '+c.until+': '+stamp(r.expiresAt):''):c.read+': '+stamp(state.sources.lime.lastSuccessfulRead);
+dom.li.querySelector('.guest-detail-reason').textContent=reason;dom.li.querySelector('.guest-detail-source').textContent=source;dom.li.querySelector('.guest-detail-time').textContent=time;const debit=dom.li.querySelector('.guest-detail-debit');debit.hidden=!r.lastDebit||problem;debit.textContent=r.lastDebit&&!problem?c.debit+': '+stamp(r.lastDebit.eventAt):'';}
+text('overview',c.summary+': '+c.open.toLocaleLowerCase()+' '+(counts.open||0)+' / '+catalog.length);text('result-note',q?c.matches+': '+shown:'');$('clear-search').hidden=!q;$('empty').hidden=shown>0;if(focusedRow?.li.hidden)$('filter-'+filter).focus({preventScroll:true});}
 function refresh(){read();render();}
-$('filter-all').addEventListener('click',()=>{filter='all';render();announce('Все аттракционы. Показано '+[...rows.values()].filter(r=>!r.li.hidden).length+'.');});
-$('filter-open').addEventListener('click',()=>{filter='open';render();announce('Только работающие. Показано '+[...rows.values()].filter(r=>!r.li.hidden).length+'.');});
-$('search-toggle').addEventListener('click',()=>{const open=$('search-panel').hidden;$('search-panel').hidden=!open;$('search-toggle').setAttribute('aria-expanded',String(open));if(open)$('search').focus();});
-$('search').addEventListener('input',()=>{render();announce($('result-note').textContent);});
-$('search').addEventListener('keydown',event=>{if(event.key==='Escape'){if($('search').value){$('search').value='';render();}else{$('search-panel').hidden=true;$('search-toggle').setAttribute('aria-expanded','false');$('search-toggle').focus();}}});
-const clear=()=>{$('search').value='';render();$('search-panel').hidden=false;$('search-toggle').setAttribute('aria-expanded','true');$('search').focus();announce('Поиск очищен.');};
-$('clear-search').addEventListener('click',clear);$('empty-reset').addEventListener('click',clear);
-$('empty-all').addEventListener('click',()=>{filter='all';render();$('filter-all').focus();announce('Поиск среди всех аттракционов. Запрос сохранён.');});
-window.addEventListener('storage',e=>{if(e.key===M.KEY||e.key===null)refresh();});
-window.addEventListener('pageshow',refresh);window.addEventListener('focus',refresh);window.addEventListener('online',refresh);window.addEventListener('offline',refresh);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
-function revealHash(){const row=rows.get(location.hash.slice(1));if(!row)return;filter='all';$('search').value='';render();row.details.open=true;row.li.scrollIntoView();}
-window.addEventListener('hashchange',revealHash);
+main.querySelectorAll('[data-filter]').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.filter;render();}));$('search').addEventListener('input',render);
+function clear(){filter='all';$('search').value='';render();$('search').focus();} $('clear-search').addEventListener('click',clear);$('empty-reset').addEventListener('click',clear);
+$('search').addEventListener('keydown',e=>{if(e.key==='Escape')clear();});
+function revealHash(){const key=location.hash.slice(1),r=catalog.find(r=>r.id===key||r.realId===key||r.catalogSlug===key);if(!r)return;filter='all';$('search').value='';render();rows.get(r.id).details.open=true;rows.get(r.id).li.scrollIntoView();}
+for(const type of ['pageshow','focus','online','offline'])window.addEventListener(type,refresh);window.addEventListener('storage',e=>{if(e.key===M.KEY||e.key===null)refresh();});window.addEventListener('hashchange',revealHash);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
 read(true);buildRows();render();if(location.hash)requestAnimationFrame(revealHash);setInterval(refresh,5000);
 })();

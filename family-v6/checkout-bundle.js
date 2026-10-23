@@ -89,7 +89,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
   products = freeze(universalProducts);
   var packageProducts = packageSizes.map(function (size) { return products['package' + size]; });
   if(typeof window!=='undefined'&&window.VPProductCatalog){products=freeze(window.VPProductCatalog.products);packageProducts=packageSizes.map(function(n){return products['package'+n];});}
-  var MODEL_VERSION = 'family-demo-3.4';
+  var MODEL_VERSION = 'family-demo-3.5';
   // Explicit fictional admission examples. Editorial ageRange is deliberately separate.
   var admissionRules = freeze({
     'demo-calm': { minAge: 3, maxAge: null, soloAge: 8, adultPrice: 900 },
@@ -185,17 +185,41 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
     }
   }
 } );
-  var currentOrderCatalog = freeze({
+  var legacy34OrderCatalog = freeze({
     rides: demoRides.reduce(function (out, ride) { out[ride.id] = { name: ride.name, price: ride.price }; return out; }, {}),
     products: products
   });
+  // Owner-approved fictional layer for the real names selected in discovery.
+  // It neither modifies the source catalogue nor asserts actual admission rules.
+  var smallSlugs = ['solnyshko','begemot','sloniki','labirint-detskiy','svetofor','poezd','kapik','avtoralli'];
+  var thrillSlugs = ['kobra','gorki','pendulum','orbita','pirat','bashnya','planeta','cep','moto','raketa','mars','syurpriz','tornado','zamok'];
+  // Existing demo amounts from assets/js/data-ru.js, checked across RU/HY/EN.
+  // Copying only prices does not import its independent product rights or admission examples.
+  var connectedPrices = {"koleso":1500,"kobra":1000,"autodrom":1000,"gorki":800,"pendulum":1000,"orbita":800,"lebedi":700,"pirat":800,"arbuz":500,"bashnya":1000,"shary":1000,"planeta":600,"cep":700,"moto":1000,"raketa":600,"avtoralli":1000,"mars":1000,"syurpriz":600,"zamok":1000,"vodnye-lebedi":1000,"solnyshko":500,"begemot":600,"tornado":600,"sloniki":500,"labirint-detskiy":500,"svetofor":500,"batuty":500,"poezd":600,"kapik":400,"labirint":700,"vr-cinema":1500,"vr-2":1500,"dark-vr":1500,"tir":1000,"avtomaty":500};
+  var connectedRides = freeze(realRides.map(function (r) {
+    var small = smallSlugs.includes(r.catalogSlug), thrill = thrillSlugs.includes(r.catalogSlug);
+    return { id: 'demo-park-' + r.catalogSlug, realRideId: r.id, catalogSlug: r.catalogSlug,
+      name: r.name, names: r.names, photo: r.photo, photoProvenance: r.photoProvenance,
+      price: connectedPrices[r.catalogSlug], intensity: thrill ? 'exciting' : 'calm',
+      ageRange: small ? [3, 9] : thrill ? [10, 99] : [5, 99],
+      ageBasis: 'Демонстрационный возрастной ориентир. Не подтверждает допуск и правила парка.',
+      rules: null, operation: 'unknown', fictional: true, connectedDemo: true, symbol: '' };
+  }));
+  demoRides = freeze(demoRides.concat(connectedRides));
+  var connectedProducts = copy(products);
+  connectedProducts.ticket.includedRideIds = demoRides.map(function (r) { return r.id; });
+  packageSizes.forEach(function (size) { connectedProducts['package' + size].includedRideIds = demoRides.map(function (r) { return r.id; }); });
+  products = freeze(connectedProducts);
+  packageProducts = packageSizes.map(function (size) { return products['package' + size]; });
+  var currentOrderCatalog = freeze({ rides: demoRides.reduce(function (out, r) { out[r.id] = { name: r.name, price: r.price }; return out; }, {}), products: products });
   var legacyNamedRides = legacyDemoRides.reduce(function (out, ride) { out[ride.id] = { name: ride.name, price: ride.price }; return out; }, {});
   var orderCatalogs = freeze({
     'family-demo-3': legacyOrderCatalog,
     'family-demo-3.1': { rides: legacyNamedRides, products: legacy31Products },
     'family-demo-3.2': { rides: legacyNamedRides, products: legacy32Products },
-    'family-demo-3.3': { rides: currentOrderCatalog.rides, products: legacy33Products },
-    'family-demo-3.4': currentOrderCatalog
+    'family-demo-3.3': { rides: legacy34OrderCatalog.rides, products: legacy33Products },
+    'family-demo-3.4': legacy34OrderCatalog,
+    'family-demo-3.5': currentOrderCatalog
   });
   var rideMap = {};
   realRides.concat(demoRides).forEach(function (r) { rideMap[r.id] = r; });
@@ -234,7 +258,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
       seen.add(p.id);
       if (p.role === 'adult' && p.age != null && !integer(p.age, 18, 120)) issues.push('party');
       out.party.push({ id: p.id, label: label(p.label, (p.role === 'adult' ? 'Взрослый ' : 'Ребёнок ') + (i + 1)), role: p.role,
-        age: p.role === 'adult' ? (p.age == null ? 18 : integer(p.age, 0, 120) ? p.age : -1) : integer(p.age, 0, 17) ? p.age : null,
+        age: p.role === 'adult' ? (p.age == null ? null : integer(p.age, 0, 120) ? p.age : -1) : integer(p.age, 0, 17) ? p.age : null,
         height: typeof p.height === 'number' && Number.isFinite(p.height) && p.height >= 40 && p.height <= 250 ? p.height : null });
     });
     ['real', 'demo'].forEach(function (mode) {
@@ -248,7 +272,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
     out.companionId = id(raw.companionId) || null;
     out.companionAutoSelected = !!out.companionId && raw.companionAutoSelected === true;
     var lines = raw.cart && Array.isArray(raw.cart.lines) ? raw.cart.lines : [], lineIds = new Set();
-    out.tariffNotice = raw.modelVersion === MODEL_VERSION ? (typeof raw.tariffNotice === 'string' ? raw.tariffNotice.slice(0, 800) : null) : lines.some(function (line) { return line && isPackage(line); }) ? 'Условия пакетов обновились: теперь билет подходит для любого аттракциона демонстрационного каталога, срок 30 дней с покупки. Количество билетов и сумма сохранены. Проверьте заказ перед оплатой.' : null;
+    out.tariffNotice = raw.modelVersion === MODEL_VERSION ? (typeof raw.tariffNotice === 'string' ? raw.tariffNotice.slice(0, 800) : null) : lines.some(function (line) { return line && isPackage(line); }) ? 'Для новой демопокупки пакет теперь также покрывает выбранные названия из каталога парка. Количество, сумма и срок 30 дней сохранены. Прежние оплаченные образцы не изменены. Проверьте состав перед оплатой.' : null;
     if (lines.length > 100) issues.push('cart');
     lines.slice(0, 100).forEach(function (line, i) {
       if (!line || typeof line !== 'object') { issues.push('cart'); return; }
@@ -265,7 +289,19 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
         companionFor: unique((Array.isArray(line.companionFor) ? line.companionFor : []).filter(function (value) { return id(value); })),
         companionReason: line.autoCompanion === true ? label(line.companionReason, 'Сопровождение ребёнка') : null });
     });
+    if (raw.selectedJourney && raw.selectedJourney.version === 1) {
+      var j = raw.selectedJourney;
+      out.selectedJourney = { version: 1, realRideIds: unique((Array.isArray(j.realRideIds) ? j.realRideIds : []).filter(function (rid) { return realRides.some(function (r) { return r.id === rid; }); })),
+        summary: (Array.isArray(j.summary) ? j.summary : []).filter(function (s) { return typeof s === 'string'; }).slice(0, 100).map(function (s) { return s.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 500); }),
+        cartFingerprint: typeof j.cartFingerprint === 'string' ? j.cartFingerprint : '', partyFingerprint: typeof j.partyFingerprint === 'string' ? j.partyFingerprint : '' };
+    }
     out._issues = unique(issues); return out;
+  }
+  function demoForReal(realId) { return connectedRides.find(function (r) { return r.realRideId === realId; }) || null; }
+  function previewRealSelection(raw) {
+    var s = sanitizeState(raw); s.mode = 'demo';
+    s.selections.demo = s.selections.real.map(demoForReal).filter(Boolean).map(function (r) { return r.id; });
+    return s;
   }
   function sampleState() {
     var s = emptyState();
@@ -276,13 +312,14 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
   function ageHint(ride, person) {
     if (typeof ride === 'string') ride = rideMap[ride];
     if (!ride || !ride.fictional || !ride.ageRange) return { status: 'unknown', text: 'Возрастная рекомендация не подтверждена.' };
-    if (!person || person.role !== 'child' || !integer(person.age, 0, 17)) return { status: 'unknown', text: 'Учебный возрастной ориентир: ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Это не правило допуска.' };
+    if (!person || (!ride.connectedDemo && person.role !== 'child') || !integer(person.age, person.role === 'adult' ? 18 : 0, person.role === 'adult' ? 120 : 17)) return { status: 'unknown', text: 'Учебный возрастной ориентир: ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Это не правило допуска.' };
     var inside = person.age >= ride.ageRange[0] && person.age <= ride.ageRange[1];
     return { status: inside ? 'suggested' : 'outside', text: (inside ? 'В возрастном ориентире' : 'Вне возрастного ориентира') + ' ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Возраст не подтверждает допуск.' };
   }
   function admission(ride, person, purchaseOptions) {
     if (typeof ride === 'string') ride = rideMap[ride];
     var out = { status: 'unknown', reasons: [], needsHeight: false, needsCompanion: false, companionKnown: false, priceNeedsHeight: false };
+    if (ride && ride.connectedDemo) { out.companionKnown = true; out.reasons.push('В деморасчёте один билет на одного участника. Реальные допуск и сопровождение уточняются у парка.'); return out; }
     if (!ride || !ride.fictional || !ride.rules || !admissionRules[ride.id]) { out.reasons.push('Условия допуска нужно уточнить у парка.'); return out; }
     if (!person || !['adult', 'child'].includes(person.role)) { out.reasons.push('Участник не выбран.'); return out; }
     var age = person.role === 'adult' && person.age == null ? 18 : person.age, rule = admissionRules[ride.id], r = ride.rules;
@@ -697,6 +734,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
     });
     var totalItems = lines.reduce(function (sum, line) { return sum + line.quantity; }, 0);
     var order = { version: 3, modelVersion: MODEL_VERSION, id: orderId, status: status === 'partial' && totalItems === 1 ? 'issuance' : status || 'pending', total: assessment.total, lines: lines, createdAt: createdAt, paymentConfirmedAt: purchasedAt };
+    if (s.selectedJourney && s.selectedJourney.cartFingerprint === JSON.stringify(s.cart.lines) && s.selectedJourney.partyFingerprint === JSON.stringify(s.party)) order.selectedJourney = { version: 1, realRideIds: s.selectedJourney.realRideIds.slice(), summary: s.selectedJourney.summary.slice() };
     if (order.status === 'partial') order.issuedCount = totalItems - 1;
     return order;
   }
@@ -704,7 +742,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
     if (!order || order.version !== 3 || typeof order.modelVersion !== 'string' || !Object.prototype.hasOwnProperty.call(orderCatalogs, order.modelVersion) || !id(order.id) || !['success', 'declined', 'pending', 'issuance', 'partial'].includes(order.status) || !Array.isArray(order.lines) || !order.lines.length || order.lines.length > 100 || !integer(order.total, 1, 100000000) || typeof order.createdAt !== 'string' || !Number.isFinite(Date.parse(order.createdAt))) return null;
     if (Object.prototype.hasOwnProperty.call(order, 'visitDate')) return null;
     if (order.status !== 'partial' && Object.prototype.hasOwnProperty.call(order, 'issuedCount')) return null;
-    if (order.modelVersion === MODEL_VERSION) {
+    if (['family-demo-3.4', MODEL_VERSION].includes(order.modelVersion)) {
       var paid = ['success', 'issuance', 'partial'].includes(order.status);
       if (paid ? typeof order.paymentConfirmedAt !== 'string' || !Number.isFinite(Date.parse(order.paymentConfirmedAt)) || Date.parse(order.paymentConfirmedAt) < Date.parse(order.createdAt) : order.paymentConfirmedAt !== null) return null;
     }
@@ -715,7 +753,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
       if (!product || !id(line.id) || ids.has(line.id) || !integer(line.quantity, 1, MAX_QUANTITY) || priceFor(line, catalog) === null || line.unitPrice !== priceFor(line, catalog) || Object.prototype.hasOwnProperty.call(line, 'visitDate')) return null;
       var included = line.productId === 'ticket' ? [line.rideId] : product.includedRideIds;
       var expectedName = line.productId === 'ticket' ? 'Билет: ' + catalog.rides[line.rideId].name : product.name;
-      var modern = order.modelVersion === MODEL_VERSION, packaged = isPackage(line);
+      var modern = ['family-demo-3.4', MODEL_VERSION].includes(order.modelVersion), packaged = isPackage(line);
       if (line.name !== expectedName || !equal(line.includedRideIds, included) || !equal(line.includedNames, included.map(function (rideId) { return catalog.rides[rideId].name; })) || !equal(line.terms, product.terms) || line.validity !== (modern && packaged ? PACKAGE_VALIDITY : VALIDITY) || line.unitsPerItem !== (packaged ? product.rides || 5 : line.productId === 'ticket' ? 1 : null) || typeof line.recipientLabel !== 'string' || !line.recipientLabel.trim() || line.recipientLabel.length > 150 || /[\u0000-\u001f<>]/.test(line.recipientLabel)) return null;
       if (modern && (line.purchasedAt !== order.paymentConfirmedAt || line.validUntil !== (packaged && order.paymentConfirmedAt ? packageExpiry(order.paymentConfirmedAt) : null) || line.timeZone !== 'Asia/Yerevan' || packaged && order.paymentConfirmedAt && !line.validUntil)) return null;
       if (line.personId !== null && !id(line.personId)) return null;
@@ -731,6 +769,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
       ids.add(line.id); total += line.unitPrice * line.quantity; totalItems += line.quantity;
     }
     if (order.status === 'partial' && (!Object.prototype.hasOwnProperty.call(order, 'issuedCount') || !integer(order.issuedCount, 1, totalItems - 1))) return null;
+    if (order.selectedJourney && (order.modelVersion !== MODEL_VERSION || order.selectedJourney.version !== 1 || !Array.isArray(order.selectedJourney.realRideIds) || order.selectedJourney.realRideIds.some(function (rid) { return !demoForReal(rid); }) || !Array.isArray(order.selectedJourney.summary) || order.selectedJourney.summary.length > 100 || order.selectedJourney.summary.some(function (s) { return typeof s !== 'string' || s.length > 500 || /[\u0000-\u001f<>]/.test(s); }))) return null;
     return total === order.total && passes <= MAX_QUANTITY ? copy(order) : null;
   }
   // A payment attempt is not a purchase. Start the package lifetime once the
@@ -743,7 +782,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
     next.status = status; delete next.issuedCount;
     var count = next.lines.reduce(function (sum, line) { return sum + line.quantity; }, 0);
     if (next.status === 'partial') { if (count === 1) next.status = 'issuance'; else next.issuedCount = count - 1; }
-    if (next.modelVersion === MODEL_VERSION && paidNext && !paidBefore) {
+    if (['family-demo-3.4', MODEL_VERSION].includes(next.modelVersion) && paidNext && !paidBefore) {
       var when = confirmedAt === undefined ? new Date().toISOString() : confirmedAt;
       if (typeof when !== 'string' || !Number.isFinite(Date.parse(when)) || Date.parse(when) < Date.parse(next.createdAt)) return null;
       next.paymentConfirmedAt = when;
@@ -759,7 +798,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
     });
     return valid.status === 'partial' ? result.slice(0, valid.issuedCount) : result;
   }
-  return freeze({ MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, packageSizes: packageSizes, packageProducts: packageProducts, isPackage: isPackage, packageCapacity: packageCapacity, isDirectLine: isDirectLine, newLine: newLine, realRides: realRides, demoRides: demoRides, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, quoteCart: quoteCart, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, confirmPayment: confirmPayment, issuedItems: issuedItems });
+  return freeze({ MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, packageSizes: packageSizes, packageProducts: packageProducts, isPackage: isPackage, packageCapacity: packageCapacity, isDirectLine: isDirectLine, newLine: newLine, realRides: realRides, demoRides: demoRides, connectedRides: connectedRides, demoForReal: demoForReal, previewRealSelection: previewRealSelection, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, quoteCart: quoteCart, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, confirmPayment: confirmPayment, issuedItems: issuedItems });
 }));
 
 ;
@@ -1239,16 +1278,18 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
   function baseOrder(order) {
     var result = {};
     BASE_KEYS.forEach(function (key) { result[key] = order[key]; });
-    if (order.modelVersion === 'family-demo-3.4') result.paymentConfirmedAt = order.paymentConfirmedAt;
+    if (['family-demo-3.4','family-demo-3.5'].includes(order.modelVersion)) result.paymentConfirmedAt = order.paymentConfirmedAt;
+    if (has(order, 'selectedJourney')) result.selectedJourney = order.selectedJourney;
     if (order.status === 'partial') result.issuedCount = order.issuedCount;
     if (has(order, 'pricingVersion')) result.total = order.subtotal;
     return result;
   }
   function validateOrder(order) {
-    if (!object(order) || !Array.isArray(order.lines) || !order.lines.every(function (line) { return exactKeys(line, order.modelVersion === 'family-demo-3.4' ? LINE_KEYS.concat(['purchasedAt', 'validUntil', 'timeZone']) : LINE_KEYS); })) return null;
+    if (!object(order) || !Array.isArray(order.lines) || !order.lines.every(function (line) { return exactKeys(line, ['family-demo-3.4','family-demo-3.5'].includes(order.modelVersion) ? LINE_KEYS.concat(['purchasedAt', 'validUntil', 'timeZone']) : LINE_KEYS); })) return null;
     var enriched = has(order, 'pricingVersion');
     var keys = order.status === 'partial' ? BASE_KEYS.concat(['issuedCount']) : BASE_KEYS;
-    if (order.modelVersion === 'family-demo-3.4') keys = keys.concat(['paymentConfirmedAt']);
+    if (['family-demo-3.4','family-demo-3.5'].includes(order.modelVersion)) keys = keys.concat(['paymentConfirmedAt']);
+    if (has(order, 'selectedJourney')) keys = keys.concat(['selectedJourney']);
     if (!exactKeys(order, enriched ? keys.concat(EXTRA_KEYS) : keys)) return null;
     var validated = base.validateOrder(baseOrder(order));
     if (!validated) return null;
@@ -3914,14 +3955,14 @@ const rides=()=>state.mode==='real'?VP3.realRides:VP3.demoRides;
 const ride=id=>[...VP3.realRides,...VP3.demoRides].find(r=>r.id===id);
 const person=id=>state.party.find(p=>p.id===id);
 const selected=()=>state.selections[state.mode]||[];
-const ageLabel=p=>p.role==='adult'?'18+':p.age===null?'Возраст не указан':p.age===0?'До года':p.age+' лет';
+const ageLabel=p=>p.age===null?'Возраст не указан':p.age===0?'До года':p.age+' лет';
 const personLabel=p=>p.label+' · '+ageLabel(p);
-const pickerReturn=()=>returnMode==='real'?'attractions.html?mode=real#plan':'attractions.html#plan';
+const pickerReturn=()=>returnMode==='real'||state?.selectedJourney||order?.selectedJourney?'attractions.html?mode=real#plan':'attractions.html#plan';
 const id=()=> 'v3-'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2,8));
 function announce(text){$('#announce').textContent=text;}
 function save(){try {localStorage.setItem(KEY,JSON.stringify(state));}catch {storageAvailable=false;warning='Выбор не сохраняется в браузере. При переходе или обновлении он может потеряться.';}}
 function markQuickDraft(){if(quick)try{localStorage.setItem(QUICK_DRAFT,'1');quickDraftSaved=true;}catch{}}
-function startDefaultPurchase(){if(!quick||order||state.cart.lines.length)return;activeProduct='unlimited';state.mode='demo';state.cart.lines=Array.from({length:3},()=>({id:id(),productId:'unlimited',rideId:null,personId:null,recipientKey:'direct-pass-'+id(),quantity:1,unitPrice:VP3.products.unlimited.price}));params.set('product','unlimited');try{history.replaceState(history.state,'',location.pathname+'?'+params.toString()+location.hash);}catch{}markQuickDraft();save();}
+function startDefaultPurchase(){if(!quick||order||state.cart.lines.length)return;delete state.selectedJourney;activeProduct='unlimited';state.mode='demo';state.cart.lines=Array.from({length:3},()=>({id:id(),productId:'unlimited',rideId:null,personId:null,recipientKey:'direct-pass-'+id(),quantity:1,unitPrice:VP3.products.unlimited.price}));params.set('product','unlimited');try{history.replaceState(history.state,'',location.pathname+'?'+params.toString()+location.hash);}catch{}markQuickDraft();save();}
 function savePromotion(){try{localStorage.setItem(PROMO,JSON.stringify(promotion));}catch{storageAvailable=false;warning='Предложение сохранено только в этой вкладке.';}}
 function pastOrders(){try{return (JSON.parse(localStorage.getItem(HISTORY)||'[]')||[]).map(VPC.validateOrder).filter(o=>o&&o.status==='success').slice(0,20);}catch{return [];}}
 function saveOrder(){
@@ -4145,7 +4186,7 @@ function cart(){
  return `<section class="cart-panel review-cart" id="cart" tabindex="-1">${reviewing?'':'<h2>Ваш заказ</h2>'}${undo?.kind==='cart'?undoBanner():''}${companySummary()}${companionControls()}${cartLines()}${q.needsCompanionChoice?'<p class="helper">Сумма учитывает необходимого взрослого. Выберите, кто будет сопровождать.</p>':''}${promotion.offerId?promotionControls(a):'<details class="optional-promotion" id="optional-promotion"><summary>Добавить акцию</summary>'+promotionControls(a)+'</details>'}${a.discount?`<div class="price-breakdown"><span>Полная стоимость</span><strong>${money(a.subtotal)}</strong><span>Скидка</span><strong>−${money(a.discount)}</strong></div>`:''}<div class="total"><span>${q.conditional?'Пока от':'Итого'}</span><strong>${money(q.payable)}</strong></div>${q.conditional?'<p class="helper">Уточните данные. До этого оплата недоступна.</p>':''}${a.bonus?`<p class="helper">+${money(a.bonus)} на следующий визит, с ${a.bonusValidFrom} по ${a.bonusValidUntil}.</p>`:''}${a.excludedRideIds?.length?`<p class="offer-exclusions">Не входит из списка: ${a.excludedRideIds.map(rid=>esc(ride(rid)?.name)).join(', ')}.</p>`:''}<p class="review-validity">${VPC.validitySummary(state.cart.lines,promotion).map(esc).join(' ')} Допуск проверяют перед катанием.</p><p class="review-validity">Получение: образцы появятся здесь. ${state.cart.lines.some(l=>l.productId==='unlimited')?'Безлимит в учебной модели обменивается в демонстрационной кассе на личный носитель.':'Образцы не действуют для посещения.'}</p><p class="review-validity">Возврат: реальной оплаты нет. Условия парка пока не утверждены.</p><details class="order-terms" id="order-terms"><summary>Условия и ограничения</summary><p>${VPC.validitySummary(state.cart.lines,promotion).map(esc).join(' ')} Парк эти условия ещё не утвердил.</p><p>Пакет расходует по праву за каждого участника. Уточните условия и оплату сопровождения на кассе перед покупкой. Дети катаются с одним взрослым по очереди.</p>${a.warnings.map(e=>'<p>'+esc(typeof e==='string'?e:e.message)+'</p>').join('')}</details><div id="checkout-errors" role="alert">${formError?note(formError,'error'):''}${a.errors.map(e=>note(typeof e==='string'?e:e.message,'error')).join('')}</div>${a.issues.length?btn('remove-promotion','Продолжить без акции за '+money(calculateCart(state,VPC.normalizePromotion(null)).payable),'','btn btn-outline'):''}<p class="review-complete" id="review-end">После подтверждения выдачи билеты будут здесь. Контакт не нужен.<br>Учебная оплата, деньги не списываются.</p><div id="review-action">${nextButton('btn btn-primary pay-button')}</div><details class="demo-scenarios"><summary>Другой исход демо-оплаты</summary><label for="scenario">Учебный ответ оплаты</label><select id="scenario" data-field="scenario">${[['success','Успех'],['declined','Отклонено'],['pending','Результат неизвестен'],['issuance','Оплачено, выдача задержана'],['partial','Оплачено, готова часть билетов'],['offline','Связь потеряна после начала']].map(([v,l])=>`<option value="${v}" ${v===scenario?'selected':''}>${l}</option>`).join('')}</select></details></section>`;
 }
 function ticketCards(o){return VPC.issuedItems(o).map(t=>`<article class="demo-ticket"><div class="ticket-top"><span>VICTORY PARK</span><strong>ОБРАЗЕЦ</strong></div><h3>${esc(t.name)}</h3><p><strong>${esc(t.recipientLabel)}</strong></p><p>${esc(t.validity)}</p>${t.validUntil?`<p>Использовать до ${esc(new Intl.DateTimeFormat('ru-RU',{dateStyle:'long',timeStyle:'short',timeZone:t.timeZone||'Asia/Yerevan'}).format(new Date(t.validUntil)))} по времени Еревана.</p>`:''}<p>${t.remaining===null?'Повторы без лимита на включённых аттракционах':t.remaining+' прав на катания'}</p><p class="helper">${t.includedNames.map(esc).join(' · ')}</p><details><summary>Условия этого образца</summary><ul>${t.terms.map(s=>'<li>'+esc(s)+'</li>').join('')}</ul></details><p class="ticket-code">${esc(t.code)}</p><p class="ticket-demo">Не действует для прохода. Деньги не списывались.</p></article>`).join('');}
-function receiptSummary(o){return ['Сумма заказа: '+money(o.total),...(o.discount?['Полная стоимость: '+money(o.subtotal),'Скидка: '+money(o.discount)]:[]),...o.lines.map(l=>l.name+' × '+l.quantity+(l.recipientLabel?' · '+l.recipientLabel:''))];}
+function receiptSummary(o){return ['Сумма заказа: '+money(o.total),...(o.selectedJourney?.summary||[]),...(o.discount?['Полная стоимость: '+money(o.subtotal),'Скидка: '+money(o.discount)]:[]),...o.lines.map(l=>l.name+' × '+l.quantity+(l.recipientLabel?' · '+l.recipientLabel:''))];}
 function receiptItems(o){
  return VPC.issuedItems(o).map(t=>({
   code:t.code,
@@ -4163,6 +4204,7 @@ function receipt(){
  const waiting=['pending','issuance','partial'].includes(order.status);
  const issued=ready.length?(window.VPPostPurchase?VPPostPurchase.render(ready,{orderId:order.id,summary:receiptSummary(order),instruction:order.status==='partial'?'Выдана только часть покупки. Остальные билеты проверяйте в исходном заказе.':''}):`<div class="demo-ticket-grid">${ticketCards(order)}</div>`):'';
  return `<section class="receipt" id="receipt" data-order-state="${esc(order.status)}"><h1 id="result-heading" tabindex="-1">${labels[order.status][0]}</h1><p class="receipt-status">${labels[order.status][1]}</p>
+ ${order.selectedJourney?`<section class="company-order-summary" data-selected-receipt><h2>Ваш план катаний</h2><ul>${order.selectedJourney.summary.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><p>Демонстрационные цены. Допуск и сопровождение уточняются у парка.</p></section>`:''}
  ${issued}
  ${waiting?`<div class="btn-row receipt-actions" data-vp-action-group>${btn('resolve-order',order.status==='pending'?'Проверить статус':'Проверить готовность','data-vp-cta="primary"','btn btn-primary')}${btn('save-access','Сохранить доступ к заказу','data-vp-cta="secondary"','btn btn-outline')}</div>`:''}
  <details class="receipt-order-details" id="receipt-order-details"><summary>Ваш заказ</summary><p class="helper">Демонстрация · ${esc(order.id)}</p>${orderTotals(order)}<ul class="receipt-lines">${order.lines.map(l=>`<li>${esc(l.name)} × ${l.quantity}${l.personId||l.productId==='unlimited'?' · '+esc(l.recipientLabel):''}</li>`).join('')}</ul><div class="total"><span>Сумма заказа</span><strong>${money(order.total)}</strong></div></details>
@@ -4172,17 +4214,18 @@ function receipt(){
  <details class="purchase-help" id="purchase-help"><summary>Нужна помощь с покупкой?</summary><p>Номер учебного заказа: <strong>${esc(order.id)}</strong></p><p>При неизвестном статусе не создавайте новый платёж. Сохраните доступ и вернитесь к проверке этого заказа.</p><p>Поддержка и возвраты в прототипе не подключены. В реальной покупке здесь будут контакт парка, проверка владения покупкой и условия возврата.</p></details></section>`;
 }
 
-function companyData(){try{return JSON.parse(localStorage.getItem(COMPANY)||'null');}catch{return null;}}
-function companyRoute(){return checkoutRoute('company.html'+(companyData()?.mode==='exact'?'?mode=exact':''));}
+function companyStorageKey(){return state?.selectedJourney?'vp.family.v5.company.real':COMPANY;}
+function companyData(){try{return JSON.parse(localStorage.getItem(companyStorageKey())||'null');}catch{return null;}}
+function companyRoute(){return checkoutRoute('company.html'+(state.selectedJourney?'?source=real&mode=exact':companyData()?.mode==='exact'?'?mode=exact':''));}
 function companyContext(){
  const applied=companyData()?.lastApplied;if(!applied)return null;
  const clean=VP3.sanitizeState(state),changed=applied.partyFingerprint!==JSON.stringify(clean.party)||(Object.hasOwn(applied,'companionId')&&applied.companionId!==(clean.companionId||null));
  return {applied,changed,matching:applied.cartFingerprint===JSON.stringify(clean.cart.lines)};
 }
-function clearCompanyApplication(){const data=companyData();if(!data?.lastApplied)return;delete data.lastApplied;try{localStorage.setItem(COMPANY,JSON.stringify(data));}catch{}}
+function clearCompanyApplication(){const key=companyStorageKey(),data=companyData();delete state.selectedJourney;if(!data?.lastApplied)return;delete data.lastApplied;try{localStorage.setItem(key,JSON.stringify(data));}catch{}}
 function companySummary(){
  const ctx=companyContext();if(!ctx||(!ctx.changed&&!ctx.matching))return '';
- return `<section class="company-order-summary" id="company-order-summary"><h3>Состав расчёта для компании</h3>${ctx.changed?'<p class="offer-exclusions">Компания изменилась. Пересчитайте выбранный состав: права пакета и сопровождение могут измениться.</p>':'<ul>'+ (Array.isArray(ctx.applied.summary)?ctx.applied.summary:[]).filter(x=>typeof x==='string'&&!/^(Все права:|Срок )/.test(x)).concat(VPC.validitySummary(state.cart.lines,promotion)).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>'}<a class="btn btn-outline" data-vp-cta="secondary" href="${companyRoute()}">${ctx.changed?'Пересчитать для компании':'Изменить расчёт'}</a></section>`;
+ return `<section class="company-order-summary" id="company-order-summary"><h3>${state.selectedJourney?'Ваши поездки':'Состав расчёта для компании'}</h3>${ctx.changed?'<p class="offer-exclusions">Компания изменилась. Пересчитайте выбранный состав: права пакета и сопровождение могут измениться.</p>':'<ul>'+ (Array.isArray(ctx.applied.summary)?ctx.applied.summary:[]).filter(x=>typeof x==='string'&&!/^(Все права:|Срок )/.test(x)).concat(state.selectedJourney?[]:VPC.validitySummary(state.cart.lines,promotion)).map(x=>'<li>'+esc(x)+'</li>').join('')+'</ul>'}<a class="btn btn-outline" data-vp-cta="secondary" href="${companyRoute()}">${ctx.changed?'Пересчитать для компании':'Изменить расчёт'}</a></section>`;
 }
 function purchaseRouteNotice(){
  const real=deepRide&&!deepRide.fictional;
@@ -4219,7 +4262,7 @@ function setQuantity(target,n){
 }
 function directPass(pId){if(!state.riders.includes(pId))state.riders.push(pId);ticketPersonId=pId;const current=state.cart.lines.find(l=>l.productId==='unlimited'&&l.personId===pId);if(current&&isRequiredLine(current))return;if(person(pId)?.role==='child'&&person(pId).age===null)agePerson=pId;commitCart(current?state.cart.lines.filter(l=>l.id!==current.id):[...state.cart.lines,{id:id(),productId:'unlimited',rideId:null,personId:pId,recipientKey:null,quantity:1,unitPrice:VP3.products.unlimited.price}],current?'Безлимит удалён.':'Безлимит и необходимое сопровождение добавлены.',false);}
 function purchaseAdd(role,companion=false){if(state.party.length>=8)return;const p={id:id(),label:(role==='adult'?'Взрослый ':'Ребёнок ')+(Math.max(0,...state.party.filter(x=>x.role===role).map(x=>Number(x.label.match(/\d+$/)?.[0])||0))+1),role,age:role==='adult'?18:null,height:null};state.party.push(p);if(companion){state.companionId=p.id;update('Взрослый добавлен для сопровождения.');jump('#companion-controls');return;}ticketPersonId=p.id;agePerson=role==='child'?p.id:'';const missing=state.cart.lines.filter(l=>!VP3.isPackage(l)&&!VP3.isDirectLine(l)&&!l.personId);if(missing.length===1)missing[0].personId=p.id;else if(activeProduct==='unlimited'){state.cart.lines.push({id:id(),productId:'unlimited',rideId:null,personId:p.id,recipientKey:null,quantity:1,unitPrice:VP3.products.unlimited.price});if(!state.riders.includes(p.id))state.riders.push(p.id);}update('Получатель добавлен.');jump('#purchase-people');}
-async function pay(){if(busy||order||(!quick&&needsReview()&&!reviewing)||companyContext()?.changed)return;if(!navigator.onLine){formError='Нет связи. Подключитесь к интернету и попробуйте оплатить снова. Платёж не начат.';render();focusField('checkout-errors');return;}const a=calculateCart(state,promotion);if(!a.canCheckout){formError='Проверьте состав и получателей заказа.';render();jump('#checkout-errors');return;}busy=true;render();const run=async()=>{try{const other=VPC.validateOrder(JSON.parse(localStorage.getItem(ORDER)||'null'));if(other&&!['success','declined'].includes(other.status)){order=other;busy=false;render();return;}}catch{}order=VPC.snapshotOrder(state,promotion,'DEMO-'+id(),'pending',undefined,purchaseOptions);if(!order){busy=false;formError='Не удалось создать образец. Проверьте заказ.';render();return;}saveOrder();orderURL(order.id);render();await new Promise(resolve=>setTimeout(resolve,300));const confirmed=VPC.confirmPayment(order,!navigator.onLine||scenario==='offline'?'pending':scenario);if(!confirmed){busy=false;warning='Не удалось проверить ответ оплаты. Повторно не оплачивайте; проверьте сохранённый заказ.';render();return;}order=confirmed;saveOrder();busy=false;render();window.scrollTo({top:0});$('#result-heading')?.focus({preventScroll:true});announce('Статус заказа обновлён.');};try{if(navigator.locks?.request)await navigator.locks.request(LOCK,run);else{busy=false;formError='В этом браузере недоступна защита заказа между вкладками. Откройте прототип в современном браузере.';render();}}catch{busy=false;warning='Не удалось завершить проверку. Если заказ создан, проверяйте его статус.';render();}}
+async function pay(){if(busy||order||(!quick&&needsReview()&&!reviewing)||companyContext()?.changed)return;if(!navigator.onLine){formError='Нет связи. Подключитесь к интернету и попробуйте оплатить снова. Платёж не начат.';render();focusField('checkout-errors');return;}const a=calculateCart(state,promotion);if(!a.canCheckout){formError='Проверьте состав и получателей заказа.';render();jump('#checkout-errors');return;}busy=true;render();const run=async()=>{try{const other=VPC.validateOrder(JSON.parse(localStorage.getItem(ORDER)||'null'));if(other&&(!['success','declined'].includes(other.status)||other.status==='success'&&state.cart.lines.some(line=>other.lines.some(paid=>paid.id===line.id)))){order=other;settlePaidLines(other);orderURL(other.id);busy=false;render();return;}}catch{}order=VPC.snapshotOrder(state,promotion,'DEMO-'+id(),'pending',undefined,purchaseOptions);if(!order){busy=false;formError='Не удалось создать образец. Проверьте заказ.';render();return;}saveOrder();orderURL(order.id);render();await new Promise(resolve=>setTimeout(resolve,300));const confirmed=VPC.confirmPayment(order,!navigator.onLine||scenario==='offline'?'pending':scenario);if(!confirmed){busy=false;warning='Не удалось проверить ответ оплаты. Повторно не оплачивайте; проверьте сохранённый заказ.';render();return;}order=confirmed;saveOrder();busy=false;render();window.scrollTo({top:0});$('#result-heading')?.focus({preventScroll:true});announce('Статус заказа обновлён.');};try{if(navigator.locks?.request)await navigator.locks.request(LOCK,run);else{busy=false;formError='В этом браузере недоступна защита заказа между вкладками. Откройте прототип в современном браузере.';render();}}catch{busy=false;warning='Не удалось завершить проверку. Если заказ создан, проверяйте его статус.';render();}}
 function saveTickets(){if(!order||!['success','partial'].includes(order.status)||!window.VPPostPurchase)return;const html=VPPostPurchase.fileHTML(receiptItems(order),{orderId:order.id,summary:receiptSummary(order),instruction:order.status==='partial'?'Выдана только часть покупки. Остальные билеты проверяйте в исходном заказе.':''});const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download=order.id+'-tickets.html';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 
 function saveAccess(){
@@ -4281,7 +4324,7 @@ if(act==='new-order'){orderURL(null);if(viewingHistory){viewingHistory=false;con
 });
 document.addEventListener('change',e=>{const el=e.target,field=el.dataset.field;if(field==='quick-ride'){quickRideId=el.value;customTarget='';render();return;}if(field==='quick-person'){quickPersonId=person(el.value)?.id||'';customTarget='';render();return;}if(field==='scenario'){scenario=el.value;return;}if(field==='copy-scenario'){copyFailure=el.value==='failure';return;}if(field==='resolve-scenario'){resolveScenario=el.value;return;}if(['promotion','visit-date','student'].includes(field)){if(field==='promotion'){const next=el.value==='none'?null:el.value;if(next!==promotion.offerId)promotion.studentAcknowledged=false;promotion.offerId=next;}if(field==='visit-date')promotion.visitDate=el.value||null;if(field==='student')promotion.studentAcknowledged=el.checked;savePromotion();render();announce('Предложение сохранено. Состав заказа не изменён.');return;}if(field!=='height')return;const p=person(el.dataset.person);if(!p)return;const raw=el.value.trim().replace(',','.'),n=Number(raw),valid=raw===''||(/^\d+(\.\d+)?$/.test(raw)&&n>=40&&n<=250);const error=document.getElementById(el.getAttribute('aria-describedby'))||document.getElementById('height-error-'+el.dataset.ride+'-'+p.id);if(!valid){el.setAttribute('aria-invalid','true');if(error)error.textContent='Укажите рост от 40 до 250 см или оставьте пустым.';return;}p.height=raw===''?null:n;el.removeAttribute('aria-invalid');if(error)error.textContent='';clearIssues();update('Рост сохранён. Условия и цена пересчитаны.');});
 document.addEventListener('submit',e=>{const f=e.target;if(f.matches('.custom-quantity-form')){e.preventDefault();const input=f.elements.quantity,target=f.dataset.target,raw=input.value.trim(),n=Number(raw);if(!/^\d+$/.test(raw)||!setQuantity(target,n)){$('#quantity-error').textContent='Введите целое число от 1 до 20. Заказ не изменён.';input.setAttribute('aria-invalid','true');input.focus({preventScroll:true});}else{requestAnimationFrame(()=>{const action=n>4?'custom-quantity':'quantity';const control=[...document.querySelectorAll('[data-action]')].find(el=>el.dataset.action===action&&el.dataset.target===target&&(n>4||Number(el.dataset.value)===n));control?.focus({preventScroll:true});});}return;}if(f.id==='direct-person-form'){e.preventDefault();const name=f.elements.name.value.trim();if(!name){$('#recipient-error').textContent='Укажите имя получателя.';return;}if(state.party.some(p=>p.label.toLocaleLowerCase()===name.toLocaleLowerCase())){$('#recipient-error').textContent='Такой участник уже есть. Выберите его выше.';return;}if(state.party.length>=8){$('#recipient-error').textContent='В прототипе до восьми участников. Выберите существующего.';return;}const p={id:id(),label:name,role:f.elements.role.value==='child'?'child':'adult',age:null,height:null};state.party.push(p);directPass(p.id);return;}if(f.id==='copy-form'){e.preventDefault();const input=$('#copy-email');if(!input.value.trim()||!input.checkValidity()){copyStatus='Проверьте адрес электронной почты.';$('#copy-status').textContent=copyStatus;input.setAttribute('aria-invalid','true');input.focus();return;}input.removeAttribute('aria-invalid');copyStatus=copyFailure?'Не удалось отправить копию (учебный сценарий). Билеты доступны выше. Попробуйте снова.':'Проверка завершена. В прототипе письмо не отправлено, адрес не сохранён. Билеты доступны выше.';$('#copy-status').textContent=copyStatus;input.value='';}});
-window.addEventListener('storage',e=>{if(e.key===COMPANY&&!busy)render();if(e.key===PROMO&&!busy){try{promotion=VPC.normalizePromotion(JSON.parse(e.newValue||'null'));render();}catch{}}if(e.key===KEY&&!busy){try{state=VP3.sanitizeState(JSON.parse(e.newValue||'null'));undo=null;render();announce('Выбор обновлён в другой вкладке.');}catch{}}if(e.key===ORDER){try{if(!viewingHistory)order=VPC.validateOrder(JSON.parse(e.newValue||'null'));render();}catch{}}});
+window.addEventListener('storage',e=>{if([COMPANY,'vp.family.v5.company.real'].includes(e.key)&&!busy)render();if(e.key===PROMO&&!busy){try{promotion=VPC.normalizePromotion(JSON.parse(e.newValue||'null'));render();}catch{}}if(e.key===KEY&&!busy){try{state=VP3.sanitizeState(JSON.parse(e.newValue||'null'));undo=null;render();announce('Выбор обновлён в другой вкладке.');}catch{}}if(e.key===ORDER){try{if(!viewingHistory)order=VPC.validateOrder(JSON.parse(e.newValue||'null'));render();}catch{}}});
 window.addEventListener('pagehide',()=>{try{history.replaceState({...history.state,vp3scroll:window.scrollY,vp3Mode:state.mode},'');}catch{}});
 window.addEventListener('pageshow',e=>{if(e.persisted){try{promotion=VPC.normalizePromotion(JSON.parse(localStorage.getItem(PROMO)||'null'));state=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY)||'null'));restoreOrderView();if(document.body.dataset.page==='picker'&&['real','demo'].includes(history.state?.vp3Mode))state.mode=history.state.vp3Mode;if(document.body.dataset.page==='tickets'&&directEntry&&!order)state.mode='demo';save();render();}catch{}}});
 const params=new URLSearchParams(location.search);
@@ -4531,9 +4574,11 @@ window.VPQR=function(value){
       const labels={ru:['Убрать','Вернуть в список','Выбрать билеты'],en:['Remove','Restore to list','Choose tickets'],hy:['Հեռացնել','Վերականգնել ցանկում','Ընտրել տոմսեր']}[lang()];
       if(!ids.length){const empty=document.createElement('p');empty.textContent=c.empty;interests.append(empty)}
       const ul=document.createElement('ul');ul.className='v6-interest-list';
-      for(const id of ids){const ride=(window.VP?.attr||[]).find(a=>a.slug===id);if(!ride)continue;const li=document.createElement('li'),link=document.createElement('a'),button=document.createElement('button');link.href=base+lang()+'/attractions/'+id+'/';link.textContent=ride.name;button.type='button';button.dataset.v6Remove=id;button.textContent=labels[0];button.setAttribute('aria-label',labels[0]+': '+ride.name);li.append(link,button);ul.append(li)}
+      for(const id of ids){const ride=(window.VP?.attr||[]).find(a=>a.slug===id);if(!ride)continue;const li=document.createElement('li'),link=document.createElement('a'),button=document.createElement('button'),photo=(window.VPSharedCatalog?.rides||[]).find(r=>r.catalogSlug===id);if(photo){const img=document.createElement('img');img.src=photo.photo;img.alt='';img.width=72;img.height=84;img.loading='lazy';img.className='v6-interest-image';li.append(img)}link.href=base+lang()+'/attractions/'+id+'/';link.textContent=ride.name;link.className='v6-interest-name';button.type='button';button.dataset.v6Remove=id;button.textContent=labels[0];button.setAttribute('aria-label',labels[0]+': '+ride.name);li.append(link,button);ul.append(li)}
       interests.append(ul);if(removedInterest){const undo=document.createElement('button');undo.type='button';undo.dataset.v6Restore='';undo.textContent=labels[1];interests.append(undo)}
-      const buy=document.createElement('a');buy.href=base+'experience/guest/quick.html?lang='+lang();buy.textContent=interests.dataset.interestSource==='real'?{ru:'Открыть демопокупку',en:'Open the purchase demo',hy:'Բացել գնման ցուցադրությունը'}[lang()]:labels[2];if(interests.dataset.interestSource==='real')buy.setAttribute('aria-describedby','real-list-boundary');buy.className='v6-list-buy';buy.dataset.vpCta='primary';interests.append(buy);
+      const actions=document.createElement('div');actions.className='v6-list-actions';actions.dataset.vpActionGroup='';
+      if(ids.length){const buy=document.createElement('a');buy.href=base+'experience/guest/company.html?source=real&mode=exact&lang='+lang();buy.textContent=labels[2];buy.setAttribute('aria-describedby','real-list-boundary');buy.className='v6-list-buy';buy.dataset.vpCta='primary';actions.append(buy)}
+      const back=document.createElement('a');back.href=base+'experience/guest/attractions.html?mode=real&lang='+lang();back.textContent={ru:ids.length?'Вернуться к подбору':'Выбрать аттракционы',en:ids.length?'Back to discovery':'Find rides',hy:ids.length?'Վերադառնալ ընտրությանը':'Ընտրել ատրակցիոններ'}[lang()];back.dataset.vpCta=ids.length?'secondary':'primary';actions.append(back);interests.append(actions);
     }
   }
   const service=document.querySelector('[data-service-placeholder]');if(service){if(!review)for(const a of document.querySelectorAll('.v5-languages a')){a.href=base+a.lang+'/attractions/';a.removeAttribute('data-locale');a.removeAttribute('data-vp-lang');a.removeAttribute('data-lang-link');}

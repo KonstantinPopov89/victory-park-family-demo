@@ -182,3 +182,50 @@ body[data-vp-discovery] .discovery-consent>div {display:flex;flex-wrap:wrap;gap:
 body[data-vp-discovery] .discovery-consent button {display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 12px;border:1px solid #cbc6db;border-radius:10px;background:#fff;color:#2f2e7d;font-size:12px;line-height:1.4}
 body[data-vp-discovery] .discovery-consent button[aria-pressed=true] {border-color:#2f2e7d;background:#f0edf7}
 body[data-vp-discovery=feed] .r-photo-fallback:not([hidden]) {position:absolute;inset:0;width:100%;height:100%;margin:0;max-width:none;padding:35dvh 68px 160px 24px;place-content:start center;background:transparent;font-size:13px;line-height:1.8}
+/* One compact family editor across both discovery modes. */
+body[data-vp-discovery] .discovery-family-entry {display:inline-flex;align-items:center;justify-content:center;min-width:0;width:auto;min-height:44px;height:auto;max-width:132px;padding:8px;font:600 11px/1.35 Montserrat,sans-serif;white-space:normal;border:0;background:none;border-radius:8px;color:inherit}
+body[data-vp-discovery=feed] .r-tools .discovery-family-entry {width:auto;min-width:0;padding:8px;max-width:118px}
+body[data-vp-discovery=swipe] .sp-header-tools .sp-mobile-settings {width:36px;min-width:36px;padding:9px}
+.discovery-family {color:#2f2e7d;font:400 14px/1.55 Montserrat,sans-serif}
+.discovery-family-intro {margin:0 0 20px}
+.discovery-family-counts {display:grid;gap:0;border-block:1px solid #dedbe9}
+.discovery-family-count {display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:64px;padding:8px 0}
+.discovery-family-count+.discovery-family-count {border-top:1px solid #e9e6ef}
+.discovery-family-count>span {font-weight:600}
+.discovery-family-count>div {display:flex;align-items:center;gap:8px}
+.discovery-family-count button {display:grid;place-items:center;width:44px;height:44px;min-height:44px;border:1px solid #ccc7dc;border-radius:10px;color:#2f2e7d;background:#fff;font:500 22px/1 Montserrat,sans-serif;padding:0}
+.discovery-family-count output {min-width:24px;text-align:center;font-weight:600;font-variant-numeric:tabular-nums}
+.discovery-family-limit,.discovery-family-note {font-size:12px;line-height:1.6;color:#625d7b;margin:8px 0 16px}
+.discovery-family-ages {display:grid;gap:0;margin:12px 0 20px}
+.discovery-family-person {display:grid;grid-template-columns:1fr 148px;gap:16px;align-items:center;padding:12px 0;border-bottom:1px solid #e9e6ef;font-size:13px}
+.discovery-family-age {display:grid;gap:5px;font-size:11px}
+.discovery-family input {min-width:0;width:100%;min-height:44px;padding:10px 12px;border:1px solid #bdb7cf;border-radius:8px;background:white;color:#2f2e7d;font:400 16px/1.4 Montserrat,sans-serif}
+.discovery-family input::placeholder {color:#625d7b;opacity:1}
+.discovery-family-actions {display:grid;gap:8px;margin-top:18px}
+.discovery-family-error {color:#92283e;font-size:13px}
+.discovery-family-error:empty {display:none}
+body[data-vp-discovery] .sp-plan-end {display:block;margin-top:20px}
+body[data-vp-discovery] .sp-plan-end>[data-vp-action-group] {display:grid;gap:8px;margin:16px 0 12px}
+body[data-vp-discovery] .sp-list-intro {font-size:13px;line-height:1.6;margin:12px 0 20px}
+body[data-vp-discovery] .sp-plan-items li {align-items:center;padding-block:16px}
+body[data-vp-discovery] .sp-plan-items .sp-plan-name {font-size:14px;line-height:1.5;padding:6px 0;text-align:left}
+body[data-vp-discovery] .sp-plan-end small {display:block;font-size:12px;line-height:1.6;color:#625d7b}
+body[data-vp-discovery=feed] .r-selected-row {align-items:center;padding-block:16px;border-radius:0;box-shadow:none;background:none;border-bottom:1px solid #e3deec}
+body[data-vp-discovery=feed] .r-selected {margin-block:16px}
+body[data-vp-discovery] dialog :is(h2,#r-dialog-title) {font-family:Montserrat,sans-serif!important;font-weight:600;font-size:24px!important;line-height:1.3!important}
+html[lang=hy] body[data-vp-discovery] :is(.discovery-family,.discovery-family input,.discovery-family-count button,.discovery-family-entry,dialog h2,#r-dialog-title) {font-family:'Noto Sans Armenian',sans-serif!important}
+@media(max-width:359px){
+ body[data-vp-discovery] .discovery-family-entry {font-size:10px;padding:6px;max-width:105px}
+ body[data-vp-discovery=swipe] .sp-mobile-list {font-size:10px}
+ body[data-vp-discovery=swipe] .sp-header-tools .sp-mobile-settings {width:32px;min-width:32px;padding:8px}
+ .discovery-family-person {grid-template-columns:1fr 122px;gap:10px}
+}
+body[data-vp-discovery=feed] .r-header .r-tools {flex:none}
+body[data-vp-discovery=feed] .r-header .r-counter {flex:1;overflow:hidden}
+body[data-vp-discovery=feed] .r-tools .discovery-family-entry {flex:none;max-width:none;font-size:10px;padding-inline:6px;white-space:nowrap}
+body[data-vp-discovery] .sp-plan-head h2 {font:600 24px/1.35 Montserrat,sans-serif!important;letter-spacing:0}
+html[lang=hy] body[data-vp-discovery] .sp-plan-head h2 {font-family:'Noto Sans Armenian',sans-serif!important}
+/* The shared editor replaces the old padded family sub-sections. */
+#sp-dialog[data-kind=family] #sp-dialog-body {display:block;overflow-y:auto;overscroll-behavior:contain;padding:28px 20px calc(20px + env(safe-area-inset-bottom));max-height:calc(100dvh - 28px - env(safe-area-inset-top));scrollbar-gutter:stable}
+#sp-dialog[data-kind=family] #sp-dialog-body>h2 {margin:0 0 20px;padding-right:44px}
+@media(max-width:359px){#sp-dialog[data-kind=family] #sp-dialog-body{padding-inline:18px}}

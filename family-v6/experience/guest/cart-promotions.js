@@ -90,16 +90,18 @@
   function baseOrder(order) {
     var result = {};
     BASE_KEYS.forEach(function (key) { result[key] = order[key]; });
-    if (order.modelVersion === 'family-demo-3.4') result.paymentConfirmedAt = order.paymentConfirmedAt;
+    if (['family-demo-3.4','family-demo-3.5'].includes(order.modelVersion)) result.paymentConfirmedAt = order.paymentConfirmedAt;
+    if (has(order, 'selectedJourney')) result.selectedJourney = order.selectedJourney;
     if (order.status === 'partial') result.issuedCount = order.issuedCount;
     if (has(order, 'pricingVersion')) result.total = order.subtotal;
     return result;
   }
   function validateOrder(order) {
-    if (!object(order) || !Array.isArray(order.lines) || !order.lines.every(function (line) { return exactKeys(line, order.modelVersion === 'family-demo-3.4' ? LINE_KEYS.concat(['purchasedAt', 'validUntil', 'timeZone']) : LINE_KEYS); })) return null;
+    if (!object(order) || !Array.isArray(order.lines) || !order.lines.every(function (line) { return exactKeys(line, ['family-demo-3.4','family-demo-3.5'].includes(order.modelVersion) ? LINE_KEYS.concat(['purchasedAt', 'validUntil', 'timeZone']) : LINE_KEYS); })) return null;
     var enriched = has(order, 'pricingVersion');
     var keys = order.status === 'partial' ? BASE_KEYS.concat(['issuedCount']) : BASE_KEYS;
-    if (order.modelVersion === 'family-demo-3.4') keys = keys.concat(['paymentConfirmedAt']);
+    if (['family-demo-3.4','family-demo-3.5'].includes(order.modelVersion)) keys = keys.concat(['paymentConfirmedAt']);
+    if (has(order, 'selectedJourney')) keys = keys.concat(['selectedJourney']);
     if (!exactKeys(order, enriched ? keys.concat(EXTRA_KEYS) : keys)) return null;
     var validated = base.validateOrder(baseOrder(order));
     if (!validated) return null;

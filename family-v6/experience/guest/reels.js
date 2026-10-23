@@ -56,7 +56,7 @@
     if(mode==='real')filter='all';
     const ordered=mode==='real'?allRides().slice().sort((a,b)=>Number(Boolean(b.photo))-Number(Boolean(a.photo))):allRides();
     const source=mode==='real'&&window.VPDiscoveryContext?VPDiscoveryContext.filterRides(ordered):ordered;
-    rides = source.filter(r => filter === 'all' || r.intensity === filter);
+    rides = source.filter(r => filter === 'all' || r.intensity === filter).slice().sort((a,b)=>(window.VPDiscoveryContext?.familyScore(b,state.party)||0)-(window.VPDiscoveryContext?.familyScore(a,state.party)||0));
     const p = progress(), byId = rides.findIndex(r => r.id === p.rideId);
     index = restore ? (byId >= 0 ? byId : Math.min(Number.isInteger(p.index) ? Math.max(0,p.index) : 0, rides.length)) : 0;
     const deep = restore && params.get('ride'); if (deep && rides.some(r=>r.id===deep)) index = rides.findIndex(r=>r.id===deep);
@@ -68,7 +68,7 @@
     const facts=r.fictional?'<p class="r-source">Учебные цены и условия, не правила парка.</p>':'<p class="r-source">Цена и условия уточняются у парка.</p>';
     return '<article class="r-card" data-slot="'+slot+'" data-id="'+r.id+'" '+(slot ? 'inert aria-hidden="true"' : 'aria-label="'+esc(r.name)+'"')+'><div class="r-photo'+(r.photo?'':' r-photo-missing')+'">'+photo+'</div><div class="r-content"><h2>'+esc(r.name)+'</h2>'+facts+'<button class="r-details" data-action="details">Условия и семья <span aria-hidden="true">ⓘ</span></button></div></article>';
   }
-  function endSummary() { return selected().length?'В вашем списке: '+selected().length+'. '+(mode==='demo'?'Можно перейти к билетам или вернуться к просмотру.':'Условия и стоимость можно уточнить у парка.'):'Можно посмотреть ещё раз или открыть каталог.'; }
+  function endSummary() { return selected().length?'В вашем списке: '+selected().length+'. '+'Можно перейти к билетам или вернуться к просмотру.':'Можно посмотреть ещё раз или открыть каталог.'; }
   function endCard(slot) {
     const empty = !rides.length;
     return '<article class="r-card r-end" data-slot="'+slot+'" '+(slot ? 'inert aria-hidden="true"' : '')+'><span class="r-end-icon" aria-hidden="true">'+(empty?'○':'✓')+'</span><p class="r-eyebrow">'+(empty?'ПО ЭТОМУ ФИЛЬТРУ':'ВСЁ ПОСМОТРЕЛИ')+'</p><h2>'+(empty?'Пока ничего<br>не нашлось':selected().length?'Ваш день<br>начинается здесь':'Пока ничего не выбрано')+'</h2><p'+(empty?'':' data-end-summary')+'>'+(empty?'Попробуйте все аттракционы.':endSummary())+'</p><div class="r-actions">'+(empty?'<button class="r-save" data-action="reset-filter">Показать все</button>':(selected().length?'<button class="r-save" data-vp-cta="primary" data-action="list">Открыть мой список</button>':'')+'<button class="'+(selected().length?'r-list-btn':'r-save')+'" data-action="restart">Посмотреть ещё раз</button>')+'<a class="r-text" data-vp-cta="secondary" href="'+catalogURL()+'">Открыть каталог ↗</a></div></article>';
@@ -105,6 +105,7 @@
     $('#r-count').textContent = !rides.length ? '0 / 0' : Math.min(index+1,rides.length)+' / '+rides.length;
     $('#r-mode-label').textContent = mode==='demo'?'Учебный пример':'Аттракционы парка';
     $('#r-list-count').textContent = selected().length;
+    const familyButton=document.querySelector('.r-tools [data-action=family]');if(familyButton){familyButton.classList.add('discovery-family-entry');familyButton.setAttribute('data-i18n-skip','');familyButton.innerHTML=esc(window.VPDiscoveryContext.familyLabel(state.party));familyButton.setAttribute('aria-label',window.VPDiscoveryContext.familyLabel(state.party));}
     track.querySelectorAll('[data-end-summary]').forEach(el => { el.textContent = endSummary(); });
     const isSaved = current() && selected().includes(current().id);
     $('#r-save').setAttribute('aria-pressed',String(!!isSaved)); $('#r-save-label').textContent = current() ? (isSaved?'В списке':'Хочу покататься') : (selected().length?'К моему списку':'Посмотреть ещё раз');
@@ -193,36 +194,25 @@
   function panelHTML(title, html) {$('#r-dialog-title').textContent=title;$('#r-dialog-body').innerHTML=html;}
   function renderPanel() {if(panel==='details')renderDetails();else if(panel==='family')renderFamily();else if(panel==='list')renderList();else renderHelp();}
   function familyHTML(r) {
-    if(!state.party.length)return '<p>Укажите возраст и рост, чтобы проверить условия для вашей семьи. Можно сделать это позже.</p><button class="r-secondary" data-vp-cta="secondary" data-action="family">Добавить семью</button>';
-    return '<ul class="r-family-results">'+C.familyStatus(r,state.party).map(p=>'<li data-status="'+esc(p.status)+'"><strong>'+esc(p.label)+'</strong><span>'+esc(p.text)+'</span></li>').join('')+'</ul><button class="r-text" data-action="family">Изменить семью</button>';
+    if(!state.party.length)return '<p>Укажите состав компании и возраст для подбора. Можно сделать это позже.</p><button class="r-secondary" data-vp-cta="secondary" data-action="family">Добавить семью</button>';
+    return '<ul class="r-family-results">'+state.party.map(p=>{const hint=window.VPDiscoveryContext.recommendation(r,p);return '<li data-status="'+esc(hint.status)+'"><strong>'+esc(p.label)+'</strong><span>'+esc(hint.text)+'</span></li>';}).join('')+'</ul><button class="r-text" data-action="family">Изменить семью</button>';
   }
   function renderDetails() {
     const r=current();if(!r)return;const f=C.facts(r);
     panelHTML(r.name,'<p class="r-disclaimer">'+esc(f.disclaimer)+'</p><h3>'+esc(f.price)+'</h3><ul class="r-detail-facts">'+f.lines.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ul><p class="r-muted">'+esc(VPPhoto.note())+'</p><h3>Ваша семья</h3>'+familyHTML(r)+'<p class="r-muted">Сохранение означает, что вам интересно. Возможность катания зависит от условий аттракциона. Статус работы уточняйте перед визитом.</p><p class="r-muted">'+esc(f.source)+'</p><button class="r-save" data-action="save">'+(selected().includes(r.id)?'♥ В списке · убрать':'♡ Хочу покататься')+'</button>');
   }
   function renderFamily() {
-    panelHTML('Ваша семья','<p>Добавьте тех, с кем идёте. Если рост пока неизвестен, оставьте поле пустым.</p><form id="r-family-form"><div id="r-people">'+state.party.map(personRow).join('')+'</div><div class="r-actions"><button type="button" class="r-secondary" data-action="add-child">+ Ребёнок</button><button type="button" class="r-secondary" data-action="add-adult">+ Взрослый</button></div><p id="r-family-error" role="alert"></p><div class="r-actions" data-vp-action-group><button class="r-save" data-vp-cta="primary" type="submit">Сохранить семью</button><button class="r-text" data-vp-cta="secondary" type="button" data-action="close">Сейчас пропустить</button></div></form>');
-    $('#r-family-form').addEventListener('submit',saveFamily);
+    panelHTML(window.VPDiscoveryContext.familyText().title,'<div id="r-family-editor"></div>');
+    window.VPDiscoveryContext.mountFamily($('#r-family-editor'),state.party,party=>{
+      readState();const next=structuredClone(raw && typeof raw==='object' && !Array.isArray(raw) ? raw : M.emptyState());next.party=party;next.mode=mode;commitRaw(next);setRides(true);saveProgress();render();closePanel();toast(window.VPDiscoveryContext.familyText().saved);
+    },closePanel);
   }
-  function personRow(p) {
-    return '<fieldset class="r-person" data-person="'+esc(p.id)+'" data-role="'+p.role+'"><legend>'+(p.role==='child'?'Ребёнок':'Взрослый')+'</legend><label class="r-field">Имя<input name="label" maxlength="40" value="'+esc(p.label)+'" autocomplete="off"></label><label class="r-field">Возраст, лет<input type="number" name="age" min="'+(p.role==='child'?0:18)+'" max="'+(p.role==='child'?17:120)+'" step="1" inputmode="numeric" value="'+(p.age??'')+'"></label><label class="r-field">Рост, см<input type="number" name="height" min="40" max="250" step="1" inputmode="numeric" value="'+(p.height??'')+'"></label><button type="button" class="r-text" data-action="remove-person">Убрать</button></fieldset>';
-  }
-  function addPerson(role) {
-    if($('#r-people').children.length>=8){$('#r-family-error').textContent='Можно добавить до 8 человек.';return;}
-    const p={id:'reels-'+Date.now()+'-'+Math.floor(Math.random()*1000),role,label:role==='child'?'Ребёнок':'Взрослый',age:role==='adult'?18:null,height:null};
-    $('#r-people').insertAdjacentHTML('beforeend',personRow(p));$('#r-people').lastElementChild.querySelector('input').focus();
-  }
-  function saveFamily(e) {
-    e.preventDefault();const form=e.currentTarget;if(!form.reportValidity())return;
-    const party=[...form.querySelectorAll('[data-person]')].map(el=>({id:el.dataset.person,role:el.dataset.role,label:el.querySelector('[name=label]').value.trim()||(el.dataset.role==='child'?'Ребёнок':'Взрослый'),age:el.querySelector('[name=age]').value===''?null:Number(el.querySelector('[name=age]').value),height:el.querySelector('[name=height]').value===''?null:Number(el.querySelector('[name=height]').value)}));
-    readState();const next=structuredClone(raw && typeof raw==='object' && !Array.isArray(raw) ? raw : M.emptyState());next.party=party;next.mode=mode;commitRaw(next);closePanel();toast('Семья сохранена. Проверка доступна в условиях аттракциона.');
-  }
-  function ticketLink() {return mode==='real'?'index.html#visit':'quick.html?product=single&picker=reels'+(selected()[0]?'&ride='+encodeURIComponent(selected()[0]):'');}
+  function ticketLink() {return window.VPDiscoveryContext.ticketsURL(mode,'reels');}
   function renderList() {
     const list=allRides().filter(r=>selected().includes(r.id));
     const undo = lastRemoved ? '<p class="r-undo" role="status">Убрано из списка. <button class="r-text" data-action="restore" data-id="'+esc(lastRemoved)+'">Вернуть</button></p>' : '';
     if(!list.length){panelHTML('Мой список',undo+'<div class="r-empty"><h3>Пока ничего не выбрано</h3><p>Добавьте то, на чём хотите покататься. Ваш список будет здесь.</p><button class="r-save" data-vp-cta="primary" data-action="close">Выбрать аттракционы</button><a class="r-text" data-vp-cta="secondary" href="'+catalogURL()+'">Открыть каталог</a></div>');return;}
-    panelHTML('Мой список · '+list.length,undo+'<p>Вы хотите покататься</p><div class="r-selected">'+list.map(r=>{const f=C.facts(r);return '<article class="r-selected-row">'+(r.photo?'<img src="'+esc(r.photo.replace('-780.webp','-390.webp'))+'" alt="" width="64" height="64" loading="lazy">':'<span aria-hidden="true" style="width:64px;height:64px;display:grid;place-items:center">○</span>')+'<div><h3>'+esc(r.name)+'</h3><p>'+esc(f.price)+'</p><p class="r-muted">'+esc((f.cardLines || f.lines).join(' '))+'</p></div><button class="r-icon" data-action="remove" data-id="'+r.id+'" aria-label="Убрать '+esc(r.name)+'">×</button></article>';}).join('')+'</div><p class="r-disclaimer">'+(mode==='demo'?'Учебный пример. Цены и условия вымышлены.':'Реальные цены и условия пока не подтверждены. Онлайн-покупка для этих аттракционов недоступна.')+'</p><p class="r-muted">'+(storageFailed?'Выбор доступен до закрытия этой страницы.':'Выбор сохранён в этом браузере.')+' Условия катания проверьте перед покупкой.</p><div class="r-actions" data-vp-action-group><button class="r-secondary" data-vp-cta="secondary" data-action="close">Продолжить выбирать</button>'+(mode==='demo'?(writeBlocked?'<p class="r-muted">Чтобы передать выбор к билетам, разрешите браузеру сохранять данные.</p>':'<a class="r-save" data-vp-cta="primary" href="'+ticketLink()+'">К билетам ↗</a>'):'<a class="r-save" data-vp-cta="primary" href="'+sharedURL('plan')+'">Открыть весь список</a>')+'</div>'+(mode==='demo'&&!writeBlocked?'<div class="r-list-routes" data-vp-action-group><a class="r-text" data-vp-cta="secondary" href="company.html?mode=exact&picker=reels">Рассчитать для нас</a><a class="r-text" data-vp-cta="secondary" href="company.html?mode=flexible&picker=reels">Выберем на месте</a></div>':''));
+    panelHTML('Мой список · '+list.length,undo+'<p>Выберите билеты для этих аттракционов и вашей компании.</p><div class="r-selected">'+list.map(r=>'<article class="r-selected-row">'+(r.photo?'<img src="'+esc(r.photo.replace('-780.webp','-390.webp'))+'" alt="" width="64" height="64" loading="lazy">':'')+'<div><h3>'+esc(r.name)+'</h3></div><button class="r-icon" data-action="remove" data-id="'+r.id+'" aria-label="Убрать '+esc(r.name)+'">×</button></article>').join('')+'</div><p class="r-muted">Далее: кто катается, состав билетов и тестовая оплата. Цены и возрастные ориентиры демонстрационные.</p><div class="r-actions" data-vp-action-group>'+(writeBlocked?'<p role="alert">Чтобы передать выбор к билетам, разрешите браузеру сохранять данные.</p>':'<a class="r-save" data-vp-cta="primary" href="'+ticketLink()+'">Выбрать билеты</a>')+'<button class="r-secondary" data-vp-cta="secondary" data-action="close">Вернуться к подбору</button></div><p class="r-muted">Реальные условия и допуск уточните у парка.</p>');
   }
   function renderHelp() {
     panelHTML('Выбирайте в своём ритме','<ol class="r-help-steps"><li><strong>Листайте вверх</strong><p>Следующий аттракцион. Вниз, чтобы вернуться. Можно нажимать стрелки.</p></li><li><strong>Нравится? Добавьте в список</strong><p>Кнопка «Хочу покататься». Повторное нажатие убирает из списка. Листание ничего не удаляет.</p></li><li><strong>Завершите, когда захотите</strong><p>«Мой список» всегда внизу. Оттуда можно перейти к билетам.</p></li></ol><button class="r-save" data-action="close">Понятно, к просмотру</button>'+(mode==='demo'?'<h3>Что показать</h3><div class="r-filter">'+[['all','Все'],['calm','Спокойнее'],['exciting','С драйвом']].map(([v,t])=>'<button class="r-secondary" data-action="filter" data-value="'+v+'" aria-pressed="'+(filter===v)+'">'+t+'</button>').join('')+'</div>':'')+'<h3>Другой формат</h3><div class="r-actions"><a class="r-text" href="attractions.html?mode='+mode+'">Свайп-подбор ↗</a><a class="r-text" href="'+catalogURL()+'">Каталог ↗</a></div><details class="r-demo-settings"><summary>О прототипе и данных</summary><p>Лента на фото. В учебном режиме цены, возраст, рост и сопровождение вымышлены. Выбор сохраняется только в этом браузере. Реальная оплата не подключена.</p><button class="r-secondary" data-action="mode">'+(mode==='demo'?'Показать реальные аттракционы':'Показать учебные примеры')+'</button></details>'+ (window.VPDiscoveryContext?.consentHTML()||''));
@@ -234,7 +224,7 @@
       syncMode();
       if(writeBlocked) { e.preventDefault(); toast('Не удалось сохранить выбор. Продолжайте на этой странице, чтобы не потерять его.', true); return; }
     }
-    if(link && /(?:tickets|company)\.html/.test(link.getAttribute('href')))syncMode();
+    if(link && /(?:tickets|company)\.html/.test(link.getAttribute('href'))){syncMode();if(writeBlocked){e.preventDefault();return;}}
     const el=e.target.closest('[data-action]');if(!el)return;
     const a=el.dataset.action;
     if(a==='save'){finishPendingMove();if(current())toggle();else if(selected().length)openPanel('list');else{index=0;saveProgress();render();}}
@@ -246,8 +236,6 @@
     else if(a==='remove')toggle(el.dataset.id,false);
     else if(a==='restore')toggle(el.dataset.id,true);
     else if(a==='hide-toast')$('#r-toast').classList.add('is-hidden');
-    else if(a==='add-child'||a==='add-adult')addPerson(a==='add-child'?'child':'adult');
-    else if(a==='remove-person')el.closest('[data-person]').remove();
     else if(a==='filter'||a==='reset-filter'){filter=mode==='real'?'all':a==='filter'?el.dataset.value:'all';setRides();saveProgress();if(dialog.open)closePanel();render();}
     else if(a==='restart'){index=0;saveProgress();render();}
     else if(a==='mode'){mode=mode==='demo'?'real':'demo';syncMode();filter=progress().filter;if(mode==='real')write(JOURNAL,journal);setRides(true);const url=new URL(location.href);url.searchParams.set('mode',mode);history.replaceState(null,'',url.pathname+url.search+url.hash);closePanel();render();}

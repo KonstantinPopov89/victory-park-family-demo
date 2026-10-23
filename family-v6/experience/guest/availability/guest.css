@@ -58,3 +58,32 @@ body[data-page="guest"] .vp-menu-toggle{flex:0 0 auto;min-width:46px;width:auto;
 .guest-controls button{max-width:100%;overflow-wrap:anywhere}
 #search-toggle svg{flex-shrink:0}
 @media(max-width:600px){body[data-page="guest"] .vp-primary{flex:1 1 120px}}
+/* r22: full shared catalogue, explicit demo context, calm utility layout. */
+body[data-page=guest]>.guest-shell {padding-top:28px;padding-bottom:32px}
+.guest-shell .page-heading {margin-bottom:24px}
+.guest-shell h1 {font-size:42px;line-height:1.1;margin-bottom:16px}
+.guest-demo-label {font-weight:600;font-size:14px;color:#2f2e7d;margin:0 0 6px}
+.guest-demo-intro {max-width:60ch;font-size:14px;line-height:1.65;margin:0 0 8px;color:#625d7b}
+.guest-search {display:flex;align-items:center;width:100%;border:1px solid #bdb7cf;border-radius:10px;overflow:hidden;margin-bottom:16px;background:white}
+.guest-search input {width:100%;min-width:0;min-height:48px;border:0;background:transparent;padding:12px 14px;color:#2f2e7d;font:400 16px/1.5 Montserrat,sans-serif}
+.guest-search input::placeholder {color:#625d7b;opacity:1}
+.guest-search button {min-width:44px;min-height:44px;border:0;background:transparent;font-size:22px;color:#2f2e7d}
+.guest-filters {display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.guest-filters button {min-height:44px;border:1px solid #d8d3e3;border-radius:8px;padding:9px 12px;background:white;color:#2f2e7d;font-size:12px;font-weight:600}
+.guest-filters button[aria-pressed=true] {background:#2f2e7d;border-color:#2f2e7d;color:white}
+.guest-overview {font-size:12px;font-weight:400;color:#625d7b;margin-bottom:12px}
+.guest-ride>details>summary {min-height:88px;padding-block:14px}
+.guest-photo img {object-fit:cover}
+.guest-status {font-size:12px;font-weight:500}
+.guest-status::before {content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:3px}
+.guest-shell .guest-explanation {border-bottom:1px solid #dedbe9;padding-block:8px;margin-top:12px}
+.guest-shell .guest-explanation>summary {font-size:13px;line-height:1.6;color:#2f2e7d}
+.guest-hours {padding-top:24px}
+.guest-hours h2 {font:600 16px/1.5 Montserrat,sans-serif!important}
+.guest-hours p {font-size:13px;line-height:1.65;color:#625d7b;margin:8px 0}
+.guest-hours a {min-height:44px;display:inline-flex;align-items:center;font-size:13px;font-weight:600}
+.guest-shell .empty {padding:24px 0;background:none;text-align:left}
+.guest-shell .empty p {font-size:13px;margin:8px 0}
+.guest-shell .empty button {min-height:44px;border:1px solid #bdb7cf;background:white;border-radius:8px;color:#2f2e7d;padding:10px 16px;font-size:13px}
+html[lang=hy] .guest-shell :is(input,.guest-hours h2) {font-family:'Noto Sans Armenian',sans-serif!important}
+@media(max-width:600px){body[data-page=guest]>.guest-shell{padding-top:24px}.guest-shell h1{font-size:36px}.guest-ride-info{padding-left:0}}

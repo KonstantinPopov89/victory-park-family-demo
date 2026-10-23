@@ -75,7 +75,7 @@
   products = freeze(universalProducts);
   var packageProducts = packageSizes.map(function (size) { return products['package' + size]; });
   if(typeof window!=='undefined'&&window.VPProductCatalog){products=freeze(window.VPProductCatalog.products);packageProducts=packageSizes.map(function(n){return products['package'+n];});}
-  var MODEL_VERSION = 'family-demo-3.4';
+  var MODEL_VERSION = 'family-demo-3.5';
   // Explicit fictional admission examples. Editorial ageRange is deliberately separate.
   var admissionRules = freeze({
     'demo-calm': { minAge: 3, maxAge: null, soloAge: 8, adultPrice: 900 },
@@ -171,17 +171,41 @@
     }
   }
 } );
-  var currentOrderCatalog = freeze({
+  var legacy34OrderCatalog = freeze({
     rides: demoRides.reduce(function (out, ride) { out[ride.id] = { name: ride.name, price: ride.price }; return out; }, {}),
     products: products
   });
+  // Owner-approved fictional layer for the real names selected in discovery.
+  // It neither modifies the source catalogue nor asserts actual admission rules.
+  var smallSlugs = ['solnyshko','begemot','sloniki','labirint-detskiy','svetofor','poezd','kapik','avtoralli'];
+  var thrillSlugs = ['kobra','gorki','pendulum','orbita','pirat','bashnya','planeta','cep','moto','raketa','mars','syurpriz','tornado','zamok'];
+  // Existing demo amounts from assets/js/data-ru.js, checked across RU/HY/EN.
+  // Copying only prices does not import its independent product rights or admission examples.
+  var connectedPrices = {"koleso":1500,"kobra":1000,"autodrom":1000,"gorki":800,"pendulum":1000,"orbita":800,"lebedi":700,"pirat":800,"arbuz":500,"bashnya":1000,"shary":1000,"planeta":600,"cep":700,"moto":1000,"raketa":600,"avtoralli":1000,"mars":1000,"syurpriz":600,"zamok":1000,"vodnye-lebedi":1000,"solnyshko":500,"begemot":600,"tornado":600,"sloniki":500,"labirint-detskiy":500,"svetofor":500,"batuty":500,"poezd":600,"kapik":400,"labirint":700,"vr-cinema":1500,"vr-2":1500,"dark-vr":1500,"tir":1000,"avtomaty":500};
+  var connectedRides = freeze(realRides.map(function (r) {
+    var small = smallSlugs.includes(r.catalogSlug), thrill = thrillSlugs.includes(r.catalogSlug);
+    return { id: 'demo-park-' + r.catalogSlug, realRideId: r.id, catalogSlug: r.catalogSlug,
+      name: r.name, names: r.names, photo: r.photo, photoProvenance: r.photoProvenance,
+      price: connectedPrices[r.catalogSlug], intensity: thrill ? 'exciting' : 'calm',
+      ageRange: small ? [3, 9] : thrill ? [10, 99] : [5, 99],
+      ageBasis: 'Демонстрационный возрастной ориентир. Не подтверждает допуск и правила парка.',
+      rules: null, operation: 'unknown', fictional: true, connectedDemo: true, symbol: '' };
+  }));
+  demoRides = freeze(demoRides.concat(connectedRides));
+  var connectedProducts = copy(products);
+  connectedProducts.ticket.includedRideIds = demoRides.map(function (r) { return r.id; });
+  packageSizes.forEach(function (size) { connectedProducts['package' + size].includedRideIds = demoRides.map(function (r) { return r.id; }); });
+  products = freeze(connectedProducts);
+  packageProducts = packageSizes.map(function (size) { return products['package' + size]; });
+  var currentOrderCatalog = freeze({ rides: demoRides.reduce(function (out, r) { out[r.id] = { name: r.name, price: r.price }; return out; }, {}), products: products });
   var legacyNamedRides = legacyDemoRides.reduce(function (out, ride) { out[ride.id] = { name: ride.name, price: ride.price }; return out; }, {});
   var orderCatalogs = freeze({
     'family-demo-3': legacyOrderCatalog,
     'family-demo-3.1': { rides: legacyNamedRides, products: legacy31Products },
     'family-demo-3.2': { rides: legacyNamedRides, products: legacy32Products },
-    'family-demo-3.3': { rides: currentOrderCatalog.rides, products: legacy33Products },
-    'family-demo-3.4': currentOrderCatalog
+    'family-demo-3.3': { rides: legacy34OrderCatalog.rides, products: legacy33Products },
+    'family-demo-3.4': legacy34OrderCatalog,
+    'family-demo-3.5': currentOrderCatalog
   });
   var rideMap = {};
   realRides.concat(demoRides).forEach(function (r) { rideMap[r.id] = r; });
@@ -220,7 +244,7 @@
       seen.add(p.id);
       if (p.role === 'adult' && p.age != null && !integer(p.age, 18, 120)) issues.push('party');
       out.party.push({ id: p.id, label: label(p.label, (p.role === 'adult' ? 'Взрослый ' : 'Ребёнок ') + (i + 1)), role: p.role,
-        age: p.role === 'adult' ? (p.age == null ? 18 : integer(p.age, 0, 120) ? p.age : -1) : integer(p.age, 0, 17) ? p.age : null,
+        age: p.role === 'adult' ? (p.age == null ? null : integer(p.age, 0, 120) ? p.age : -1) : integer(p.age, 0, 17) ? p.age : null,
         height: typeof p.height === 'number' && Number.isFinite(p.height) && p.height >= 40 && p.height <= 250 ? p.height : null });
     });
     ['real', 'demo'].forEach(function (mode) {
@@ -234,7 +258,7 @@
     out.companionId = id(raw.companionId) || null;
     out.companionAutoSelected = !!out.companionId && raw.companionAutoSelected === true;
     var lines = raw.cart && Array.isArray(raw.cart.lines) ? raw.cart.lines : [], lineIds = new Set();
-    out.tariffNotice = raw.modelVersion === MODEL_VERSION ? (typeof raw.tariffNotice === 'string' ? raw.tariffNotice.slice(0, 800) : null) : lines.some(function (line) { return line && isPackage(line); }) ? 'Условия пакетов обновились: теперь билет подходит для любого аттракциона демонстрационного каталога, срок 30 дней с покупки. Количество билетов и сумма сохранены. Проверьте заказ перед оплатой.' : null;
+    out.tariffNotice = raw.modelVersion === MODEL_VERSION ? (typeof raw.tariffNotice === 'string' ? raw.tariffNotice.slice(0, 800) : null) : lines.some(function (line) { return line && isPackage(line); }) ? 'Для новой демопокупки пакет теперь также покрывает выбранные названия из каталога парка. Количество, сумма и срок 30 дней сохранены. Прежние оплаченные образцы не изменены. Проверьте состав перед оплатой.' : null;
     if (lines.length > 100) issues.push('cart');
     lines.slice(0, 100).forEach(function (line, i) {
       if (!line || typeof line !== 'object') { issues.push('cart'); return; }
@@ -251,7 +275,19 @@
         companionFor: unique((Array.isArray(line.companionFor) ? line.companionFor : []).filter(function (value) { return id(value); })),
         companionReason: line.autoCompanion === true ? label(line.companionReason, 'Сопровождение ребёнка') : null });
     });
+    if (raw.selectedJourney && raw.selectedJourney.version === 1) {
+      var j = raw.selectedJourney;
+      out.selectedJourney = { version: 1, realRideIds: unique((Array.isArray(j.realRideIds) ? j.realRideIds : []).filter(function (rid) { return realRides.some(function (r) { return r.id === rid; }); })),
+        summary: (Array.isArray(j.summary) ? j.summary : []).filter(function (s) { return typeof s === 'string'; }).slice(0, 100).map(function (s) { return s.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 500); }),
+        cartFingerprint: typeof j.cartFingerprint === 'string' ? j.cartFingerprint : '', partyFingerprint: typeof j.partyFingerprint === 'string' ? j.partyFingerprint : '' };
+    }
     out._issues = unique(issues); return out;
+  }
+  function demoForReal(realId) { return connectedRides.find(function (r) { return r.realRideId === realId; }) || null; }
+  function previewRealSelection(raw) {
+    var s = sanitizeState(raw); s.mode = 'demo';
+    s.selections.demo = s.selections.real.map(demoForReal).filter(Boolean).map(function (r) { return r.id; });
+    return s;
   }
   function sampleState() {
     var s = emptyState();
@@ -262,13 +298,14 @@
   function ageHint(ride, person) {
     if (typeof ride === 'string') ride = rideMap[ride];
     if (!ride || !ride.fictional || !ride.ageRange) return { status: 'unknown', text: 'Возрастная рекомендация не подтверждена.' };
-    if (!person || person.role !== 'child' || !integer(person.age, 0, 17)) return { status: 'unknown', text: 'Учебный возрастной ориентир: ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Это не правило допуска.' };
+    if (!person || (!ride.connectedDemo && person.role !== 'child') || !integer(person.age, person.role === 'adult' ? 18 : 0, person.role === 'adult' ? 120 : 17)) return { status: 'unknown', text: 'Учебный возрастной ориентир: ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Это не правило допуска.' };
     var inside = person.age >= ride.ageRange[0] && person.age <= ride.ageRange[1];
     return { status: inside ? 'suggested' : 'outside', text: (inside ? 'В возрастном ориентире' : 'Вне возрастного ориентира') + ' ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Возраст не подтверждает допуск.' };
   }
   function admission(ride, person, purchaseOptions) {
     if (typeof ride === 'string') ride = rideMap[ride];
     var out = { status: 'unknown', reasons: [], needsHeight: false, needsCompanion: false, companionKnown: false, priceNeedsHeight: false };
+    if (ride && ride.connectedDemo) { out.companionKnown = true; out.reasons.push('В деморасчёте один билет на одного участника. Реальные допуск и сопровождение уточняются у парка.'); return out; }
     if (!ride || !ride.fictional || !ride.rules || !admissionRules[ride.id]) { out.reasons.push('Условия допуска нужно уточнить у парка.'); return out; }
     if (!person || !['adult', 'child'].includes(person.role)) { out.reasons.push('Участник не выбран.'); return out; }
     var age = person.role === 'adult' && person.age == null ? 18 : person.age, rule = admissionRules[ride.id], r = ride.rules;
@@ -683,6 +720,7 @@
     });
     var totalItems = lines.reduce(function (sum, line) { return sum + line.quantity; }, 0);
     var order = { version: 3, modelVersion: MODEL_VERSION, id: orderId, status: status === 'partial' && totalItems === 1 ? 'issuance' : status || 'pending', total: assessment.total, lines: lines, createdAt: createdAt, paymentConfirmedAt: purchasedAt };
+    if (s.selectedJourney && s.selectedJourney.cartFingerprint === JSON.stringify(s.cart.lines) && s.selectedJourney.partyFingerprint === JSON.stringify(s.party)) order.selectedJourney = { version: 1, realRideIds: s.selectedJourney.realRideIds.slice(), summary: s.selectedJourney.summary.slice() };
     if (order.status === 'partial') order.issuedCount = totalItems - 1;
     return order;
   }
@@ -690,7 +728,7 @@
     if (!order || order.version !== 3 || typeof order.modelVersion !== 'string' || !Object.prototype.hasOwnProperty.call(orderCatalogs, order.modelVersion) || !id(order.id) || !['success', 'declined', 'pending', 'issuance', 'partial'].includes(order.status) || !Array.isArray(order.lines) || !order.lines.length || order.lines.length > 100 || !integer(order.total, 1, 100000000) || typeof order.createdAt !== 'string' || !Number.isFinite(Date.parse(order.createdAt))) return null;
     if (Object.prototype.hasOwnProperty.call(order, 'visitDate')) return null;
     if (order.status !== 'partial' && Object.prototype.hasOwnProperty.call(order, 'issuedCount')) return null;
-    if (order.modelVersion === MODEL_VERSION) {
+    if (['family-demo-3.4', MODEL_VERSION].includes(order.modelVersion)) {
       var paid = ['success', 'issuance', 'partial'].includes(order.status);
       if (paid ? typeof order.paymentConfirmedAt !== 'string' || !Number.isFinite(Date.parse(order.paymentConfirmedAt)) || Date.parse(order.paymentConfirmedAt) < Date.parse(order.createdAt) : order.paymentConfirmedAt !== null) return null;
     }
@@ -701,7 +739,7 @@
       if (!product || !id(line.id) || ids.has(line.id) || !integer(line.quantity, 1, MAX_QUANTITY) || priceFor(line, catalog) === null || line.unitPrice !== priceFor(line, catalog) || Object.prototype.hasOwnProperty.call(line, 'visitDate')) return null;
       var included = line.productId === 'ticket' ? [line.rideId] : product.includedRideIds;
       var expectedName = line.productId === 'ticket' ? 'Билет: ' + catalog.rides[line.rideId].name : product.name;
-      var modern = order.modelVersion === MODEL_VERSION, packaged = isPackage(line);
+      var modern = ['family-demo-3.4', MODEL_VERSION].includes(order.modelVersion), packaged = isPackage(line);
       if (line.name !== expectedName || !equal(line.includedRideIds, included) || !equal(line.includedNames, included.map(function (rideId) { return catalog.rides[rideId].name; })) || !equal(line.terms, product.terms) || line.validity !== (modern && packaged ? PACKAGE_VALIDITY : VALIDITY) || line.unitsPerItem !== (packaged ? product.rides || 5 : line.productId === 'ticket' ? 1 : null) || typeof line.recipientLabel !== 'string' || !line.recipientLabel.trim() || line.recipientLabel.length > 150 || /[\u0000-\u001f<>]/.test(line.recipientLabel)) return null;
       if (modern && (line.purchasedAt !== order.paymentConfirmedAt || line.validUntil !== (packaged && order.paymentConfirmedAt ? packageExpiry(order.paymentConfirmedAt) : null) || line.timeZone !== 'Asia/Yerevan' || packaged && order.paymentConfirmedAt && !line.validUntil)) return null;
       if (line.personId !== null && !id(line.personId)) return null;
@@ -717,6 +755,7 @@
       ids.add(line.id); total += line.unitPrice * line.quantity; totalItems += line.quantity;
     }
     if (order.status === 'partial' && (!Object.prototype.hasOwnProperty.call(order, 'issuedCount') || !integer(order.issuedCount, 1, totalItems - 1))) return null;
+    if (order.selectedJourney && (order.modelVersion !== MODEL_VERSION || order.selectedJourney.version !== 1 || !Array.isArray(order.selectedJourney.realRideIds) || order.selectedJourney.realRideIds.some(function (rid) { return !demoForReal(rid); }) || !Array.isArray(order.selectedJourney.summary) || order.selectedJourney.summary.length > 100 || order.selectedJourney.summary.some(function (s) { return typeof s !== 'string' || s.length > 500 || /[\u0000-\u001f<>]/.test(s); }))) return null;
     return total === order.total && passes <= MAX_QUANTITY ? copy(order) : null;
   }
   // A payment attempt is not a purchase. Start the package lifetime once the
@@ -729,7 +768,7 @@
     next.status = status; delete next.issuedCount;
     var count = next.lines.reduce(function (sum, line) { return sum + line.quantity; }, 0);
     if (next.status === 'partial') { if (count === 1) next.status = 'issuance'; else next.issuedCount = count - 1; }
-    if (next.modelVersion === MODEL_VERSION && paidNext && !paidBefore) {
+    if (['family-demo-3.4', MODEL_VERSION].includes(next.modelVersion) && paidNext && !paidBefore) {
       var when = confirmedAt === undefined ? new Date().toISOString() : confirmedAt;
       if (typeof when !== 'string' || !Number.isFinite(Date.parse(when)) || Date.parse(when) < Date.parse(next.createdAt)) return null;
       next.paymentConfirmedAt = when;
@@ -745,5 +784,5 @@
     });
     return valid.status === 'partial' ? result.slice(0, valid.issuedCount) : result;
   }
-  return freeze({ MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, packageSizes: packageSizes, packageProducts: packageProducts, isPackage: isPackage, packageCapacity: packageCapacity, isDirectLine: isDirectLine, newLine: newLine, realRides: realRides, demoRides: demoRides, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, quoteCart: quoteCart, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, confirmPayment: confirmPayment, issuedItems: issuedItems });
+  return freeze({ MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, packageSizes: packageSizes, packageProducts: packageProducts, isPackage: isPackage, packageCapacity: packageCapacity, isDirectLine: isDirectLine, newLine: newLine, realRides: realRides, demoRides: demoRides, connectedRides: connectedRides, demoForReal: demoForReal, previewRealSelection: previewRealSelection, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, quoteCart: quoteCart, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, confirmPayment: confirmPayment, issuedItems: issuedItems });
 }));

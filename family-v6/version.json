@@ -9,11 +9,11 @@
   "demo": true,
   "payments": "simulated",
   "prototype": "family-v6",
-  "revision": 21,
+  "revision": 22,
   "default_purchase": {
     "product": "unlimited",
     "quantity": 3,
     "when": "fresh_only"
   },
-  "artifact_id": "victory-impeccable-demo-20261023-r21"
+  "artifact_id": "victory-impeccable-demo-20261024-r22"
 }
