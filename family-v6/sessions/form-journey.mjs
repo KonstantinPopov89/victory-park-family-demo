@@ -1,4 +1,4 @@
-import {EVENTS, SESSIONS, availability, isClosed, reduce, restore, canContinue} from './engine.mjs?vpv=bdfd963ca366b2b7';
+import {EVENTS, SESSIONS, availability, isClosed, reduce, restore, canContinue} from './engine.mjs?vpv=53adea77955e4349';
 export function issuedSnapshot(raw,now=Date.now()) {const state=restore(raw,now);return state.phase==='issued'?structuredClone(state):null;}
 export function startsNewBooking(state,query,sessions=SESSIONS) {
  if(state.phase!=='issued')return false;

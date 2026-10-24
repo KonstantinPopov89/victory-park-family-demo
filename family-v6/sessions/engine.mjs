@@ -28,6 +28,10 @@ const sessionOf = state => SESSIONS.find(session => session.id === state.session
 const inventoryScenario = state => state.sessionId === `${state.eventId}-1` ? state.scenario : 'normal';
 const copy = state => ({ ...state, seats: [...state.seats], log: state.log.map(entry => ({ ...entry })) });
 const validEmail = value => typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+// Keep the historical email predicate so saved tickets remain readable. Phone
+// formatting follows the existing post-purchase field; contact is optional.
+const validContact = value => typeof value === 'string' && value.length <= 254 &&
+  (!value.trim() || validEmail(value) || /^\+[1-9]\d{6,14}$/.test(value.trim().replace(/[\s()\-]/g, '')));
 
 export function isClosed(state) { return Boolean(sessionOf(state)) && inventoryScenario(state) === 'closed'; }
 
@@ -60,19 +64,19 @@ export function availability(state) {
 
 export function total(state) { return (eventOf(state)?.price ?? 0) * state.qty; }
 
-function selectionError(state, requireEmail = true) {
+function selectionError(state, checkContact = true) {
   if (!sessionOf(state)) return 'needSession';
   if (isClosed(state)) return 'closedMessage';
   const stock = availability(state);
   if (stock.remaining < state.qty) return 'notEnough';
   if (eventOf(state)?.mode === 'seated' && (state.seats.length !== state.qty || new Set(state.seats).size !== state.qty || state.seats.some(seat => !SEATS.includes(seat) || stock.sold.includes(seat)))) return 'needSeats';
-  if (requireEmail && !validEmail(state.email)) return 'emailError';
+  if (checkContact && !validContact(state.email)) return 'emailError';
   return null;
 }
 
 export function canContinue(state) { return state.phase === 'select' && selectionError(state) === null; }
 // A quiz answer may reserve the complete group before a contact is entered.
-// This does not authorize payment: PAY validates the contact separately.
+// PAY still rejects a nonempty invalid contact before counting an attempt.
 export function canHold(state) { return state.phase === 'select' && selectionError(state, false) === null; }
 
 function chooseSeats(state) {
@@ -209,7 +213,7 @@ export function restore(raw, now = Date.now()) {
   if (!(value.holdUntil === null || Number.isFinite(value.holdUntil))) return defaultState();
   if (!(value.orderId === null || /^demo-[1-9]\d*$/.test(value.orderId) && Number(value.orderId.slice(5)) <= value.orderSeq)) return defaultState();
   // A hold can exist before contact entry. Expiry must preserve this unfinished
-  // entry too; attempted/charged orders still need a valid contact on restore.
+  // entry too; attempted/charged orders accept an empty contact or valid email/phone.
   if (value.phase !== 'select' && (!value.orderId || selectionError(value, !['payment', 'expired'].includes(value.phase)))) return defaultState();
   if (['payment', 'processing', 'declined', 'unknown', 'security', 'pending', 'issued'].includes(value.phase) && !Number.isFinite(value.holdUntil)) return defaultState();
   if (['processing', 'declined', 'unknown', 'security', 'pending', 'issued'].includes(value.phase) && value.attempts < 1) return defaultState();
