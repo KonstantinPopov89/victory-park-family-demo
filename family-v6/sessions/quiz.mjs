@@ -39,6 +39,8 @@ const guestCount=n=>n+' '+q(n===1?'guestOne':state.lang==='ru'&&n>=2&&n<=4?'gues
 function selectionSignature(){return JSON.stringify([state.eventId,state.sessionId,state.qty,state.seats,state.orderId]);}
 function save(){if(state.phase==='issued')lastIssued=issuedSnapshot(state);}
 function url(push=false){
+ // A displayed ticket belongs to this page, even when another tab starts an order.
+ if(state.phase==='issued')resumeId=state.orderId;
  const p=new URLSearchParams({lang:state.lang});
  if(state.eventId)p.set('event',state.eventId);
  if(state.sessionId&&ui.view!=='sessions')p.set('session',state.sessionId);
@@ -206,9 +208,9 @@ function run(work,{recover=false}={}){
  queue=queue.then(()=>transact(saved=>{loadRecord(saved);mutating=true;needsRender=false;renderFocus=false;try{work();return exportRecord();}finally{mutating=false;}},{recover})).then(saved=>{record=saved;document.dispatchEvent(new CustomEvent('vp:sessions-updated'));if(needsRender)render(renderFocus);else mobileActions.refresh();}).catch(fatal);
  return queue;
 }
-function refresh(){queue=queue.then(()=>read()).then(saved=>{loadRecord(saved);render();}).catch(fatal);return queue;}
+function refresh(){queue=queue.then(()=>read()).then(saved=>{loadRecord(saved);if(state.phase==='issued')url();render();}).catch(fatal);return queue;}
 window.addEventListener('storage',e=>{if(e.key===STORAGE)refresh();});
-window.addEventListener('pageshow',e=>{if(e.persisted)run(()=>{render();},{recover:true});});
+window.addEventListener('pageshow',e=>{if(e.persisted)run(()=>{if(state.phase==='issued')url();render();},{recover:true});});
 // Save input and state before leaving for the other interface or another site page.
 root.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a||a.dataset.action||e.metaKey||e.ctrlKey||a.target==='_blank'||a.getAttribute('href').startsWith('#'))return;e.preventDefault();const href=a.href;queue.then(()=>{if(!storageFailed)location.href=href;});});
 setInterval(()=>{if(readOnly||storageFailed)return;const next=tick(state);if(next.phase!==state.phase)run(()=>{state=tick(state);save();render();});else updateClock();},1000);

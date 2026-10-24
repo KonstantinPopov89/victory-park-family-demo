@@ -35,7 +35,11 @@ const btn=(label,action,value='',cls='',extra='')=>`<button type="button" class=
 const link=(label,action,value='')=>`<button type="button" class="link-button" data-action="${action}" data-value="${esc(value)}">${esc(label)}</button>`;
 function selectionSignature(){return JSON.stringify([state.eventId,state.sessionId,state.qty,state.seats,state.orderId]);}
 function save(){if(state.phase==='issued')lastIssued=issuedSnapshot(state);}
-function url(push=false){const q=new URLSearchParams();q.set('lang',state.lang);if(state.eventId)q.set('event',state.eventId);if(state.sessionId&&!sessionPicker)q.set('session',state.sessionId);if(qtyKnown)q.set('qty',state.qty);if(resumeId)q.set('resume',resumeId);if(review)q.set('review','1');if(singleSessionDemo)q.set('single','1');history[push?'pushState':'replaceState']({phase:state.phase},'',location.pathname+'?'+q);}
+function url(push=false){
+ // A displayed ticket belongs to this page, even when another tab starts an order.
+ if(state.phase==='issued')resumeId=state.orderId;
+ const q=new URLSearchParams();q.set('lang',state.lang);if(state.eventId)q.set('event',state.eventId);if(state.sessionId&&!sessionPicker)q.set('session',state.sessionId);if(qtyKnown)q.set('qty',state.qty);if(resumeId)q.set('resume',resumeId);if(review)q.set('review','1');if(singleSessionDemo)q.set('single','1');history[push?'pushState':'replaceState']({phase:state.phase},'',location.pathname+'?'+q);
+}
 function dispatch(action,{push=false,focus=false}={}){state=reduce(state,action);save();url(push);render(focus);}
 function chooseSession(value){const changed=value!==state.sessionId;state=chooseFormSession(state,value,qtyKnown);if(changed)mapOpen=false;}
 function applyLocation(q=new URLSearchParams(location.search)){if(['ru','hy','en'].includes(q.get('lang')))state=reduce(state,{type:'LANG',value:q.get('lang')});
@@ -136,9 +140,9 @@ function run(work,{recover=false}={}){
  queue=queue.then(()=>transact(saved=>{loadRecord(saved);mutating=true;needsRender=false;renderFocus=false;try{work();return exportRecord();}finally{mutating=false;}},{recover})).then(saved=>{record=saved;document.dispatchEvent(new CustomEvent('vp:sessions-updated'));if(needsRender)render(renderFocus);else mobileActions.refresh();}).catch(fatal);
  return queue;
 }
-function refresh(){queue=queue.then(()=>read()).then(saved=>{loadRecord(saved);render();}).catch(fatal);return queue;}
+function refresh(){queue=queue.then(()=>read()).then(saved=>{loadRecord(saved);if(state.phase==='issued')url();render();}).catch(fatal);return queue;}
 window.addEventListener('storage',e=>{if(e.key===STORAGE)refresh();});
-window.addEventListener('pageshow',e=>{if(e.persisted)run(()=>{render();},{recover:true});});
+window.addEventListener('pageshow',e=>{if(e.persisted)run(()=>{if(state.phase==='issued')url();render();},{recover:true});});
 // Save input and state before leaving for the other interface or another site page.
 root.addEventListener('click',e=>{const a=e.target.closest('a[href]');if(!a||a.dataset.action||e.metaKey||e.ctrlKey||a.target==='_blank'||a.getAttribute('href').startsWith('#'))return;e.preventDefault();const href=a.href;queue.then(()=>{if(!storageFailed)location.href=href;});});
 setInterval(()=>{if(readOnly||storageFailed)return;const next=tick(state);if(next.phase!==state.phase)run(()=>{state=tick(state);save();render();});else updateClock();},1000);
