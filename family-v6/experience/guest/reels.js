@@ -1,7 +1,8 @@
 /* A finite photo feed. Browsing never implies rejection or admission. */
-(function () {
+(async function () {
   'use strict';
-  const M = window.VP3, C = window.VPReels, KEY = 'vp.family.v5', JOURNAL = 'vp.reels.v1';
+  if(!await VPFamilyStorage.wait())return;
+  const M = window.VP3, C = window.VPReels, KEY = 'vp.family.v6.people.v1', JOURNAL = 'vp.reels.v1';
   const $ = s => document.querySelector(s), esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const params = new URLSearchParams(location.search), reduced = matchMedia('(prefers-reduced-motion: reduce)');
   let memory = M.emptyState(), storageFailed = false, writeBlocked = false;
@@ -204,7 +205,7 @@
   function renderFamily() {
     panelHTML(window.VPDiscoveryContext.familyText().title,'<div id="r-family-editor"></div>');
     window.VPDiscoveryContext.mountFamily($('#r-family-editor'),state.party,party=>{
-      readState();const next=structuredClone(raw && typeof raw==='object' && !Array.isArray(raw) ? raw : M.emptyState());next.party=party;next.mode=mode;commitRaw(next);setRides(true);saveProgress();render();closePanel();toast(window.VPDiscoveryContext.familyText().saved);
+      readState();const next=window.VPDiscoveryContext.withSavedFamily(structuredClone(raw && typeof raw==='object' && !Array.isArray(raw) ? raw : M.emptyState()),party);next.mode=mode;commitRaw(next);setRides(true);saveProgress();render();closePanel();toast(window.VPDiscoveryContext.familyText().saved);
     },closePanel);
   }
   function ticketLink() {return window.VPDiscoveryContext.ticketsURL(mode,'reels');}

@@ -24,9 +24,9 @@
   function refreshUserValues() {
     userValues.clear();
     try {
-      const s = JSON.parse(localStorage.getItem('vp.family.v5') || '{}');
+      const s = JSON.parse(localStorage.getItem('vp.family.v6.people.v1') || '{}');
       (s.party || []).forEach(p => { if(p.label && !/^(Взрослый|Ребёнок|Гость|Участник)( \d+)?$/.test(p.label)) userValues.add(p.label); });
-      for(const key of ['vp.family.v5.order','vp.family.v5.orders']) {
+      for(const key of ['vp.family.v6.people.v1.order','vp.family.v6.people.v1.orders']) {
         const data = JSON.parse(localStorage.getItem(key)||'null');
         for(const order of (Array.isArray(data)?data:[data]).filter(Boolean)) {
           for(const p of (order.party||[])) if(p.label&&!/^(Взрослый|Ребёнок|Гость|Участник)( \d+)?$/.test(p.label)) userValues.add(p.label);
@@ -39,6 +39,7 @@
       if(input.value.trim() && /name|label|recipient/.test([input.name,input.id,input.dataset.field].join(' '))) userValues.add(input.value.trim());
     });
   }
+  window.VPFamilyStorage?.ready.then(result=>{if(result.ok)refreshUserValues();});
   function translatePlain(text, target=language) {
     if(target==='ru') return String(text);
     text=String(text);

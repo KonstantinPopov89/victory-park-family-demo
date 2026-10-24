@@ -1,6 +1,7 @@
 // A shared history view, not a shared order model. Reading never activates an order.
-(function(){
+(async function(){
  'use strict';
+ if(!await VPFamilyStorage.wait())return;
  const copy={
   ru:{title:'Мои покупки',note:'Билеты и операции с картой парка в этом браузере. На другом устройстве понадобятся сохранённые файлы.',empty:'Билетов и операций с картой парка здесь пока нет.',testTopup:'Пополнения тестовой карты',testTopupNote:'У тестовой карты отдельная история пополнений. Она хранится в этом браузере.',choose:'Выбрать билеты',a:'Билеты и пакеты катаний',topup:'Пополнение карты',nocard:'Заказ карты парка',unlimited:'Безлимит по каталогу парка','dino-ticket':'Билет в Дино Парк',card:'Карта',success:'Демонстрация завершена',cancel:'Оплата отменена',fail:'Оплата не завершена',declined:'Оплата не завершена',pending:'Результат проверяется. Повторно не оплачивайте.',delay:'Выдача задержана. Повторно не оплачивайте.',issuance:'Выдача задержана. Повторно не оплачивайте.',partial:'Готова часть билетов. Повторно не оплачивайте.',tickets:'Открыть билеты',receipt:'Открыть квитанцию',result:'Посмотреть результат'},
   en:{title:'My purchases',note:'Tickets and park card operations in this browser. On another device, you will need your saved files.',empty:'No tickets or park card operations in this list yet.',testTopup:'Test card top-ups',testTopupNote:'The test card has a separate top-up history, saved in this browser.',choose:'Choose tickets',a:'Ride tickets and packages',topup:'Card top-up',nocard:'Park card order',unlimited:'Park catalogue unlimited pass','dino-ticket':'Dino Park ticket',card:'Card',success:'Demo completed',cancel:'Payment cancelled',fail:'Payment not completed',declined:'Payment not completed',pending:'Result being checked. Do not pay again.',delay:'Issuance delayed. Do not pay again.',issuance:'Issuance delayed. Do not pay again.',partial:'Some tickets are ready. Do not pay again.',tickets:'Open tickets',receipt:'Open receipt',result:'View result'},
@@ -58,8 +59,8 @@
   return o.currency==='AMD'&&Number.isSafeInteger(o.unitPrice)&&o.unitPrice>0&&o.unitPrice*o.qty===o.amount;
  }
  function orders(sessionStore){
-  const rows=[],a=new Map(),b=new Map(),history=read('vp.family.v5.orders');
-  for(const raw of [...(Array.isArray(history)?history:[]),read('vp.family.v5.order')]){const o=window.VPC?.validateOrder(raw);if(o)a.set(o.id,o);}
+  const rows=[],a=new Map(),b=new Map(),history=read('vp.family.v6.people.v1.orders');
+  for(const raw of [...(Array.isArray(history)?history:[]),read('vp.family.v6.people.v1.order')]){const o=window.VPC?.validateOrder(raw);if(o)a.set(o.id,o);}
   for(const o of a.values())rows.push({model:'a',id:o.id,title:'a',amount:o.total,status:o.status,time:o.createdAt||o.ts||'',card:''});
   const all=read('vpOrders');if(all&&typeof all==='object'&&!Array.isArray(all))for(const [key,o] of Object.entries(all))if(validB(o)&&key===o.id)b.set(o.id,o);
   // Session-only operations are recoverable too; a saved response remains authoritative.
@@ -105,6 +106,6 @@
  document.addEventListener('vp:sessions-updated',showHistory);
  window.addEventListener('hashchange',showHistory);
  window.addEventListener('pageshow',showHistory);
- window.addEventListener('storage',e=>{if(['vpOrders','vp.family.v5.orders','vp.family.v5.order',sessionKey].includes(e.key)||e.key===null)showHistory();});
+ window.addEventListener('storage',e=>{if(['vpOrders','vp.family.v6.people.v1.orders','vp.family.v6.people.v1.order',sessionKey].includes(e.key)||e.key===null)showHistory();});
  showHistory();
 })();

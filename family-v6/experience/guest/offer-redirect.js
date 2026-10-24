@@ -3,7 +3,7 @@
   'use strict';
   var api = factory(typeof module === 'object' && module.exports ? require('./offers-model.js') : root.VPO);
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else api.start(root);
+  else root.VPFamilyStorage.wait().then(ok=>{if(ok)api.start(root);});
 }(typeof window !== 'undefined' ? window : null, function (M) {
   'use strict';
   var selectionKeys = ['product', 'ride', 'qty', 'date', 'student'];
@@ -48,7 +48,7 @@
     var saved = null, hasMainCart = false;
     try { saved = JSON.parse(win.sessionStorage.getItem('vp.promotions.v1')); } catch (_) {}
     try {
-      var state = JSON.parse(win.localStorage.getItem('vp.family.v5'));
+      var state = JSON.parse(win.localStorage.getItem('vp.family.v6.people.v1'));
       hasMainCart = !!(state && state.cart && Array.isArray(state.cart.lines) && state.cart.lines.length);
     } catch (_) {}
     var result = destination(win.location.search, saved, hasMainCart);

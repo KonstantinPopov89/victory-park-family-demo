@@ -12,7 +12,7 @@
   else root.VPJourneyBridge = api;
 }(typeof window === 'undefined' ? globalThis : window, function (catalog) {
   'use strict';
-  var KEYS = Object.freeze({ a: 'vp.family.v5', b: 'vpList', bridge: 'vp.journey.interests.v1' });
+  var KEYS = Object.freeze({ a: 'vp.family.v6.people.v1', b: 'vpList', bridge: 'vp.journey.interests.v1' });
   // Identity-only crosswalk; exact source path/line/hash retained in QA provenance.
   var MAP = Object.freeze(catalog.entries.map(function (entry) { return Object.freeze({ a: entry.id, b: entry.slug, proof: entry.proof, sourceLine: entry.sourceLine, scope: 'identity-only' }); }));
   var MAP_VERSION = 'prototype-catalog-35-v2';

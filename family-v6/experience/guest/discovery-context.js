@@ -49,6 +49,14 @@
  const familyText=()=>familyCopy[window.VPI18n?.language||document.documentElement.lang]||familyCopy.ru;
  const htmlEscape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  function familyLabel(party){const c=familyText();return c.title+(party.length?' · '+party.length:'');}
+ // Only an explicit, valid editor submission repairs the historical party flag.
+ // Validate the new party on its own so unrelated cart/version issues survive.
+ function withSavedFamily(state,party){
+  const next={...state,party};
+  const checked=window.VP3.sanitizeState({...window.VP3.emptyState(),party});
+  if(Array.isArray(party)&&checked.party.length===party.length&&!checked._issues.includes('party')&&Array.isArray(next._issues))next._issues=next._issues.filter(issue=>issue!=='party');
+  return next;
+ }
  function mountFamily(host,party,onSave,onClose){
   const c=familyText(),lang=window.VPI18n?.language||document.documentElement.lang||'ru';
   const bands=['under3','age3_4','age5_9','age10_17','adult','unknown'];
@@ -104,7 +112,7 @@
  function familyScore(ride,party){return party.reduce((score,p)=>score+({suggested:1,possible:.5}[recommendation(ride,p).status]||0),0);}
  function ticketsURL(mode,picker){const u=new URL(mode==='real'?'company.html?source=real&mode=exact':'company.html?mode=exact',location.href);u.searchParams.set('picker',picker);u.searchParams.set('lang',window.VPI18n?.language||document.documentElement.lang||'ru');if(p.get('review')==='1')u.searchParams.set('review','1');return u.href;}
 
- window.VPDiscoveryContext={mountFamily,familyText,familyLabel,recommendation,familyScore,ticketsURL,filterRides,contextURL,category,cue,languageMenu,consentHTML,setNavigationGuard:fn=>{navigationGuard=fn;}};
+ window.VPDiscoveryContext={mountFamily,withSavedFamily,familyText,familyLabel,recommendation,familyScore,ticketsURL,filterRides,contextURL,category,cue,languageMenu,consentHTML,setNavigationGuard:fn=>{navigationGuard=fn;}};
  document.addEventListener('DOMContentLoaded',mount);
  document.addEventListener('DOMContentLoaded',refresh);document.addEventListener('vp:catalog-rendered',refresh);
  document.addEventListener('click',e=>{const a=e.target.closest('a[href]:not([data-discovery-all])');if(a){const url=contextURL(a.href);if(url!==a.href)a.href=url;}},true);

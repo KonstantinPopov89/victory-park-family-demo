@@ -2,7 +2,7 @@
   'use strict';
   var api = factory(typeof module === 'object' && module.exports ? require('./offers-model.js') : root.VPO, typeof module === 'object' && module.exports ? require('./model.js') : root.VP3);
   if (typeof module === 'object' && module.exports) module.exports = api;
-  else api.start();
+  else root.VPFamilyStorage.wait().then(ok=>{if(ok)api.start();});
 }(typeof window !== 'undefined' ? window : null, function (M, Base) {
   'use strict';
   var kinds = { promotion: 'Скидка', package: 'Пакет', bonus: 'Бонус', benefit: 'Льгота' };
@@ -185,7 +185,7 @@
     function render(focusId) {
       if (isList) {
         var sharedState = null;
-        try { sharedState = JSON.parse(localStorage.getItem('vp.family.v5')); } catch (_) {}
+        try { sharedState = JSON.parse(localStorage.getItem('vp.family.v6.people.v1')); } catch (_) {}
         app.innerHTML = renderList(filter, M.getToday(), sharedState);
       }
       else if (receipt) renderReceipt(); else renderCheckout();
@@ -230,7 +230,7 @@
     });
     if (isList) {
       window.addEventListener('pageshow', function (event) { if (event.persisted) render(); });
-      window.addEventListener('storage', function (event) { if (event.key === 'vp.family.v5') render(); });
+      window.addEventListener('storage', function (event) { if (event.key === 'vp.family.v6.people.v1') render(); });
     }
     render();
   }
