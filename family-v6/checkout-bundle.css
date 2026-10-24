@@ -527,18 +527,18 @@ body.keyboard-open .mobile-bar { display:none; }
 @media(min-width:1000px){body[data-page]{padding-bottom:0}.v3-hero{padding-block:30px;gap:48px}.v3-hero .hero-photo img{height:260px}.party{grid-template-columns:repeat(4,minmax(0,1fr))}.family-panel .btn-row{max-width:460px}.person-head h3{font-size:12px}.person-head{gap:5px}.person-head .avatar{width:27px;height:27px}.rider-choices{grid-template-columns:repeat(4,minmax(0,1fr))}.rider-choice{gap:8px}.rider-choice .avatar{width:28px;height:28px}.plan-panel,.cart-panel{max-height:none;position:sticky;top:24px}.offers{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 
-/* Exact child ages in one compact, inline panel. Adult is a category. */
+/* Neutral participants: age intervals are choices, never invented exact ages. */
 .age-summary {display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:44px;width:100%;padding:8px 10px;border:1px solid #b9b7d0;border-radius:8px;background:white;text-align:left;font-size:13px;}
 .age-summary > span:last-child {font-size:11px;text-decoration:underline;}
 .age-summary[aria-expanded=true] {background:var(--soft);}
 .adult-age {display:flex;align-items:center;justify-content:space-between;min-height:44px;font-size:13px;}
 .adult-age strong {font-size:16px;}
 .age-panel {margin-top:8px;}
-.age-grid {display:grid;grid-template-columns:repeat(5,minmax(44px,1fr));gap:4px;}
+.age-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
 .age-choice {display:flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;padding:4px;border:1px solid #b9b7d0;border-radius:7px;background:white;font-size:14px;line-height:1.25;}
 .age-choice[data-value="0"] {font-size:11px;}
 .age-choice[aria-pressed=true] {color:white;background:var(--cobalt);border-color:var(--cobalt);}
-.age-unknown {grid-column:span 2;font-size:12px;}
+.age-unknown {font-size:12px;}
 .direct-entry-head {margin-top:14px;}
 .direct-entry-layout {margin-top:0;}
 .direct-entry-layout .direct-products {margin-top:0;}
@@ -600,7 +600,7 @@ body.family-editing .mobile-bar {display:none;}
 .line-recipient-fix .chip{white-space:normal;min-height:44px}
 .offer-price small{display:block;font-size:12px;font-weight:400;line-height:1.5;margin-top:6px}
 .cart-line h3,.cart-line p,.offer-rights p{overflow-wrap:anywhere}
-@media(max-width:599px){.purchase-people{padding:14px}.purchase-people .btn-row .btn{flex:1;padding-inline:10px}.recipient-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.recipient-choices .chip{width:100%;padding:10px}.companion-controls .age-grid{grid-template-columns:repeat(4,minmax(44px,1fr))}.cart-panel .total{gap:10px}.cart-panel .total strong{font-size:23px}}
+@media(max-width:599px){.purchase-people{padding:14px}.purchase-people .btn-row .btn{flex:1;padding-inline:10px}.recipient-choices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.recipient-choices .chip{width:100%;padding:10px}.companion-controls .age-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.cart-panel .total{gap:10px}.cart-panel .total strong{font-size:23px}}
 
 /* Keep the next action close; review is a separate, compact page state. */
 body[data-page=tickets]{padding-bottom:110px}
@@ -627,6 +627,9 @@ body[data-page=tickets]{padding-bottom:110px}
 .checkout-flow{max-width:1000px;margin:0 auto}.checkout-heading{margin:12px 0 20px}.checkout-heading h1{font-size:40px;margin:8px 0}.checkout-heading>p{font-size:13px}.checkout-flow>.review-cart{margin:20px 0 28px}.review-cart>h2{font-size:27px;margin-bottom:14px}.review-cart:focus{outline:2px solid var(--cobalt);outline-offset:4px}.purchase-options{margin-top:24px}.self-choice,.purchase-history{padding:16px 0;border-top:1px solid var(--line);margin:20px 0}.self-choice>summary,.purchase-history>summary,.purchase-help>summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}.past-order{display:flex;gap:12px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:12px 0}.past-order>span{min-width:0;overflow-wrap:anywhere;font-size:12px}.past-order small{display:block}.past-order .btn{flex:none}.receipt-actions{flex-wrap:wrap}.receipt-actions .btn{white-space:normal}.receipt-instruction{padding:14px;background:var(--soft);border-radius:10px}.purchase-help{margin-top:20px}.copy-section select{width:100%;min-height:44px;font-size:16px}.copy-section details{margin-top:20px}.review-cart .pay-button{display:inline-flex!important;width:100%;min-height:48px;justify-content:center;margin-top:12px}.review-validity{margin-top:8px}.cart-group .cart-person small{font-size:12px}.checkout-flow #cart{scroll-margin-top:16px}.review-page .cart-panel{width:100%}
 @media(max-width:599px){.checkout-heading h1{font-size:32px}.checkout-flow .rider-section{margin-top:12px}.checkout-flow>.review-cart{margin-top:16px}.checkout-flow .offers{grid-template-columns:1fr}.past-order{align-items:flex-start}.past-order .btn{font-size:11px;padding:10px}.checkout-dock .btn{font-size:12px}.review-cart .review-validity{font-size:12px}.receipt h1{overflow-wrap:anywhere}.copy-section input{font-size:16px}.receipt-actions>.btn{min-height:48px}.receipt .badge{overflow-wrap:anywhere;white-space:normal}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto!important}}
+
+/* Shared geometry for age-range controls in planning and purchase. */
+.neutral-age-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.neutral-age-grid>button{min-height:44px;min-width:0;white-space:normal;overflow-wrap:anywhere}.purchase-participant-age{margin-top:12px}.participant-age{min-width:0}
 
 /* /victory-park-family-demo/family-v6/experience/guest/quick.css */
 /* Purchase variant and package catalogue. Scoped to avoid changing the existing site. */

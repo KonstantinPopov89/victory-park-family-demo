@@ -194,12 +194,12 @@
   function panelHTML(title, html) {$('#r-dialog-title').textContent=title;$('#r-dialog-body').innerHTML=html;}
   function renderPanel() {if(panel==='details')renderDetails();else if(panel==='family')renderFamily();else if(panel==='list')renderList();else renderHelp();}
   function familyHTML(r) {
-    if(!state.party.length)return '<p>Укажите состав компании и возраст для подбора. Можно сделать это позже.</p><button class="r-secondary" data-vp-cta="secondary" data-action="family">Добавить семью</button>';
-    return '<ul class="r-family-results">'+state.party.map(p=>{const hint=window.VPDiscoveryContext.recommendation(r,p);return '<li data-status="'+esc(hint.status)+'"><strong>'+esc(p.label)+'</strong><span>'+esc(hint.text)+'</span></li>';}).join('')+'</ul><button class="r-text" data-action="family">Изменить семью</button>';
+    if(!state.party.length)return '<p>Укажите состав компании и возраст для подбора. Можно сделать это позже.</p><button class="r-secondary" data-vp-cta="secondary" data-action="family">Добавить участников</button>';
+    return '<ul class="r-family-results">'+state.party.map((p,i)=>{const hint=window.VPDiscoveryContext.recommendation(r,p);return '<li data-status="'+esc(hint.status)+'"><strong>'+esc(VP3.participantLabel(p,i))+' · '+esc(VP3.ageLabel(p))+'</strong><span>'+esc(hint.text)+'</span></li>';}).join('')+'</ul><button class="r-text" data-action="family">Изменить компанию</button>';
   }
   function renderDetails() {
     const r=current();if(!r)return;const f=C.facts(r);
-    panelHTML(r.name,'<p class="r-disclaimer">'+esc(f.disclaimer)+'</p><h3>'+esc(f.price)+'</h3><ul class="r-detail-facts">'+f.lines.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ul><p class="r-muted">'+esc(VPPhoto.note())+'</p><h3>Ваша семья</h3>'+familyHTML(r)+'<p class="r-muted">Сохранение означает, что вам интересно. Возможность катания зависит от условий аттракциона. Статус работы уточняйте перед визитом.</p><p class="r-muted">'+esc(f.source)+'</p><button class="r-save" data-action="save">'+(selected().includes(r.id)?'♥ В списке · убрать':'♡ Хочу покататься')+'</button>');
+    panelHTML(r.name,'<p class="r-disclaimer">'+esc(f.disclaimer)+'</p><h3>'+esc(f.price)+'</h3><ul class="r-detail-facts">'+f.lines.map(s=>'<li>'+esc(s)+'</li>').join('')+'</ul><p class="r-muted">'+esc(VPPhoto.note())+'</p><h3>Ваша компания</h3>'+familyHTML(r)+'<p class="r-muted">Сохранение означает, что вам интересно. Возможность катания зависит от условий аттракциона. Статус работы уточняйте перед визитом.</p><p class="r-muted">'+esc(f.source)+'</p><button class="r-save" data-action="save">'+(selected().includes(r.id)?'♥ В списке · убрать':'♡ Хочу покататься')+'</button>');
   }
   function renderFamily() {
     panelHTML(window.VPDiscoveryContext.familyText().title,'<div id="r-family-editor"></div>');

@@ -231,6 +231,46 @@
     if (catalog) return Object.prototype.hasOwnProperty.call(catalog.rides, line.rideId) ? catalog.rides[line.rideId].price : null;
     var ride = rideMap[line.rideId]; return ride && ride.fictional ? ride.price : null;
   }
+  // An age range is stored as a range, never as its midpoint or a guessed age.
+  var ageBands = freeze([
+    { id: 'under3', min: 0, max: 2, label: 'До 3 лет' },
+    { id: 'age3_4', min: 3, max: 4, label: '3-4 года' },
+    { id: 'age5_9', min: 5, max: 9, label: '5-9 лет' },
+    { id: 'age10_17', min: 10, max: 17, label: '10-17 лет' },
+    { id: 'adult', min: 18, max: 120, label: '18+' }
+  ]);
+  function ageBand(value) { return ageBands.find(function (band) { return band.id === value; }) || null; }
+  function ageBounds(person) {
+    if (!person) return null;
+    var band = ageBand(person.ageBand);
+    if (band) return { min: band.min, max: band.max };
+    return integer(person.age, 0, 120) ? { min: person.age, max: person.age } : null;
+  }
+  function isAdult(person) { var bounds = ageBounds(person); return !!bounds && bounds.min >= 18; }
+  function withAgeBand(person, value) {
+    var band = ageBand(value), next = copy(person || {});
+    next.age = null; next.ageBand = band ? band.id : null;
+    next.role = band ? (band.min >= 18 ? 'adult' : 'child') : 'unknown';
+    return next;
+  }
+  function ageLabel(person, lang) {
+    lang = ['ru', 'en', 'hy'].includes(lang) ? lang : 'ru';
+    var band = person && ageBand(person.ageBand), bounds = ageBounds(person);
+    if (!bounds) return { ru: 'Возраст не указан', en: 'Age not set', hy: 'Տարիքը նշված չէ' }[lang];
+    if (band) {
+      if (band.id === 'adult') return '18+';
+      if (band.id === 'under3') return { ru: 'До 3 лет', en: 'Under 3', hy: 'Մինչև 3 տարեկան' }[lang];
+      return lang === 'ru' ? band.label : band.min + '-' + band.max + (lang === 'hy' ? ' տարեկան' : ' years');
+    }
+    var age = bounds.min, ending = age % 100 >= 11 && age % 100 <= 14 ? 'лет' : age % 10 === 1 ? 'год' : age % 10 >= 2 && age % 10 <= 4 ? 'года' : 'лет';
+    return age + (lang === 'ru' ? ' ' + ending : lang === 'hy' ? ' տարեկան' : age === 1 ? ' year' : ' years');
+  }
+  function participantLabel(person, index, lang) {
+    var value = person && typeof person.label === 'string' ? label(person.label, '') : '';
+    var generated = /^(?:(?:Взрослый|Взрослая|Реб[её]нок|Участник|Участница|Adult|Child|Participant|Մեծահասակ|Երեխա|Մասնակից)\s*\d+)$/i;
+    if (value && !generated.test(value)) return value;
+    return ({ ru: 'Участник ', en: 'Participant ', hy: 'Մասնակից ' }[lang] || 'Участник ') + ((Number.isInteger(index) && index >= 0 ? index : 0) + 1);
+  }
   function emptyState() { return { version: 3, modelVersion: MODEL_VERSION, tariffNotice: null, mode: 'demo', party: [], selections: { real: [], demo: [] }, riders: [], ridersConfirmed: false, companionId: null, companionAutoSelected: false, cart: { lines: [] }, _issues: [] }; }
   function sanitizeState(raw) {
     var out = emptyState(); if (!raw || typeof raw !== 'object') return out;
@@ -240,11 +280,14 @@
     var people = Array.isArray(raw.party) ? raw.party : [], seen = new Set();
     if (people.length > 8) issues.push('party');
     people.slice(0, 8).forEach(function (p, i) {
-      if (!p || !id(p.id) || seen.has(p.id) || !['adult', 'child'].includes(p.role)) { issues.push('party'); return; }
+      if (!p || !id(p.id) || seen.has(p.id) || !['adult', 'child', 'unknown'].includes(p.role)) { issues.push('party'); return; }
       seen.add(p.id);
-      if (p.role === 'adult' && p.age != null && !integer(p.age, 18, 120)) issues.push('party');
-      out.party.push({ id: p.id, label: label(p.label, (p.role === 'adult' ? 'Взрослый ' : 'Ребёнок ') + (i + 1)), role: p.role,
-        age: p.role === 'adult' ? (p.age == null ? null : integer(p.age, 0, 120) ? p.age : -1) : integer(p.age, 0, 17) ? p.age : null,
+      var band = ageBand(p.ageBand), exact = integer(p.age, 0, 120) ? p.age : null;
+      if (p.ageBand != null && p.ageBand !== 'unknown' && !band || p.age != null && exact === null || band && p.age != null) issues.push('party');
+      if (!band && exact !== null && p.role !== 'unknown' && p.role !== (exact >= 18 ? 'adult' : 'child')) issues.push('party');
+      var role = band ? (band.min >= 18 ? 'adult' : 'child') : exact !== null ? (exact >= 18 ? 'adult' : 'child') : 'unknown';
+      out.party.push({ id: p.id, label: participantLabel(p, i, 'ru'), role: role,
+        age: band ? null : exact, ageBand: band ? band.id : null,
         height: typeof p.height === 'number' && Number.isFinite(p.height) && p.height >= 40 && p.height <= 250 ? p.height : null });
     });
     ['real', 'demo'].forEach(function (mode) {
@@ -298,49 +341,54 @@
   function ageHint(ride, person) {
     if (typeof ride === 'string') ride = rideMap[ride];
     if (!ride || !ride.fictional || !ride.ageRange) return { status: 'unknown', text: 'Возрастная рекомендация не подтверждена.' };
-    if (!person || (!ride.connectedDemo && person.role !== 'child') || !integer(person.age, person.role === 'adult' ? 18 : 0, person.role === 'adult' ? 120 : 17)) return { status: 'unknown', text: 'Учебный возрастной ориентир: ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Это не правило допуска.' };
-    var inside = person.age >= ride.ageRange[0] && person.age <= ride.ageRange[1];
-    return { status: inside ? 'suggested' : 'outside', text: (inside ? 'В возрастном ориентире' : 'Вне возрастного ориентира') + ' ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Возраст не подтверждает допуск.' };
+    var bounds = ageBounds(person);
+    if (!bounds || (!ride.connectedDemo && isAdult(person))) return { status: 'unknown', text: 'Учебный возрастной ориентир: ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Это не правило допуска.' };
+    var inside = bounds.min >= ride.ageRange[0] && bounds.max <= ride.ageRange[1];
+    var outside = bounds.max < ride.ageRange[0] || bounds.min > ride.ageRange[1];
+    return { status: inside ? 'suggested' : outside ? 'outside' : 'possible', text: (inside ? 'В возрастном ориентире' : outside ? 'Вне возрастного ориентира' : 'Диапазон частично пересекается с ориентиром') + ' ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Возраст не подтверждает допуск.' };
   }
   function admission(ride, person, purchaseOptions) {
     if (typeof ride === 'string') ride = rideMap[ride];
     var out = { status: 'unknown', reasons: [], needsHeight: false, needsCompanion: false, companionKnown: false, priceNeedsHeight: false };
     if (ride && ride.connectedDemo) { out.companionKnown = true; out.reasons.push('В деморасчёте один билет на одного участника. Реальные допуск и сопровождение уточняются у парка.'); return out; }
     if (!ride || !ride.fictional || !ride.rules || !admissionRules[ride.id]) { out.reasons.push('Условия допуска нужно уточнить у парка.'); return out; }
-    if (!person || !['adult', 'child'].includes(person.role)) { out.reasons.push('Участник не выбран.'); return out; }
-    var age = person.role === 'adult' && person.age == null ? 18 : person.age, rule = admissionRules[ride.id], r = ride.rules;
-    var ageKnown = integer(age, person.role === 'adult' ? 18 : 0, person.role === 'adult' ? 120 : 17);
-    if (!ageKnown) {
-      // A quick purchase may defer missing facts, never facts already supplied.
-      // The strict picker retains its age-first interaction.
-      if (purchaseOptions && purchaseOptions.deferUnknownProfile === true && person.role === 'child') {
-        var knownHeight = typeof person.height === 'number' && Number.isFinite(person.height) && person.height >= 40 && person.height <= 250;
-        if (knownHeight && (person.height < r.min || person.height > r.max)) {
+    if (!person || !['adult', 'child', 'unknown'].includes(person.role)) { out.reasons.push('Участник не выбран.'); return out; }
+    var bounds = ageBounds(person), rule = admissionRules[ride.id], r = ride.rules;
+    var hasHeight = typeof person.height === 'number' && Number.isFinite(person.height) && person.height >= 40 && person.height <= 250;
+    if (!bounds) {
+      if (purchaseOptions && purchaseOptions.deferUnknownProfile === true) {
+        if (hasHeight && (person.height < r.min || person.height > r.max)) {
           out.status = 'blocked'; out.companionKnown = true;
           out.reasons.push('Рост ' + person.height + ' см вне учебного диапазона ' + r.min + '-' + r.max + ' см.');
           return out;
         }
-        out.needsHeight = !knownHeight;
-        out.needsCompanion = knownHeight && person.height < r.soloMin;
+        out.needsHeight = !hasHeight;
+        out.needsCompanion = hasHeight && person.height < r.soloMin;
         out.companionKnown = out.needsCompanion;
         if (out.needsCompanion) { out.status = 'accompanied'; out.reasons.push('Только со взрослым 18+.'); }
       }
-      out.reasons.push('Укажите возраст кнопкой.'); return out;
+      out.reasons.push('Возраст не указан. Условия катания и сопровождения нужно уточнить.'); return out;
     }
-    if (age < rule.minAge || (rule.maxAge !== null && age > rule.maxAge)) { out.status = 'blocked'; out.companionKnown = true; out.reasons.push('Возраст вне учебных условий: ' + rule.minAge + (rule.maxAge === null ? '+' : '-' + rule.maxAge) + ' лет.'); return out; }
-    var hasHeight = typeof person.height === 'number' && Number.isFinite(person.height) && person.height >= 40 && person.height <= 250;
+    if (bounds.max < rule.minAge || (rule.maxAge !== null && bounds.min > rule.maxAge)) { out.status = 'blocked'; out.companionKnown = true; out.reasons.push('Возраст вне учебных условий: ' + rule.minAge + (rule.maxAge === null ? '+' : '-' + rule.maxAge) + ' лет.'); return out; }
     if (hasHeight && (person.height < r.min || person.height > r.max)) { out.status = 'blocked'; out.companionKnown = true; out.reasons.push('Рост ' + person.height + ' см вне учебного диапазона ' + r.min + '-' + r.max + ' см.'); return out; }
-    var byAge = person.role === 'child' && age < rule.soloAge;
-    var byHeight = person.role === 'child' && hasHeight && person.height < r.soloMin;
+    if (bounds.min < rule.minAge || (rule.maxAge !== null && bounds.max > rule.maxAge)) {
+      out.needsHeight = !hasHeight;
+      out.reasons.push('Возрастной диапазон пересекает границу учебных условий. Допуск и сопровождение нужно уточнить.');
+      return out;
+    }
+    var adult = isAdult(person), byAge = !adult && bounds.max < rule.soloAge;
+    var uncertainAge = !adult && bounds.min < rule.soloAge && bounds.max >= rule.soloAge;
+    var byHeight = !adult && hasHeight && person.height < r.soloMin;
     out.needsHeight = !hasHeight;
     out.needsCompanion = byAge || byHeight;
-    out.companionKnown = person.role === 'adult' || byAge || hasHeight || r.soloMin <= r.min;
-    out.priceNeedsHeight = !out.companionKnown;
-    out.status = out.needsCompanion ? 'accompanied' : hasHeight ? 'solo' : 'unknown';
+    out.companionKnown = adult || byAge || byHeight || !uncertainAge && (hasHeight || r.soloMin <= r.min);
+    out.priceNeedsHeight = !out.companionKnown && !uncertainAge;
+    out.status = out.needsCompanion ? 'accompanied' : hasHeight && !uncertainAge ? 'solo' : 'unknown';
     if (out.needsCompanion) out.reasons.push('Только со взрослым 18+.');
+    if (uncertainAge && !byHeight) out.reasons.push('Внутри выбранного диапазона условия сопровождения различаются. Уточните их перед катанием.');
     if (!hasHeight) out.reasons.push('Рост ' + r.min + '-' + r.max + ' см нужно проверить; возраст не подтверждает допуск.');
     if (out.priceNeedsHeight) out.reasons.push('При росте ниже ' + r.soloMin + ' см нужен оплаченный сопровождающий. Уточните рост для полной суммы.');
-    if (hasHeight && !out.needsCompanion) out.reasons.push('Возраст и рост соответствуют показанным учебным условиям.');
+    if (hasHeight && !out.needsCompanion && !uncertainAge) out.reasons.push('Возраст и рост соответствуют показанным учебным условиям.');
     return out;
   }
   function eligible(ride, person, purchaseOptions) {
@@ -358,7 +406,7 @@
     // Known needs always use the normal quantity/package recalculation below.
     var unresolved = deferUnknown ? selected.filter(function (source) {
       if (!['ticket', 'unlimited'].includes(source.productId) || !integer(source.quantity, 1, MAX_QUANTITY)) return false;
-      var child = s.party.find(function (p) { return p.id === source.personId && p.role === 'child'; });
+      var child = s.party.find(function (p) { return p.id === source.personId && !isAdult(p); });
       if (!child) return false;
       var ids = source.productId === 'ticket' ? [source.rideId] : products.unlimited.includedRideIds;
       var checks = ids.map(function (rideId) { return admission(rideId, child, purchaseOptions); });
@@ -371,7 +419,7 @@
       if (!line.autoCompanion || !['ticket', 'unlimited'].includes(line.productId) ||
           (s.companionId && s.companionId !== line.personId)) return false;
       var owner = s.party.find(function (p) { return p.id === line.personId; });
-      if (!owner || owner.role !== 'adult') return false;
+      if (!isAdult(owner)) return false;
       return unresolved.some(function (source) {
         return line.companionFor.includes(source.personId) && source.productId === line.productId &&
           (line.productId === 'unlimited' || source.rideId === line.rideId);
@@ -383,7 +431,7 @@
       if (!selected.concat(retainedPasses).some(function (other) { return other.productId === 'unlimited' && other.personId === line.personId; })) retainedPasses.push(line);
     });
     var manual = s.cart.lines.filter(function (line) { return !line.autoCompanion || retainedPasses.includes(line); });
-    var initialAdults = s.party.filter(function (p) { return p.role === 'adult' && integer(p.age, 18, 120); });
+    var initialAdults = s.party.filter(function (p) { return isAdult(p); });
     var initialAdult = (!s.companionAutoSelected || initialAdults.length === 1 ? initialAdults.find(function (p) { return p.id === s.companionId; }) : null) || (initialAdults.length === 1 ? initialAdults[0] : null);
     var prepaidAdultPass = initialAdult && manual.some(function (line) { return line.productId === 'unlimited' && line.personId === initialAdult.id && line.quantity === 1; });
     var issues = [], additions = [], notes = [], deferredProfile = false, passChildren = [], ticketNeeds = {}, needsByRide = {}, coverage = { packageRightsUsed: 0, ticketRightsUsed: 0, possiblePackageRights: 0, possibleTicketRights: 0, passUsed: false };
@@ -399,11 +447,12 @@
       if (isDirectLine(line)) return;
       var person = s.party.find(function (p) { return p.id === line.personId; });
       if (!person) { issue('recipient-required', 'Выберите, кому предназначен ' + (line.productId === 'ticket' ? 'билет' : 'безлимит') + '.', null, line.rideId); return; }
-      if (person.role !== 'child') return;
-      var missingAge = !integer(person.age, 0, 17);
-      if (missingAge && !deferUnknown) { issue('child-age-required', person.label + ': выберите возраст для расчёта сопровождения.', person.id); return; }
-      if (missingAge) deferProfile();
-      var ids = line.productId === 'ticket' ? [line.rideId] : products.unlimited.includedRideIds, accompanied = [], undecided = [];
+      if (isAdult(person)) return;
+      var ids = line.productId === 'ticket' ? [line.rideId] : products.unlimited.includedRideIds;
+      var missingAge = !ageBounds(person), needsAgeRule = ids.some(function (rideId) { return admissionRules[rideId] && rideMap[rideId].rules; });
+      if (missingAge && needsAgeRule && !deferUnknown) { issue('child-age-required', person.label + ': выберите возраст для расчёта сопровождения.', person.id); return; }
+      if (missingAge && needsAgeRule) deferProfile();
+      var accompanied = [], undecided = [];
       ids.forEach(function (rideId) {
         var check = admission(rideId, person, purchaseOptions);
         if (check.needsHeight) notes.push(person.label + ': возраст не заменяет проверку роста перед катанием.');
@@ -427,7 +476,7 @@
       }
     });
     var required = Object.keys(needsByRide).length > 0;
-    var adults = s.party.filter(function (p) { return p.role === 'adult' && integer(p.age, 18, 120); });
+    var adults = s.party.filter(function (p) { return isAdult(p); });
     // A sole adult is a convenience default, not a deliberate choice. If the
     // family later contains several adults, ask once instead of retaining it.
     if (s.companionAutoSelected && adults.length !== 1) { s.companionId = null; s.companionAutoSelected = false; }
@@ -577,7 +626,7 @@
   function quoteCart(input, purchaseOptions) {
     var original = sanitizeState(input), resolved = reconcileCompanions(original, purchaseOptions), s = resolved.state;
     var needsChoice = resolved.issues.some(function (x) { return x.code === 'companion-required'; });
-    var adults = s.party.filter(function (p) { return p.role === 'adult' && integer(p.age, 18, 120); });
+    var adults = s.party.filter(function (p) { return isAdult(p); });
     function uncertain(issues) {
       return issues.some(function (x) { return ['height-required', 'child-age-required', 'recipient-required', 'rules-unknown', 'too-many-companion-rights'].includes(x.code); });
     }
@@ -711,7 +760,9 @@
     var lines = s.cart.lines.map(function (line, index) {
       var product = products[line.productId], person = s.party.find(function (p) { return p.id === line.personId; });
       var included = line.productId === 'ticket' ? [line.rideId] : product.includedRideIds.slice();
-      var storedLine = copy(line); delete storedLine.autoCompanion; delete storedLine.companionFor; delete storedLine.companionReason;
+      var storedLine = copy(line);
+      if (person) storedLine.recipientProfile = { age: person.age, ageBand: person.ageBand };
+      delete storedLine.autoCompanion; delete storedLine.companionFor; delete storedLine.companionReason;
       return Object.assign({}, storedLine, { name: line.productId === 'ticket' ? 'Билет: ' + rideMap[line.rideId].name : product.name,
         recipientLabel: person ? person.label : line.productId === 'unlimited' ? 'Получатель ' + (index + 1) + ': назначить перед использованием' : isPackage(line) ? 'Общий пакет для компании' : 'Получатель определяется перед использованием',
         includedRideIds: included, includedNames: included.map(function (rideId) { return rideMap[rideId].name; }), terms: copy(product.terms), validity: isPackage(line) ? PACKAGE_VALIDITY : VALIDITY,
@@ -743,6 +794,15 @@
       if (line.name !== expectedName || !equal(line.includedRideIds, included) || !equal(line.includedNames, included.map(function (rideId) { return catalog.rides[rideId].name; })) || !equal(line.terms, product.terms) || line.validity !== (modern && packaged ? PACKAGE_VALIDITY : VALIDITY) || line.unitsPerItem !== (packaged ? product.rides || 5 : line.productId === 'ticket' ? 1 : null) || typeof line.recipientLabel !== 'string' || !line.recipientLabel.trim() || line.recipientLabel.length > 150 || /[\u0000-\u001f<>]/.test(line.recipientLabel)) return null;
       if (modern && (line.purchasedAt !== order.paymentConfirmedAt || line.validUntil !== (packaged && order.paymentConfirmedAt ? packageExpiry(order.paymentConfirmedAt) : null) || line.timeZone !== 'Asia/Yerevan' || packaged && order.paymentConfirmedAt && !line.validUntil)) return null;
       if (line.personId !== null && !id(line.personId)) return null;
+      if (Object.prototype.hasOwnProperty.call(line, 'recipientProfile')) {
+        var profile = line.recipientProfile;
+        if (!line.personId || !profile || typeof profile !== 'object' || Array.isArray(profile) ||
+          !Object.prototype.hasOwnProperty.call(profile, 'age') || !Object.prototype.hasOwnProperty.call(profile, 'ageBand') ||
+          Object.keys(profile).some(function (key) { return !['age', 'ageBand'].includes(key); }) ||
+          profile.age !== null && !integer(profile.age, 0, 120) || profile.ageBand !== null && !ageBand(profile.ageBand) ||
+          profile.age !== null && profile.ageBand !== null) return null;
+      }
+
       if (packaged && (line.personId !== null || line.rideId !== null || line.recipientKey !== null)) return null;
       if (line.productId === 'unlimited') {
         passes++;
@@ -780,9 +840,9 @@
     var valid = validateOrder(order); if (!valid || !['success', 'partial'].includes(valid.status)) return [];
     var result = [];
     valid.lines.forEach(function (line) {
-      for (var n = 1; n <= line.quantity; n++) result.push({ code: valid.id + '-' + line.id + '-' + n, lineId: line.id, ordinal: n, productId: line.productId, name: line.name, recipientLabel: line.recipientLabel, validity: line.validity, purchasedAt: line.purchasedAt || valid.createdAt, validUntil: line.validUntil || null, timeZone: line.timeZone || null, includedNames: copy(line.includedNames), includedRideIds: copy(line.includedRideIds), terms: copy(line.terms), remaining: line.unitsPerItem, price: line.unitPrice });
+      for (var n = 1; n <= line.quantity; n++) { var item = { code: valid.id + '-' + line.id + '-' + n, lineId: line.id, ordinal: n, productId: line.productId, name: line.name, recipientLabel: line.recipientLabel, validity: line.validity, purchasedAt: line.purchasedAt || valid.createdAt, validUntil: line.validUntil || null, timeZone: line.timeZone || null, includedNames: copy(line.includedNames), includedRideIds: copy(line.includedRideIds), terms: copy(line.terms), remaining: line.unitsPerItem, price: line.unitPrice }; if (line.recipientProfile) item.recipientProfile = copy(line.recipientProfile); result.push(item); }
     });
     return valid.status === 'partial' ? result.slice(0, valid.issuedCount) : result;
   }
-  return freeze({ MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, packageSizes: packageSizes, packageProducts: packageProducts, isPackage: isPackage, packageCapacity: packageCapacity, isDirectLine: isDirectLine, newLine: newLine, realRides: realRides, demoRides: demoRides, connectedRides: connectedRides, demoForReal: demoForReal, previewRealSelection: previewRealSelection, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, quoteCart: quoteCart, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, confirmPayment: confirmPayment, issuedItems: issuedItems });
+  return freeze({ ageBands: ageBands, ageBounds: ageBounds, isAdult: isAdult, withAgeBand: withAgeBand, ageLabel: ageLabel, participantLabel: participantLabel, MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, packageSizes: packageSizes, packageProducts: packageProducts, isPackage: isPackage, packageCapacity: packageCapacity, isDirectLine: isDirectLine, newLine: newLine, realRides: realRides, demoRides: demoRides, connectedRides: connectedRides, demoForReal: demoForReal, previewRealSelection: previewRealSelection, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, quoteCart: quoteCart, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, confirmPayment: confirmPayment, issuedItems: issuedItems });
 }));

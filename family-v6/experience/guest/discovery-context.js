@@ -42,26 +42,66 @@
  document.addEventListener('keydown',e=>{if(e.key==='Escape')for(const menu of document.querySelectorAll('.discovery-languages[open]')){menu.open=false;menu.querySelector('summary').focus();}});
  // Shared draft editor: neither dismissal nor count changes write purchase state.
  const familyCopy={
-  ru:{title:'Кто идёт?',intro:'Укажите состав компании. Возраст поможет подобрать аттракционы; его можно оставить неизвестным.',adults:'Взрослые',children:'Дети',adult:'Взрослый',child:'Ребёнок',age:'Возраст, лет',unknown:'Не знаю',save:'Сохранить и продолжить',cancel:'Сейчас пропустить',limit:'До 8 человек',demo:'Подбор использует учебные возрастные ориентиры. Реальный допуск уточните у парка.',error:'Укажите целый возраст: 0-17 для ребёнка, 18-120 для взрослого, либо оставьте поле пустым.',saved:'Состав сохранён. Подборка учитывает возраст.',count:'чел.',more:'Добавить',less:'Убрать'},
-  en:{title:'Who is coming?',intro:'Add your group. Ages help suggest rides; you can leave them unknown.',adults:'Adults',children:'Children',adult:'Adult',child:'Child',age:'Age, years',unknown:'Unknown',save:'Save and continue',cancel:'Skip for now',limit:'Up to 8 people',demo:'Suggestions use demo age ranges. Confirm actual admission rules with the park.',error:'Enter a whole age: 0-17 for a child, 18-120 for an adult, or leave it blank.',saved:'Group saved. Suggestions now account for age.',count:'people',more:'Add',less:'Remove'},
-  hy:{title:'Ովքե՞ր են գալիս',intro:'Նշեք խմբի կազմը։ Տարիքը կօգնի ընտրել ատրակցիոնները։ Կարող եք այն չնշել։',adults:'Մեծահասակներ',children:'Երեխաներ',adult:'Մեծահասակ',child:'Երեխա',age:'Տարիքը',unknown:'Չգիտեմ',save:'Պահպանել և շարունակել',cancel:'Առայժմ բաց թողնել',limit:'Մինչև 8 հոգի',demo:'Առաջարկներն օգտագործում են ցուցադրական տարիքային միջակայքեր։ Իրական մուտքի կանոնները ճշտեք այգում։',error:'Նշեք ամբողջ տարիքը՝ երեխայի համար 0-17, մեծահասակի համար 18-120, կամ թողեք դատարկ։',saved:'Խմբի կազմը պահպանված է։ Ընտրությունը հաշվի է առնում տարիքը։',count:'հոգի',more:'Ավելացնել',less:'Հեռացնել'}
+  ru:{title:'Кто идёт?',intro:'Добавьте участников и выберите возраст. Если пока не знаете, можно пропустить.',people:'Количество участников',age:'Возраст, лет',participant:'Участник',unknown:'Не знаю',save:'Сохранить и продолжить',cancel:'Отмена',limit:'До 8 человек',demo:'Возраст помогает с подбором. Ориентиры учебные, рост и условия катания уточняются отдельно.',saved:'Участники сохранены. Подборка учитывает возраст.',count:'чел.',more:'Добавить участника',less:'Убрать последнего участника',remove:'Убрать участника',legacy:'Ранее указано:',empty:'Можно смотреть аттракционы и без участников.',bands:['До 3','3-4','5-9','10-17','18+']},
+  en:{title:'Who is coming?',intro:'Add people and choose their age ranges. You can skip an age if you do not know it yet.',people:'Number of people',age:'Age, years',participant:'Person',unknown:'Not sure',save:'Save and continue',cancel:'Cancel',limit:'Up to 8 people',demo:'Ages help suggest rides. Ranges are examples; height and admission rules need a separate check.',saved:'People saved. Suggestions now account for age.',count:'people',more:'Add a person',less:'Remove the last person',remove:'Remove person',legacy:'Previously entered:',empty:'You can browse rides without adding anyone.',bands:['Under 3','3-4','5-9','10-17','18+']},
+  hy:{title:'Ովքե՞ր են գալիս',intro:'Ավելացրեք մասնակիցներին և ընտրեք տարիքները։ Եթե դեռ չգիտեք, կարող եք բաց թողնել։',people:'Մասնակիցների քանակը',age:'Տարիքը',participant:'Մասնակից',unknown:'Չգիտեմ',save:'Պահպանել և շարունակել',cancel:'Չեղարկել',limit:'Մինչև 8 հոգի',demo:'Տարիքն օգնում է ընտրել ատրակցիոնները։ Միջակայքերը ցուցադրական են, հասակն ու մուտքի պայմանները ստուգվում են առանձին։',saved:'Մասնակիցները պահպանված են։ Ընտրությունը հաշվի է առնում տարիքը։',count:'հոգի',more:'Ավելացնել մասնակցի',less:'Հեռացնել վերջին մասնակցին',remove:'Հեռացնել մասնակցին',legacy:'Նախկինում նշված՝',empty:'Կարող եք դիտել ատրակցիոններն առանց մասնակիցներ ավելացնելու։',bands:['Մինչև 3','3-4','5-9','10-17','18+']}
  };
  const familyText=()=>familyCopy[window.VPI18n?.language||document.documentElement.lang]||familyCopy.ru;
  const htmlEscape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  function familyLabel(party){const c=familyText();return c.title+(party.length?' · '+party.length:'');}
  function mountFamily(host,party,onSave,onClose){
-  const c=familyText();let draft=JSON.parse(JSON.stringify(party));
-  const capture=()=>{for(const input of host.querySelectorAll('[data-family-age]')){const p=draft.find(p=>p.id===input.dataset.familyAge);if(p)p.age=input.value===''?null:Number(input.value);}};
-  function render(focusRole){
-   host.innerHTML='<form class="discovery-family" data-i18n-skip><p class="discovery-family-intro">'+c.intro+'</p><div class="discovery-family-counts">'+['adult','child'].map(role=>{const n=draft.filter(p=>p.role===role).length;return '<div class="discovery-family-count"><span>'+c[role==='adult'?'adults':'children']+'</span><div><button type="button" data-family-count="'+role+'" data-delta="-1" aria-label="'+c.less+' '+c[role]+'"'+(!n?' disabled':'')+'>−</button><output>'+n+'</output><button type="button" data-family-count="'+role+'" data-delta="1" aria-label="'+c.more+' '+c[role]+'"'+(draft.length>=8?' disabled':'')+'>+</button></div></div>';}).join('')+'</div><p class="discovery-family-limit">'+c.limit+'</p><div class="discovery-family-ages">'+draft.map((p,i)=>'<label class="discovery-family-person"><span>'+c[p.role]+' '+(draft.slice(0,i+1).filter(x=>x.role===p.role).length)+'</span><span class="discovery-family-age"><span>'+c.age+'</span><input data-family-age="'+htmlEscape(p.id)+'" type="number" inputmode="numeric" min="'+(p.role==='adult'?18:0)+'" max="'+(p.role==='adult'?120:17)+'" step="1" value="'+(p.age??'')+'" placeholder="'+c.unknown+'" autocomplete="off"></span></label>').join('')+'</div><p class="discovery-family-note">'+c.demo+'</p><p class="discovery-family-error" role="alert"></p><div data-vp-action-group class="discovery-family-actions"><button type="submit" data-vp-cta="primary">'+c.save+'</button><button type="button" data-family-cancel data-vp-cta="secondary">'+c.cancel+'</button></div></form>';
-   host.querySelector('form').addEventListener('submit',e=>{e.preventDefault();capture();if(draft.some(p=>p.age!==null&&(!Number.isInteger(p.age)||p.age<(p.role==='adult'?18:0)||p.age>(p.role==='adult'?120:17)))){host.querySelector('[role=alert]').textContent=c.error;return;}onSave(draft);});
+  const c=familyText(),lang=window.VPI18n?.language||document.documentElement.lang||'ru';
+  const bands=['under3','age3_4','age5_9','age10_17','adult','unknown'];
+  let draft=JSON.parse(JSON.stringify(party));
+  const label=(person,index)=>window.VP3.participantLabel(person,index,lang);
+  function bandValue(person){
+   if(bands.includes(person.ageBand))return person.ageBand;
+   if(Number.isInteger(person.age)&&person.age>=0)return person.age<3?'under3':person.age<5?'age3_4':person.age<10?'age5_9':person.age<18?'age10_17':'adult';
+   return 'unknown';
+  }
+  function render(focus){
+   const oldScroll=host.querySelector('.discovery-family-scroll')?.scrollTop||0;
+   host.innerHTML='<form class="discovery-family" data-i18n-skip><div class="discovery-family-scroll"><p class="discovery-family-intro">'+c.intro+'</p><div class="discovery-family-counts"><div class="discovery-family-count"><span>'+c.people+'</span><div><button type="button" data-family-count data-delta="-1" aria-label="'+c.less+'"'+(!draft.length?' disabled':'')+'>−</button><output aria-live="polite" aria-label="'+c.people+'">'+draft.length+'</output><button type="button" data-family-count data-delta="1" aria-label="'+c.more+'"'+(draft.length>=8?' disabled':'')+'>+</button></div></div></div><p class="discovery-family-limit">'+c.limit+'</p><div class="discovery-family-ages">'+draft.map((person,index)=>{
+    const name=label(person,index),selected=bandValue(person),exact=Number.isInteger(person.age)&&!person.ageBand;
+    return '<fieldset class="discovery-family-person" data-family-person="'+htmlEscape(person.id)+'"><legend>'+htmlEscape(name)+'</legend><div class="discovery-family-person-head"><span>'+c.age+'</span><button type="button" class="discovery-family-remove" data-family-remove="'+htmlEscape(person.id)+'" aria-label="'+htmlEscape(c.remove+': '+name)+'">×</button></div>'+(exact?'<p class="discovery-family-legacy">'+c.legacy+' '+htmlEscape(window.VP3.ageLabel(person,lang))+'</p>':'')+'<div class="discovery-family-bands" role="radiogroup" aria-label="'+htmlEscape(name+': '+c.age)+'">'+bands.map((id,i)=>'<button type="button" class="discovery-family-band" data-family-band="'+id+'" role="radio" aria-checked="'+(selected===id)+'" tabindex="'+(selected===id?'0':'-1')+'">'+htmlEscape(i<5?c.bands[i]:c.unknown)+'</button>').join('')+'</div></fieldset>';
+   }).join('')+(draft.length?'':'<p class="discovery-family-empty">'+c.empty+'</p>')+'</div><p class="discovery-family-note">'+c.demo+'</p></div><div data-vp-action-group class="discovery-family-actions"><button type="submit" data-vp-cta="primary">'+c.save+'</button><button type="button" data-family-cancel data-vp-cta="secondary">'+c.cancel+'</button></div></form>';
+   host.querySelector('form').addEventListener('submit',e=>{e.preventDefault();onSave(draft);});
    host.querySelector('[data-family-cancel]').addEventListener('click',onClose);
-   host.querySelectorAll('[data-family-count]').forEach(b=>b.addEventListener('click',()=>{capture();const role=b.dataset.familyCount;if(b.dataset.delta==='1'){if(draft.length>=8)return;const labels=new Set(draft.map(p=>p.label));let n=1;while(labels.has((role==='adult'?'Взрослый':'Ребёнок')+' '+n))n++;draft.push({id:'party-'+crypto.randomUUID(),role,label:(role==='adult'?'Взрослый':'Ребёнок')+' '+n,age:null,height:null});}else{const i=draft.findLastIndex(p=>p.role===role);if(i>=0)draft.splice(i,1);}render(role);const next=host.querySelector('[data-family-count="'+role+'"][data-delta="1"]');if(!next.disabled)next.focus({preventScroll:true});else host.querySelector('[data-family-count="'+role+'"][data-delta="-1"]').focus({preventScroll:true});}));
+   host.querySelectorAll('[data-family-count]').forEach(button=>button.addEventListener('click',()=>{
+    if(button.dataset.delta==='1'){if(draft.length>=8)return;draft.push({id:'party-'+crypto.randomUUID(),role:'unknown',label:'Участник '+(draft.length+1),age:null,ageBand:null,height:null});}
+    else if(draft.length)draft.pop();
+    render({count:button.dataset.delta});
+   }));
+   host.querySelectorAll('[data-family-remove]').forEach(button=>button.addEventListener('click',()=>{
+    const index=draft.findIndex(person=>person.id===button.dataset.familyRemove);if(index<0)return;
+    draft.splice(index,1);const next=draft[Math.min(index,draft.length-1)];render(next?{person:next.id,band:bandValue(next)}:{count:'1'});
+   }));
+   host.querySelectorAll('[data-family-band]').forEach(button=>{
+    button.addEventListener('click',()=>{
+     const row=button.closest('[data-family-person]'),index=draft.findIndex(person=>person.id===row.dataset.familyPerson);
+     if(index<0)return;draft[index]=window.VP3.withAgeBand(draft[index],button.dataset.familyBand);
+     row.querySelector('.discovery-family-legacy')?.remove();
+     row.querySelectorAll('[data-family-band]').forEach(option=>{const selected=option===button;option.setAttribute('aria-checked',String(selected));option.tabIndex=selected?0:-1;});
+    });
+    button.addEventListener('keydown',event=>{
+     const keys=['ArrowRight','ArrowDown','ArrowLeft','ArrowUp','Home','End'];if(!keys.includes(event.key))return;
+     event.preventDefault();const options=[...button.parentElement.querySelectorAll('[data-family-band]')],index=options.indexOf(button);
+     const next=event.key==='Home'?0:event.key==='End'?options.length-1:(index+(event.key==='ArrowRight'||event.key==='ArrowDown'?1:-1)+options.length)%options.length;
+     options[next].click();options[next].focus({preventScroll:true});
+    });
+   });
+   host.querySelector('.discovery-family-scroll').scrollTop=oldScroll;
+   if(focus){let next;
+    if(focus.person){const row=[...host.querySelectorAll('[data-family-person]')].find(row=>row.dataset.familyPerson===focus.person);next=[...row?.querySelectorAll('[data-family-band]')||[]].find(button=>button.dataset.familyBand===focus.band);}
+    else next=host.querySelector('[data-family-count][data-delta="'+focus.count+'"]');
+    if(!next||next.disabled)next=host.querySelector('[data-family-count]:not(:disabled)');next?.focus({preventScroll:true});
+   }
   }
   render();
  }
  function recommendation(ride,person){return window.VP3?.ageHint(ride.fictional?ride:window.VP3?.demoForReal?.(ride.id),person)||{status:'unknown',text:''};}
- function familyScore(ride,party){return party.reduce((score,p)=>score+(recommendation(ride,p).status==='suggested'?1:0),0);}
+ // Ranking only: a partially matching age range is not proof of admission.
+ function familyScore(ride,party){return party.reduce((score,p)=>score+({suggested:1,possible:.5}[recommendation(ride,p).status]||0),0);}
  function ticketsURL(mode,picker){const u=new URL(mode==='real'?'company.html?source=real&mode=exact':'company.html?mode=exact',location.href);u.searchParams.set('picker',picker);u.searchParams.set('lang',window.VPI18n?.language||document.documentElement.lang||'ru');if(p.get('review')==='1')u.searchParams.set('review','1');return u.href;}
 
  window.VPDiscoveryContext={mountFamily,familyText,familyLabel,recommendation,familyScore,ticketsURL,filterRides,contextURL,category,cue,languageMenu,consentHTML,setNavigationGuard:fn=>{navigationGuard=fn;}};

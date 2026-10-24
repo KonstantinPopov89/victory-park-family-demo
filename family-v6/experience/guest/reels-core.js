@@ -75,7 +75,7 @@
 
   function familyStatus(input, party) {
     var ride = resolve(input), rule = rulesFor(ride);
-    return (Array.isArray(party) ? party : []).filter(function (person) { return person && typeof person === 'object'; }).map(function (person) {
+    return (Array.isArray(party) ? party : []).filter(function (person) { return person && typeof person === 'object'; }).map(function (person, index) {
       var admission = VP3.admission(ride, person);
       var text = admission.reasons.join(' ');
       if (admission.needsCompanion && admission.status !== 'blocked' && rule) {
@@ -86,7 +86,7 @@
       }
       return {
         id: person.id,
-        label: typeof person.label === 'string' && person.label.trim() ? person.label : person.role === 'adult' ? 'Взрослый' : 'Ребёнок',
+        label: VP3.participantLabel(person, index) + ' · ' + VP3.ageLabel(person),
         status: admission.status,
         text: text
       };

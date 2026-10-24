@@ -97,7 +97,13 @@
     return result;
   }
   function validateOrder(order) {
-    if (!object(order) || !Array.isArray(order.lines) || !order.lines.every(function (line) { return exactKeys(line, ['family-demo-3.4','family-demo-3.5'].includes(order.modelVersion) ? LINE_KEYS.concat(['purchasedAt', 'validUntil', 'timeZone']) : LINE_KEYS); })) return null;
+    if (!object(order) || !Array.isArray(order.lines) || !order.lines.every(function (line) {
+      var keys = ['family-demo-3.4','family-demo-3.5'].includes(order.modelVersion) ? LINE_KEYS.concat(['purchasedAt', 'validUntil', 'timeZone']) : LINE_KEYS;
+      // New receipts may retain an age range. Older receipts have no profile;
+      // the base validator owns its exact shape and age/range consistency.
+      if (object(line) && has(line, 'recipientProfile')) keys = keys.concat(['recipientProfile']);
+      return exactKeys(line, keys);
+    })) return null;
     var enriched = has(order, 'pricingVersion');
     var keys = order.status === 'partial' ? BASE_KEYS.concat(['issuedCount']) : BASE_KEYS;
     if (['family-demo-3.4','family-demo-3.5'].includes(order.modelVersion)) keys = keys.concat(['paymentConfirmedAt']);

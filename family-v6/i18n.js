@@ -25,13 +25,13 @@
     userValues.clear();
     try {
       const s = JSON.parse(localStorage.getItem('vp.family.v5') || '{}');
-      (s.party || []).forEach(p => { if(p.label && !/^(Взрослый|Ребёнок|Гость)( \d+)?$/.test(p.label)) userValues.add(p.label); });
+      (s.party || []).forEach(p => { if(p.label && !/^(Взрослый|Ребёнок|Гость|Участник)( \d+)?$/.test(p.label)) userValues.add(p.label); });
       for(const key of ['vp.family.v5.order','vp.family.v5.orders']) {
         const data = JSON.parse(localStorage.getItem(key)||'null');
         for(const order of (Array.isArray(data)?data:[data]).filter(Boolean)) {
-          for(const p of (order.party||[])) if(p.label&&!/^(Взрослый|Ребёнок|Гость)( \d+)?$/.test(p.label)) userValues.add(p.label);
+          for(const p of (order.party||[])) if(p.label&&!/^(Взрослый|Ребёнок|Гость|Участник)( \d+)?$/.test(p.label)) userValues.add(p.label);
           // Immutable receipts contain recipientLabel, not the current party array.
-          for(const line of (order.lines||[])) {const name=line.personId&&line.recipientLabel?.replace(/: со студенческим документом$/, '');if(name&&!/^(Взрослый|Ребёнок|Гость)( \d+)?$/.test(name))userValues.add(name);}
+          for(const line of (order.lines||[])) {const name=line.personId&&line.recipientLabel?.replace(/: со студенческим документом$/, '');if(name&&!/^(Взрослый|Ребёнок|Гость|Участник)( \d+)?$/.test(name))userValues.add(name);}
         }
       }
     } catch {}
