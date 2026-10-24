@@ -59,3 +59,9 @@ body[data-vp-catalog] .catalog-detail-copy .btn[data-add]:hover{background:#4542
  body[data-vp-catalog="index"] .acard :is(img,.noph.thumb){width:104px;height:100%;min-height:160px}
  body[data-vp-catalog="index"] .acard .tx{padding:16px 14px;gap:8px}
 }
+
+@media(max-width:520px){
+ html[lang=hy] body[data-vp-catalog="index"] .seg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ html[lang=hy] body[data-vp-catalog="index"] .seg a{min-width:0;white-space:normal}
+ html[lang=hy] body[data-vp-catalog="index"] .seg a:last-child{grid-column:1/-1}
+}

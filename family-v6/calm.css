@@ -67,7 +67,7 @@ body[data-checkout=quick] :is(.product-tabs,.quick-tabs) [aria-pressed=true]:not
  body[data-v5] .v5-languages a{font-size:12px!important}
  body[data-v5] .v5-history{text-align:right}
  body[data-v5]:not([data-vp-discovery]) .v5-info{padding:24px 18px 48px}
- body[data-v5]:not([data-vp-discovery]) .catalog-intro h1{font-size:48px!important;line-height:1!important}
+ html:not([lang=hy]) body[data-v5]:not([data-vp-discovery]) .catalog-intro h1{font-size:48px!important;line-height:1!important}
  body[data-checkout=quick] .quick-product-heading{flex-wrap:wrap}
  body[data-checkout=quick] .quick-product-heading h2{min-width:0;max-width:100%;flex:1 1 170px;overflow-wrap:anywhere;font-size:19px!important}
  body[data-checkout=quick] .quick-product-heading>strong{font-size:21px}
