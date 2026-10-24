@@ -46,6 +46,9 @@
   en:{title:'Who is coming?',intro:'Add people and choose their age ranges. You can skip an age if you do not know it yet.',people:'Number of people',age:'Age, years',participant:'Person',unknown:'Not sure',save:'Save and continue',cancel:'Cancel',limit:'Up to 8 people',demo:'Ages help suggest rides. Ranges are examples; height and admission rules need a separate check.',saved:'People saved. Suggestions now account for age.',count:'people',more:'Add a person',less:'Remove the last person',remove:'Remove person',legacy:'Previously entered:',empty:'You can browse rides without adding anyone.',bands:['Under 3','3-4','5-9','10-17','18+']},
   hy:{title:'Ովքե՞ր են գալիս',intro:'Ավելացրեք մասնակիցներին և ընտրեք տարիքները։ Եթե դեռ չգիտեք, կարող եք բաց թողնել։',people:'Մասնակիցների քանակը',age:'Տարիքը',participant:'Մասնակից',unknown:'Չգիտեմ',save:'Պահպանել և շարունակել',cancel:'Չեղարկել',limit:'Մինչև 8 հոգի',demo:'Տարիքն օգնում է ընտրել ատրակցիոնները։ Միջակայքերը ցուցադրական են, հասակն ու մուտքի պայմանները ստուգվում են առանձին։',saved:'Մասնակիցները պահպանված են։ Ընտրությունը հաշվի է առնում տարիքը։',count:'հոգի',more:'Ավելացնել մասնակցի',less:'Հեռացնել վերջին մասնակցին',remove:'Հեռացնել մասնակցին',legacy:'Նախկինում նշված՝',empty:'Կարող եք դիտել ատրակցիոններն առանց մասնակիցներ ավելացնելու։',bands:['Մինչև 3','3-4','5-9','10-17','18+']}
  };
+ Object.assign(familyCopy.ru,{manual:'Ввести число',apply:'Применить',manualLabel:'Количество от 0 до 8',countError:'Введите целое число от 0 до 8. Участники не изменены.'});
+ Object.assign(familyCopy.en,{manual:'Enter a number',apply:'Apply',manualLabel:'Number from 0 to 8',countError:'Enter a whole number from 0 to 8. People have not changed.'});
+ Object.assign(familyCopy.hy,{manual:'Մուտքագրել թիվ',apply:'Կիրառել',manualLabel:'Քանակը՝ 0-ից 8',countError:'Մուտքագրեք ամբողջ թիվ՝ 0-ից 8։ Մասնակիցները չեն փոխվել։'});
  const familyText=()=>familyCopy[window.VPI18n?.language||document.documentElement.lang]||familyCopy.ru;
  const htmlEscape=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  function familyLabel(party){const c=familyText();return c.title+(party.length?' · '+party.length:'');}
@@ -60,7 +63,13 @@
  function mountFamily(host,party,onSave,onClose){
   const c=familyText(),lang=window.VPI18n?.language||document.documentElement.lang||'ru';
   const bands=['under3','age3_4','age5_9','age10_17','adult','unknown'];
-  let draft=JSON.parse(JSON.stringify(party));
+  let draft=JSON.parse(JSON.stringify(party)),manualCount=false;
+  function setCount(count){
+   if(!Number.isInteger(count)||count<0||count>8)return false;
+   while(draft.length<count)draft.push({id:'party-'+crypto.randomUUID(),role:'unknown',label:'Участник '+(draft.length+1),age:null,ageBand:null,height:null});
+   if(draft.length>count)draft.splice(count);
+   return true;
+  }
   const label=(person,index)=>window.VP3.participantLabel(person,index,lang);
   function bandValue(person){
    if(bands.includes(person.ageBand))return person.ageBand;
@@ -69,20 +78,30 @@
   }
   function render(focus){
    const oldScroll=host.querySelector('.discovery-family-scroll')?.scrollTop||0;
-   host.innerHTML='<form class="discovery-family" data-i18n-skip><div class="discovery-family-scroll"><p class="discovery-family-intro">'+c.intro+'</p><div class="discovery-family-counts"><div class="discovery-family-count"><span>'+c.people+'</span><div><button type="button" data-family-count data-delta="-1" aria-label="'+c.less+'"'+(!draft.length?' disabled':'')+'>−</button><output aria-live="polite" aria-label="'+c.people+'">'+draft.length+'</output><button type="button" data-family-count data-delta="1" aria-label="'+c.more+'"'+(draft.length>=8?' disabled':'')+'>+</button></div></div></div><p class="discovery-family-limit">'+c.limit+'</p><div class="discovery-family-ages">'+draft.map((person,index)=>{
+   host.innerHTML='<form class="discovery-family" data-i18n-skip><div class="discovery-family-scroll"><p class="discovery-family-intro">'+c.intro+'</p><div class="discovery-family-counts"><div class="discovery-family-count"><div class="discovery-family-count-heading"><span>'+c.people+'</span><output aria-live="polite" aria-label="'+c.people+'">'+draft.length+'</output></div><div class="discovery-family-count-options" role="group" aria-label="'+c.people+'">'+[1,2,3,4].map(count=>'<button type="button" data-family-count data-value="'+count+'" aria-pressed="'+(draft.length===count)+'">'+count+'</button>').join('')+'<button type="button" data-family-manual aria-expanded="'+manualCount+'" aria-controls="family-count-manual">'+c.manual+'</button></div>'+(manualCount?'<div class="discovery-family-manual" id="family-count-manual"><label for="family-count-input">'+c.manualLabel+'</label><div><input id="family-count-input" data-family-count-input type="text" inputmode="numeric" autocomplete="off" value="'+draft.length+'" aria-describedby="family-count-error"><button type="button" data-family-count-apply>'+c.apply+'</button></div><p id="family-count-error" role="alert"></p></div>':'')+'</div></div><p class="discovery-family-limit">'+c.limit+'</p><div class="discovery-family-ages">'+draft.map((person,index)=>{
     const name=label(person,index),selected=bandValue(person),exact=Number.isInteger(person.age)&&!person.ageBand;
     return '<fieldset class="discovery-family-person" data-family-person="'+htmlEscape(person.id)+'"><legend>'+htmlEscape(name)+'</legend><div class="discovery-family-person-head"><span>'+c.age+'</span><button type="button" class="discovery-family-remove" data-family-remove="'+htmlEscape(person.id)+'" aria-label="'+htmlEscape(c.remove+': '+name)+'">×</button></div>'+(exact?'<p class="discovery-family-legacy">'+c.legacy+' '+htmlEscape(window.VP3.ageLabel(person,lang))+'</p>':'')+'<div class="discovery-family-bands" role="radiogroup" aria-label="'+htmlEscape(name+': '+c.age)+'">'+bands.map((id,i)=>'<button type="button" class="discovery-family-band" data-family-band="'+id+'" role="radio" aria-checked="'+(selected===id)+'" tabindex="'+(selected===id?'0':'-1')+'">'+htmlEscape(i<5?c.bands[i]:c.unknown)+'</button>').join('')+'</div></fieldset>';
    }).join('')+(draft.length?'':'<p class="discovery-family-empty">'+c.empty+'</p>')+'</div><p class="discovery-family-note">'+c.demo+'</p></div><div data-vp-action-group class="discovery-family-actions"><button type="submit" data-vp-cta="primary">'+c.save+'</button><button type="button" data-family-cancel data-vp-cta="secondary">'+c.cancel+'</button></div></form>';
-   host.querySelector('form').addEventListener('submit',e=>{e.preventDefault();onSave(draft);});
+   function applyManual(){
+    const input=host.querySelector('[data-family-count-input]');
+    if(!input)return true;
+    const raw=input.value.trim(),count=Number(raw);
+    if(!/^\d+$/.test(raw)||!setCount(count)){host.querySelector('#family-count-error').textContent=c.countError;input.setAttribute('aria-invalid','true');input.scrollIntoView({block:'center',inline:'nearest'});input.focus({preventScroll:true});return false;}
+    manualCount=false;return true;
+   }
+   host.querySelector('form').addEventListener('submit',e=>{e.preventDefault();if(applyManual())onSave(draft);});
    host.querySelector('[data-family-cancel]').addEventListener('click',onClose);
    host.querySelectorAll('[data-family-count]').forEach(button=>button.addEventListener('click',()=>{
-    if(button.dataset.delta==='1'){if(draft.length>=8)return;draft.push({id:'party-'+crypto.randomUUID(),role:'unknown',label:'Участник '+(draft.length+1),age:null,ageBand:null,height:null});}
-    else if(draft.length)draft.pop();
-    render({count:button.dataset.delta});
+    setCount(Number(button.dataset.value));manualCount=false;render({count:button.dataset.value});
    }));
+   host.querySelector('[data-family-manual]').addEventListener('click',()=>{manualCount=!manualCount;render({manual:manualCount});});
+   host.querySelector('[data-family-count-apply]')?.addEventListener('click',()=>{if(applyManual())render({manual:false});});
+   const countInput=host.querySelector('[data-family-count-input]');
+   countInput?.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();if(applyManual())render({manual:false});}});
+   countInput?.addEventListener('input',()=>{countInput.removeAttribute('aria-invalid');host.querySelector('#family-count-error').textContent='';});
    host.querySelectorAll('[data-family-remove]').forEach(button=>button.addEventListener('click',()=>{
     const index=draft.findIndex(person=>person.id===button.dataset.familyRemove);if(index<0)return;
-    draft.splice(index,1);const next=draft[Math.min(index,draft.length-1)];render(next?{person:next.id,band:bandValue(next)}:{count:'1'});
+    draft.splice(index,1);manualCount=false;const next=draft[Math.min(index,draft.length-1)];render(next?{person:next.id,band:bandValue(next)}:{count:'1'});
    }));
    host.querySelectorAll('[data-family-band]').forEach(button=>{
     button.addEventListener('click',()=>{
@@ -101,8 +120,9 @@
    host.querySelector('.discovery-family-scroll').scrollTop=oldScroll;
    if(focus){let next;
     if(focus.person){const row=[...host.querySelectorAll('[data-family-person]')].find(row=>row.dataset.familyPerson===focus.person);next=[...row?.querySelectorAll('[data-family-band]')||[]].find(button=>button.dataset.familyBand===focus.band);}
-    else next=host.querySelector('[data-family-count][data-delta="'+focus.count+'"]');
-    if(!next||next.disabled)next=host.querySelector('[data-family-count]:not(:disabled)');next?.focus({preventScroll:true});
+    else if(Object.hasOwn(focus,'manual'))next=host.querySelector(focus.manual?'[data-family-count-input]':'[data-family-manual]');
+    else next=host.querySelector('[data-family-count][data-value="'+focus.count+'"]');
+    if(!next||next.disabled)next=host.querySelector('[data-family-count]:not(:disabled)');next?.focus({preventScroll:true});if(focus.manual){next?.scrollIntoView({block:'center',inline:'nearest'});next?.select();}
    }
   }
   render();
