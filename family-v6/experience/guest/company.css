@@ -2,3 +2,34 @@
 @media(max-width:780px){.cp-layout{grid-template-columns:minmax(0,1fr);gap:30px}.cp-heading{margin-top:25px}.cp-breadcrumb{font-size:12px}.cp-ride{padding:16px}.cp-ride-head img{width:72px;height:74px}.cp-ride h2{font-size:19px}.cp-results{scroll-margin-top:24px}.cp-offer{padding:18px}.cp-flex~.cp-offers{grid-template-columns:minmax(0,1fr)}.cp-companion,.cp-data,.cp-flex{padding:18px}.cp-tabs .cp-button{padding:10px;font-size:13px}.cp-party-list{grid-template-columns:minmax(0,1fr)}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 .cp-simulation{margin:24px 0;font-size:12px;line-height:1.6}.cp-simulation summary{cursor:pointer;min-height:44px}.cp-result-shortcut{display:none}@media(max-width:780px){body[data-page=company]{padding-bottom:70px}.cp-result-shortcut{display:block;position:fixed;bottom:12px;left:16px;right:16px;padding:15px 16px;border-radius:12px;min-height:48px;background:#2f2e7d;color:#fff;text-align:center;font-size:14px;font-weight:600;text-decoration:none;z-index:20;box-shadow:0 3px 18px #29256933}.cp-results{scroll-margin-top:16px}}
+
+/* Connected purchase: the first ride and its participant choices lead the page. */
+body[data-page=company] [data-real-context] .cp-heading{margin:12px 0 8px}
+body[data-page=company] [data-real-context] .cp-heading h1{font-family:Montserrat,sans-serif!important;font-weight:600;font-size:28px!important;line-height:1.2!important;margin:0 0 6px}
+html[lang=hy] body[data-page=company] [data-real-context] .cp-heading h1{font-family:"Noto Sans Armenian",sans-serif!important}
+body[data-page=company] [data-real-context] .cp-heading p{font-size:14px;margin:0}
+body[data-page=company] [data-real-context] .cp-breadcrumb{margin:8px 0 4px}
+body[data-page=company] [data-real-context] .cp-breadcrumb a{display:inline-flex;align-items:center;min-height:44px}
+.cp-demo-boundary{font-size:12px;color:#625e76;border-bottom:1px solid #dedbe7}
+.cp-demo-boundary summary{display:flex;align-items:center;gap:8px;min-height:44px;cursor:pointer;list-style:none}
+.cp-demo-boundary summary::-webkit-details-marker{display:none}
+.cp-demo-boundary summary::before{content:"›";font-size:20px;line-height:1;width:12px;flex:none;transform:rotate(90deg)}
+.cp-demo-boundary[open] summary::before{transform:rotate(-90deg)}
+.cp-demo-boundary p{margin:0 0 12px;max-width:68ch}
+.cp-party-compact{display:flex;align-items:flex-start;gap:16px;border-bottom:1px solid #dedbe7;font-size:13px}
+.cp-party-compact>details{flex:1;min-width:0}
+.cp-party-compact summary{min-height:44px;display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;font-weight:600}
+.cp-party-compact summary::-webkit-details-marker{display:none}
+.cp-party-compact summary::before{content:"›";display:block;font-size:20px;line-height:1;transform:rotate(90deg)}
+.cp-party-compact details[open] summary::before{transform:rotate(-90deg)}
+.cp-party-compact .cp-party-list{padding:4px 0 12px;gap:8px}
+.cp-party-compact .cp-party-list strong,.cp-party-compact .cp-party-list span{margin-bottom:2px}
+.cp-party-compact>.cp-link{flex:none;font-size:13px}
+body[data-page=company] [data-real-context] .cp-layout{margin-top:16px}
+@media(max-width:780px){
+ body[data-page=company] [data-real-context] .cp-heading h1{font-size:25px!important}
+ body[data-page=company] [data-real-context] .cp-layout{margin-top:12px}
+ body[data-page=company] [data-real-context] .cp-ride{padding:14px}
+ body[data-page=company] [data-real-context] .cp-question{margin:12px 0 4px;font-size:13px}
+ body[data-page=company] [data-real-context] .cp-ride-head h2{font-size:19px!important}
+}

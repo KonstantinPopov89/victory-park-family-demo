@@ -1,0 +1,35 @@
+/* Ride detail only. Catalogue card styling is owned by catalog-refresh.css. */
+body[data-screen="SCR-43"] .ride-detail-facts{display:grid;gap:14px;margin:20px 0 24px;font-size:15px;line-height:1.55}
+body[data-screen="SCR-43"] .ride-detail-facts p{margin:0}
+body[data-screen="SCR-43"] .ride-detail-price{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+body[data-screen="SCR-43"] .ride-detail-price strong{font-size:28px;line-height:1.2;color:#2f2e7d}
+body[data-screen="SCR-43"] .ride-detail-price span,body[data-screen="SCR-43"] .ride-detail-boundary{color:#625e76}
+body[data-screen="SCR-43"] .ride-detail-boundary{font-size:13px;padding-top:14px;border-top:1px solid #dedbe7}
+body[data-screen="SCR-43"] .ride-detail-status{display:inline-flex;align-items:center;gap:8px;width:fit-content;min-height:36px;font-size:13px;font-weight:600;color:#625e76;text-decoration:underline;text-underline-offset:3px}
+body[data-screen="SCR-43"] .ride-detail-status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0}
+body[data-screen="SCR-43"] .ride-detail-status[data-status-value="open"]{color:#216743}
+body[data-screen="SCR-43"] .ride-detail-status[data-status-value="paused"]{color:#79500d}
+body[data-screen="SCR-43"] .ride-detail-status[data-status-value="closed"]{color:#963844}
+body[data-screen="SCR-43"] .ride-detail-actions{display:grid;gap:12px}
+body[data-screen="SCR-43"] .ride-detail-purchasebar{position:static;display:flex;flex-direction:row;align-items:center;gap:16px;margin:0;padding:0;border:0}
+body[data-screen="SCR-43"] .ride-detail-purchasebar>span{font-size:13px;color:#625e76;white-space:nowrap}
+body[data-screen="SCR-43"] .ride-detail-purchasebar>a{flex:1}
+body[data-screen="SCR-43"] .ride-detail-topup{display:inline-block;width:fit-content;font-size:14px;line-height:1.5;padding:12px 0;color:#625e76;text-underline-offset:3px}
+body[data-screen="SCR-43"] [data-catalog-facts-warning]{color:#79500d;font-size:13px}
+body[data-screen="SCR-43"] .ride-detail-status:focus-visible,body[data-screen="SCR-43"] .ride-detail-topup:focus-visible{outline:3px solid #d80b8c;outline-offset:3px}
+@media(max-width:700px){
+ html:has(body[data-screen="SCR-43"]){scroll-padding-bottom:108px}
+ body[data-screen="SCR-43"] main :is(a,button,input,summary){scroll-margin-block-end:24px}
+ body[data-screen="SCR-43"]{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+ body[data-screen="SCR-43"] .catalog-detail{padding-top:16px;gap:18px}
+ body[data-screen="SCR-43"] .catalog-detail-media{padding:0;box-shadow:none;border-radius:10px;overflow:hidden}
+ body[data-screen="SCR-43"] .catalog-detail-media picture img{aspect-ratio:4/3;max-height:300px}
+ body[data-screen="SCR-43"] .catalog-detail-media .photo-note{padding:8px 0;font-size:12px}
+ body[data-screen="SCR-43"] .catalog-detail-copy h1.disp{font-size:36px;margin-bottom:12px}
+ html[lang="hy"] body[data-screen="SCR-43"] .catalog-detail-copy h1.disp{font-size:28px;line-height:1.2}
+ body[data-screen="SCR-43"] .ride-detail-facts{gap:10px;margin:0 0 20px}
+ body[data-screen="SCR-43"] .ride-detail-status{min-height:44px}
+ body[data-screen="SCR-43"] .ride-detail-purchasebar{position:fixed;z-index:60;left:0;right:0;bottom:0;padding:12px max(18px,env(safe-area-inset-right,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));background:#fbfaf7;border-top:1px solid #dedbe7;box-shadow:0 -4px 16px #2f2e7d08}
+ body[data-screen="SCR-43"] .ride-detail-purchasebar>a{max-width:380px;margin-left:auto}
+}
+@media(prefers-reduced-motion:reduce){body[data-screen="SCR-43"] .ride-detail-actions *{transition:none;scroll-behavior:auto}}
