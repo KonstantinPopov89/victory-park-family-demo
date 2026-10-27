@@ -245,7 +245,8 @@
   window.addEventListener('hashchange',onHash);
   document.addEventListener('vp:interests',()=>{const before=state.selections.real.join('|');readState();if(before!==state.selections.real.join('|'))lastRemoved=null;updateControls();if(panel&&panel!=='family')renderPanel();});
   window.addEventListener('storage',e=>{if(e.key===KEY){const previous=state.selections.real.join('|');readState();if(previous!==state.selections.real.join('|'))lastRemoved=null;updateControls();if(panel && panel!=='family')renderPanel();}});
-  window.addEventListener('pageshow',()=>{readState();updateControls();if(panel)renderPanel();});
+  // A late initial pageshow must not replace an in-progress family draft.
+  window.addEventListener('pageshow',()=>{readState();updateControls();if(panel&&panel!=='family')renderPanel();});
   document.addEventListener('visibilitychange',()=>{if(document.hidden){gesture=null;cancelSettle(false);position(0,false);}});
   new ResizeObserver(()=>{gesture=null;cancelSettle(false);position(0,false);checkOverflow();}).observe(stage);
   syncMode();setRides(true);if(resetRealFilter)write(JOURNAL,journal);render();onHash();
