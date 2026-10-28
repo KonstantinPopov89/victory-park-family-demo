@@ -3840,7 +3840,7 @@ var qrcode = function() {
     window.VPI18n?.refreshUserValues?.();
     items = normalize(items);
     if (!items.length) return '';
-    const model = {items, orderId:String(options.orderId || ''), instruction:String(options.instruction || ''), summary:(options.summary||[]).map(String)};
+    const model = {items, social:options.social === true, orderId:String(options.orderId || ''), instruction:String(options.instruction || ''), summary:(options.summary||[]).map(String)};
     const first = items[0], receiptOnly = items.every(x => x.kind === 'receipt');
     return `<section class="vp-postpurchase" data-i18n-skip data-vp-receipt="${esc(encodeURIComponent(JSON.stringify(model)))}">
       ${items.length > 1 ? `<label class="pp-selector">${esc(t('choose'))} <span>${items.length}</span><select data-pp-select aria-label="${esc(t('choose'))}">${items.map((x,i) => `<option value="${i}">${i+1}. ${esc(tr(x.title))}${x.recipient ? ' · '+esc(tr(x.recipient)) : ''}</option>`).join('')}</select></label>` : ''}
@@ -3860,6 +3860,7 @@ var qrcode = function() {
       </div></div>
       <div class="pp-instructions" data-pp-instruction>${instructions(first,model)}</div>
       <details class="pp-terms"><summary>${esc(t('terms'))}</summary><div data-pp-terms>${terms(first)}</div></details>
+      ${model.social ? window.VPSocialLinks?.render(language(), {kind:receiptOnly?'receipt':'tickets'}) || '' : ''}
       <div class="pp-print" data-pp-print>${printItems(items,model)}</div>
     </section>`;
   }
@@ -4255,7 +4256,7 @@ function checkoutNext(){
  return {action:'pay',label:'Оплатить '+money(a.payable),title,small:'Демо · без списания',disabled:busy};
 }
 
-function nextButton(cls='btn btn-primary'){const n=checkoutNext();return btn(n.action,n.label,`data-vp-cta="primary" data-checkout-next ${n.target?'data-target="'+n.target+'"':''} ${n.disabled?'disabled':''}`,cls);}
+function nextButton(cls='btn btn-primary'){const n=checkoutNext();return btn(n.action,n.label,`data-vp-cta="primary" ${n.action==='pay'?'data-vp-shine':''} data-checkout-next ${n.target?'data-target="'+n.target+'"':''} ${n.disabled?'disabled':''}`,cls);}
 function checkoutBar(){const n=checkoutNext();return `<div class="mobile-bar checkout-dock"><div><strong>${n.title}</strong><small>${n.small}</small></div>${nextButton()}</div>`;}
 function reviewOrder(){if(!state.cart.lines.length)return;reviewing=true;reviewedToken=reviewToken();render();window.scrollTo({top:0,behavior:'instant'});$('#review-heading')?.focus({preventScroll:true});}
 function cartPreview(){return state.cart.lines.length?cart():`<section class="cart-preview" id="cart"><h2>Ваш заказ</h2><p>Выберите нужные катания. Лайки сами не становятся покупкой.</p></section>`;}
@@ -4281,7 +4282,7 @@ function receipt(){
  const ready=receiptItems(order),count=order.lines.reduce((n,l)=>n+l.quantity,0);
  const labels={success:['Ваши билеты готовы','Учебная оплата завершена. Все образцы доступны сразу.'],declined:['Оплата не завершена','В учебном сценарии получен окончательный отказ. Состав заказа сохранён.'],pending:['Проверяем оплату','Результат пока неизвестен. Не оплачивайте повторно.'],issuance:['Оплачено. Готовим билеты','Повторно платить не нужно. Проверяйте готовность этого заказа.'],partial:[`Оплачено. Готово ${ready.length} из ${count} билетов`,'Готовые образцы доступны ниже. Остальные ещё выпускаются. Повторно платить не нужно.']};
  const waiting=['pending','issuance','partial'].includes(order.status);
- const issued=ready.length?(window.VPPostPurchase?VPPostPurchase.render(ready,{orderId:order.id,summary:receiptSummary(order),instruction:order.status==='partial'?'Выдана только часть покупки. Остальные билеты проверяйте в исходном заказе.':''}):`<div class="demo-ticket-grid">${ticketCards(order)}</div>`):'';
+ const issued=ready.length?(window.VPPostPurchase?VPPostPurchase.render(ready,{social:order.status==='success',orderId:order.id,summary:receiptSummary(order),instruction:order.status==='partial'?'Выдана только часть покупки. Остальные билеты проверяйте в исходном заказе.':''}):`<div class="demo-ticket-grid">${ticketCards(order)}</div>`):'';
  return `<section class="receipt" id="receipt" data-order-state="${esc(order.status)}"><h1 id="result-heading" tabindex="-1">${labels[order.status][0]}</h1><p class="receipt-status">${labels[order.status][1]}</p>
  ${order.selectedJourney?`<section class="company-order-summary" data-selected-receipt><h2>Ваш план катаний</h2><ul>${order.selectedJourney.summary.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><p>Демонстрационные цены. Допуск и сопровождение уточняются у парка.</p></section>`:''}
  ${issued}
@@ -4692,7 +4693,7 @@ window.VPQR=function(value){
       for(const id of ids){const ride=(window.VP?.attr||[]).find(a=>a.slug===id);if(!ride)continue;const li=document.createElement('li'),link=document.createElement('a'),button=document.createElement('button'),photo=(window.VPSharedCatalog?.rides||[]).find(r=>r.catalogSlug===id);if(photo){const img=document.createElement('img');img.src=photo.photo;img.alt='';img.width=72;img.height=84;img.loading='lazy';img.className='v6-interest-image';li.append(img)}link.href=base+lang()+'/attractions/'+id+'/';link.textContent=ride.name;link.className='v6-interest-name';button.type='button';button.dataset.v6Remove=id;button.textContent=labels[0];button.setAttribute('aria-label',labels[0]+': '+ride.name);li.append(link,button);ul.append(li)}
       interests.append(ul);if(removedInterest){const undo=document.createElement('button');undo.type='button';undo.dataset.v6Restore='';undo.textContent=labels[1];interests.append(undo)}
       const actions=document.createElement('div');actions.className='v6-list-actions';actions.dataset.vpActionGroup='';
-      if(ids.length){const buy=document.createElement('a');buy.href=base+'experience/guest/company.html?source=real&mode=exact&lang='+lang();buy.textContent=labels[2];buy.setAttribute('aria-describedby','real-list-boundary');buy.className='v6-list-buy';buy.dataset.vpCta='primary';actions.append(buy)}
+      if(ids.length){const buy=document.createElement('a');buy.href=base+'experience/guest/company.html?source=real&mode=exact&lang='+lang();buy.textContent=labels[2];buy.setAttribute('aria-describedby','real-list-boundary');buy.className='v6-list-buy';buy.dataset.vpCta='primary';buy.dataset.vpShine='';actions.append(buy)}
       const back=document.createElement('a');back.href=base+'experience/guest/reels.html?mode=real&lang='+lang();back.textContent={ru:ids.length?'Вернуться к подбору':'Выбрать аттракционы',en:ids.length?'Back to discovery':'Find rides',hy:ids.length?'Վերադառնալ ընտրությանը':'Ընտրել ատրակցիոններ'}[lang()];back.dataset.vpCta=ids.length?'secondary':'primary';actions.append(back);interests.append(actions);
     }
   }
@@ -4701,7 +4702,7 @@ const sh={ru:'Аттракционы',hy:'Ատրակցիոններ',en:'Rides'}[
   const state=window.VP3UI?.getState();if(state&&!state.selections.real.length&&!state.selections.demo.length){for(const e of document.querySelectorAll('.mobile-bar strong'))if(/сохран|saved|պահպան/i.test(e.textContent))e.textContent=c.empty;}
 document.querySelectorAll('.v5-demo').forEach(e=>{if(e.textContent!==c.demo)e.textContent=c.demo});
   document.querySelectorAll('[data-v5-price]').forEach(e=>{const kind=e.dataset.v5Price,n=kind==='unlimited'?window.VPProductCatalog?.products.unlimited.price:kind==='package'?window.VPProductCatalog?.products.package5.price:Math.min(...(window.VPProductCatalog?.demoRides||[]).map(r=>r.price));const t=c.example+': '+(kind==='single'?c.from+' ':'')+money(n||0);if(e.textContent!==t)e.textContent=t});
-  document.querySelectorAll('[data-v5-products]').forEach(e=>{if(e.dataset.ready)return;e.dataset.ready='1';e.innerHTML=[['single',c.single,Math.min(...VPProductCatalog.demoRides.map(r=>r.price))],['package',c.pack,VPProductCatalog.products.package5.price],['unlimited',c.pass,VPProductCatalog.products.unlimited.price]].map(([id,name,n])=>`<article class="v5-product"><h2>${name}</h2><p>${c.example}: ${id==='single'?c.from+' ':''}${money(n)}</p><a data-vp-cta="primary" href="${base}experience/guest/quick.html?lang=${lang()}&product=${id}">${c.buy}</a></article>`).join('')});
+  document.querySelectorAll('[data-v5-products]').forEach(e=>{if(e.dataset.ready)return;e.dataset.ready='1';e.innerHTML=[['single',c.single,Math.min(...VPProductCatalog.demoRides.map(r=>r.price))],['package',c.pack,VPProductCatalog.products.package5.price],['unlimited',c.pass,VPProductCatalog.products.unlimited.price]].map(([id,name,n])=>`<article class="v5-product"><h2>${name}</h2><p>${c.example}: ${id==='single'?c.from+' ':''}${money(n)}</p><a data-vp-cta="primary" data-vp-shine href="${base}experience/guest/quick.html?lang=${lang()}&product=${id}">${c.buy}</a></article>`).join('')});
   const receipt=document.querySelector('#receipt'),o=window.VP3UI?.getOrder();if(receipt&&o&&!review){receipt.querySelectorAll('.badge,.ticket-code').forEach(el=>el.dataset.reviewOnly='');for(const e of receipt.querySelectorAll('.purchase-help strong'))if(e.textContent===o.id)e.textContent=short(o.id);}if(!review)for(const row of document.querySelectorAll('.past-order')){const id=row.querySelector('[data-order]')?.dataset.order,node=row.querySelector('span')?.firstChild;if(id&&node?.nodeType===3&&node.data.trim()!==short(id))node.data=short(id);}if(receipt&&o&&['success','partial'].includes(o.status)&&!receipt.querySelector('.v5-ticket-tools')){const n=short(o.id),tools=document.createElement('section');tools.className='v5-ticket-tools';tools.innerHTML=`<strong>${c.order}: <span class="v5-short-order">${n}</span></strong>${receipt.querySelector('.vp-postpurchase')?'':(window.VPQR?VPQR(n):'')}<p>${c.entrance}</p><div class="v5-link-list" data-vp-action-group><button type="button" data-vp-cta="secondary" data-v5-print>${c.pdf}</button><button type="button" data-vp-cta="secondary" data-v5-share>${c.share}</button></div>`;receipt.querySelector('h1').after(tools);receipt.querySelectorAll('.badge,.ticket-code').forEach(el=>el.dataset.reviewOnly='');}
   trackState();const docks=[...document.querySelectorAll('.mobile-bar,.sticky-cta')].map(e=>e.getBoundingClientRect()).filter(r=>r.height&&r.bottom>=innerHeight-1);document.documentElement.style.setProperty('--v5-dock-height',(docks.length?Math.max(...docks.map(r=>r.height)):0)+'px');
  }

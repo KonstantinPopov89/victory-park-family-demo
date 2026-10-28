@@ -60,6 +60,7 @@ export function createMobileActions(root,getModel){
   // Measure with the actual context and label before deciding what has been shown.
   button.textContent=next.label;measure();selectionObserved();next=action();
   button.dataset.nextAction=next.name;button.textContent=next.label;button.disabled=Boolean(next.disabled);
+  button.toggleAttribute('data-vp-shine',next.name==='pay'&&!model.readOnly);
   if(['download','check','issue','retry','renew','help'].includes(next.name))root.querySelector('.result>.action-row>[data-action="'+next.name+'"]')?.setAttribute('data-booking-inline','');
   if(next.name==='processing')context.setAttribute('role','status');else context.removeAttribute('role');
   measure();

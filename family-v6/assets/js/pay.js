@@ -315,7 +315,7 @@
       var pr = D.querySelectorAll("[data-prod]"); for (var k = 0; k < pr.length; k++) pr[k].hidden = pr[k].getAttribute("data-prod") !== (o.product || "topup");
       if (holder) {
         holder.innerHTML = stt === "success" && window.VPPostPurchase
-          ? window.VPPostPurchase.render(readyItems(o), { orderId: o.id, summary:[resultText("Сумма заказа: ","Order total: ","Պատվերի գումարը՝ ")+amd(o.amount)] })
+          ? window.VPPostPurchase.render(readyItems(o), { social:true, orderId: o.id, summary:[resultText("Сумма заказа: ","Order total: ","Պատվերի գումարը՝ ")+amd(o.amount)] })
           : "";
       }
       window.VPPostPurchase?.restoreView(receiptView);window.VPPostPurchase?.restoreDraft();

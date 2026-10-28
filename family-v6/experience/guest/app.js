@@ -261,7 +261,7 @@ function checkoutNext(){
  return {action:'pay',label:'Оплатить '+money(a.payable),title,small:'Демо · без списания',disabled:busy};
 }
 
-function nextButton(cls='btn btn-primary'){const n=checkoutNext();return btn(n.action,n.label,`data-vp-cta="primary" data-checkout-next ${n.target?'data-target="'+n.target+'"':''} ${n.disabled?'disabled':''}`,cls);}
+function nextButton(cls='btn btn-primary'){const n=checkoutNext();return btn(n.action,n.label,`data-vp-cta="primary" ${n.action==='pay'?'data-vp-shine':''} data-checkout-next ${n.target?'data-target="'+n.target+'"':''} ${n.disabled?'disabled':''}`,cls);}
 function checkoutBar(){const n=checkoutNext();return `<div class="mobile-bar checkout-dock"><div><strong>${n.title}</strong><small>${n.small}</small></div>${nextButton()}</div>`;}
 function reviewOrder(){if(!state.cart.lines.length)return;reviewing=true;reviewedToken=reviewToken();render();window.scrollTo({top:0,behavior:'instant'});$('#review-heading')?.focus({preventScroll:true});}
 function cartPreview(){return state.cart.lines.length?cart():`<section class="cart-preview" id="cart"><h2>Ваш заказ</h2><p>Выберите нужные катания. Лайки сами не становятся покупкой.</p></section>`;}
@@ -287,7 +287,7 @@ function receipt(){
  const ready=receiptItems(order),count=order.lines.reduce((n,l)=>n+l.quantity,0);
  const labels={success:['Ваши билеты готовы','Учебная оплата завершена. Все образцы доступны сразу.'],declined:['Оплата не завершена','В учебном сценарии получен окончательный отказ. Состав заказа сохранён.'],pending:['Проверяем оплату','Результат пока неизвестен. Не оплачивайте повторно.'],issuance:['Оплачено. Готовим билеты','Повторно платить не нужно. Проверяйте готовность этого заказа.'],partial:[`Оплачено. Готово ${ready.length} из ${count} билетов`,'Готовые образцы доступны ниже. Остальные ещё выпускаются. Повторно платить не нужно.']};
  const waiting=['pending','issuance','partial'].includes(order.status);
- const issued=ready.length?(window.VPPostPurchase?VPPostPurchase.render(ready,{orderId:order.id,summary:receiptSummary(order),instruction:order.status==='partial'?'Выдана только часть покупки. Остальные билеты проверяйте в исходном заказе.':''}):`<div class="demo-ticket-grid">${ticketCards(order)}</div>`):'';
+ const issued=ready.length?(window.VPPostPurchase?VPPostPurchase.render(ready,{social:order.status==='success',orderId:order.id,summary:receiptSummary(order),instruction:order.status==='partial'?'Выдана только часть покупки. Остальные билеты проверяйте в исходном заказе.':''}):`<div class="demo-ticket-grid">${ticketCards(order)}</div>`):'';
  return `<section class="receipt" id="receipt" data-order-state="${esc(order.status)}"><h1 id="result-heading" tabindex="-1">${labels[order.status][0]}</h1><p class="receipt-status">${labels[order.status][1]}</p>
  ${order.selectedJourney?`<section class="company-order-summary" data-selected-receipt><h2>Ваш план катаний</h2><ul>${order.selectedJourney.summary.map(t=>`<li>${esc(t)}</li>`).join('')}</ul><p>Демонстрационные цены. Допуск и сопровождение уточняются у парка.</p></section>`:''}
  ${issued}

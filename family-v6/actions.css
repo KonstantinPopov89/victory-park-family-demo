@@ -90,3 +90,55 @@
   :root body[data-v5] [data-vp-cta][data-vp-cta],
   :root body[data-session-booking] #app [data-vp-cta][data-vp-cta] { transition: none; }
 }
+
+/* Purchase attention is an explicit opt-in, independent of button meaning and layout.
+   A short pass followed by a long rest; all state feedback stays in the existing UI. */
+:root body [data-vp-shine],
+:root body [data-catalog-tickets] {
+  position: relative;
+  overflow: hidden;
+  --vp-shine-color: 255 255 255;
+}
+:root body [data-vp-shine="soft"] { --vp-shine-color: 47 46 125; }
+:root body [data-vp-shine]::after,
+:root body [data-catalog-tickets]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(110deg, transparent 32%, rgb(var(--vp-shine-color) / .55) 43%, rgb(var(--vp-shine-color)) 50%, rgb(var(--vp-shine-color) / .55) 57%, transparent 68%);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateX(-110%);
+  animation: vp-purchase-shine 6s ease-in-out 1s infinite;
+}
+@keyframes vp-purchase-shine {
+  0% { transform: translateX(-110%); opacity: 0; }
+  1.5% { opacity: .25; }
+  12.5% { opacity: .25; }
+  14.1667%, 100% { transform: translateX(110%); opacity: 0; }
+}
+:root body :is([data-vp-shine], [data-catalog-tickets]):is(:disabled, [aria-disabled="true"], [aria-busy="true"], .loading, .is-loading, .processing, [data-loading="true"], [data-processing="true"])::after,
+:root body :is([aria-busy="true"], [data-loading="true"], [data-processing="true"]) :is([data-vp-shine], [data-catalog-tickets])::after {
+  content: none;
+  animation: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  :root body [data-vp-shine]::after,
+  :root body [data-catalog-tickets]::after { content: none; animation: none; }
+}
+
+/* Success-only contacts and local-file shortcuts share the quiet action style. */
+:root body .vp-social-links{margin:28px 0 0;padding:24px 0 0;border-top:1px solid var(--vp-action-border,#d8d5e3);text-align:left;color:var(--vp-action-ink,#2f2e7d)}
+:root body .vp-social-links h3{font-family:inherit;font-size:16px;line-height:1.4;font-weight:600;margin:0 0 12px}
+:root body .vp-social-grid+h3{margin-top:24px}
+:root body .vp-social-note{font-family:inherit;font-size:14px;line-height:1.5;margin:0 0 12px;color:var(--vp-action-ink,#2f2e7d);opacity:.8}
+:root body .vp-social-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:8px}
+:root body .vp-social-action{display:flex;align-items:center;gap:10px;min-width:0;min-height:60px;padding:10px 12px;border:1px solid var(--vp-action-border,#d8d5e3);border-radius:10px;background:#fff;color:var(--vp-action-ink,#2f2e7d);font-family:inherit;text-align:left;text-decoration:none;cursor:pointer;box-shadow:none;transform:none}
+:root body .vp-social-action svg{width:20px;height:20px;flex:0 0 20px;fill:currentColor}
+:root body .vp-social-action span{min-width:0}
+:root body .vp-social-action b{display:block;font-size:14px;line-height:1.4;font-weight:600;overflow-wrap:anywhere}
+:root body .vp-social-action small{display:block;font-size:12px;line-height:1.4;font-weight:400;margin-top:2px;overflow-wrap:anywhere}
+:root body .vp-social-action:hover{background:#f4f2f8;border-color:#a29dbd}
+:root body .vp-social-action:focus-visible{outline:3px solid #2f2e7d;outline-offset:3px}
+@media print{:root body .vp-social-links{display:none}}

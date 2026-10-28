@@ -95,7 +95,7 @@
     window.VPI18n?.refreshUserValues?.();
     items = normalize(items);
     if (!items.length) return '';
-    const model = {items, orderId:String(options.orderId || ''), instruction:String(options.instruction || ''), summary:(options.summary||[]).map(String)};
+    const model = {items, social:options.social === true, orderId:String(options.orderId || ''), instruction:String(options.instruction || ''), summary:(options.summary||[]).map(String)};
     const first = items[0], receiptOnly = items.every(x => x.kind === 'receipt');
     return `<section class="vp-postpurchase" data-i18n-skip data-vp-receipt="${esc(encodeURIComponent(JSON.stringify(model)))}">
       ${items.length > 1 ? `<label class="pp-selector">${esc(t('choose'))} <span>${items.length}</span><select data-pp-select aria-label="${esc(t('choose'))}">${items.map((x,i) => `<option value="${i}">${i+1}. ${esc(tr(x.title))}${x.recipient ? ' · '+esc(tr(x.recipient)) : ''}</option>`).join('')}</select></label>` : ''}
@@ -115,6 +115,7 @@
       </div></div>
       <div class="pp-instructions" data-pp-instruction>${instructions(first,model)}</div>
       <details class="pp-terms"><summary>${esc(t('terms'))}</summary><div data-pp-terms>${terms(first)}</div></details>
+      ${model.social ? window.VPSocialLinks?.render(language(), {kind:receiptOnly?'receipt':'tickets'}) || '' : ''}
       <div class="pp-print" data-pp-print>${printItems(items,model)}</div>
     </section>`;
   }

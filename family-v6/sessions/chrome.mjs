@@ -19,6 +19,7 @@ export function header(state,variant,qtyKnown,resume){
 export function footer(state){const lang=state.lang,c=copy[lang];return `<footer class="v5-footer"><a href="../${lang}/">Victory Park</a><a href="../${lang}/visit/">${c.visit}</a><a href="tel:+37495900060">+374 95 90 00 60</a><a href="../${lang}/terms/">${c.terms}</a></footer>`;}
 export function decorate(root,readonly=false){
  root.querySelectorAll('.btn').forEach(b=>b.dataset.vpCta=b.classList.contains('secondary')?'secondary':'primary');
+ root.querySelectorAll('[data-action="pay"]').forEach(b=>b.toggleAttribute('data-vp-shine',!readonly));
  root.querySelectorAll('.action-row').forEach(g=>g.dataset.vpActionGroup='');
  if(readonly)root.querySelectorAll('button[data-action],input,select').forEach(b=>{if(!['lang','download','print','help','copy'].includes(b.dataset.action))b.disabled=true;});
 }
