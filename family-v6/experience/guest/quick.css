@@ -75,3 +75,22 @@ body[data-checkout=quick] .quick-order,body[data-checkout=quick] .quick-context,
 body[data-checkout=quick] .quick-order input,body[data-checkout=quick] .quick-order select{max-width:100%;min-width:0}
 body[data-checkout=quick] .receipt{overflow-wrap:anywhere}
 body[data-checkout=quick] .receipt .ticket-top,body[data-checkout=quick] .receipt .total{flex-wrap:wrap}
+
+/* History is a destination, separate from the current purchase form and its CTA. */
+body[data-history-view] #app>:not([data-unified-history]),
+body[data-history-view] #mobile,
+body:not([data-history-view]) [data-unified-history]{display:none!important}
+body[data-history-view]{padding-bottom:0!important}
+body[data-history-view] #main{min-height:55vh;padding-top:24px;padding-bottom:32px}
+body[data-history-view] [data-unified-history]{max-width:760px;margin:0 auto;border:0;background:transparent;padding:0;box-shadow:none}
+body[data-history-view] #purchase-history-title{font-family:var(--body,Montserrat,Arial,sans-serif);font-size:clamp(26px,4.2vw,36px);line-height:1.2;font-weight:600;margin:0 0 12px;text-transform:none;letter-spacing:0}
+body[data-history-view] .past-order{background:#fff;border:1px solid #DEDBE7;border-radius:10px;padding:18px;margin:16px 0;gap:16px}
+body[data-history-view] .past-order>span{min-width:0;overflow-wrap:anywhere}
+body[data-history-view] .past-order small{display:block;line-height:1.5;margin-top:5px}
+body[data-history-view] .history-actions{display:flex;flex-wrap:wrap;margin-top:24px}
+body[data-history-view] .history-drafts,body[data-history-view] .history-test-card{margin-top:24px;border-top:1px solid #DEDBE7;padding-top:12px}
+body[data-history-view] .history-drafts>summary,body[data-history-view] .history-test-card summary{cursor:pointer;min-height:44px;align-content:center;font-size:14px;font-weight:600}
+body[data-history-view] .history-test-card>p{margin-block:8px 12px}
+/* This section receives programmatic focus after navigation, never a tab stop. */
+body[data-history-view] [data-unified-history]:focus{outline:none}
+@media(max-width:700px){body[data-history-view] .past-order>a,body[data-history-view] .history-actions>a{width:100%}}

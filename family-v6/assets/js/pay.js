@@ -41,6 +41,9 @@
     var btns = f.querySelectorAll("[data-amount]"), other = f.querySelector("[data-other]"), aerr = f.querySelector("[data-amount-err]");
     var pay = f.querySelector("[data-pay]"), miss = f.querySelector("[data-missing]"), sum = f.querySelector("[data-summary]");
     var qtyOut = f.querySelector("[data-qty-out]");
+    var qtyChoices = f.querySelectorAll("[data-qty-set]"), qtyManual = f.querySelector("[data-qty-manual]");
+    var qtyField = f.querySelector("[data-qty-field]"), qtyInput = f.querySelector("[data-qty-input]"), qtyError = f.querySelector("[data-qty-error]");
+    var qtyIsValid = true, manualQuantity = false;
     var drafts=C.jget(SS(),"vp.family.v6.purchaseDrafts",{}), saved=drafts[product];
     var amount = 0, qty = product === "unlimited" ? 3 : 1, fails = 0, entered = "", bypass = false, initializing=true;
     if(saved && Number.isInteger(saved.qty) && saved.qty>=1 && saved.qty<=10)qty=saved.qty;
@@ -51,11 +54,16 @@
     function total() {
       if (product === "topup") return amount;
       if (product === "nocard") return amount ? amount + price : 0;
-      return qty * price;
+      return qtyIsValid ? qty * price : 0;
     }
     function upd() {
       rememberDraft();
       if (qtyOut) qtyOut.textContent = qty;
+      [].forEach.call(qtyChoices, function (b) { b.setAttribute("aria-pressed", String(!manualQuantity && +b.getAttribute("data-qty-set") === qty)); });
+      if (qtyManual) { qtyManual.setAttribute("aria-expanded", String(manualQuantity)); qtyManual.setAttribute("aria-pressed", String(manualQuantity)); }
+      if (qtyField) qtyField.hidden = !manualQuantity;
+      if (qtyInput) { qtyInput.setAttribute("aria-invalid", String(!qtyIsValid)); if (!manualQuantity) qtyInput.value = qty; }
+      if (qtyError) qtyError.hidden = qtyIsValid;
       var d = card ? card.value : "", l4 = d.length >= 4 ? d.slice(-4) : "", x = total();
       if (sum) {
         if (product === "topup") {
@@ -64,13 +72,13 @@
         } else if (product === "nocard") {
           sum.innerHTML = amount ? h("nocard_sum", { a: amd(amount), x: amd(x) }) : "";
         } else {
-          sum.innerHTML = h("qty_sum", { q: qty, p: amd(price), x: amd(x) }) + (d.length >= 4 ? "<small>" + h("sum_line", { l4: l4, x: amd(x) }) + "</small>" : "");
+          sum.innerHTML = qtyIsValid ? h("qty_sum", { q: qty, p: amd(price), x: amd(x) }) + (d.length >= 4 ? "<small>" + h("sum_line", { l4: l4, x: amd(x) }) + "</small>" : "") : esc(literal("Укажите количество от 1 до 10", "Choose a quantity from 1 to 10", "Նշեք քանակը՝ 1-ից 10"));
         }
       }
-      var ok = cardOk() && (card ? card.value.length > 0 : true) && x > 0;
+      var ok = qtyIsValid && cardOk() && (card ? card.value.length > 0 : true) && x > 0;
       pay.disabled = !ok;
       pay.innerHTML = x ? h("pay_x", { x: amd(x) }) : h("pay_x", { x: "" }).replace(/\s+$/, "");
-      if (miss) miss.innerHTML = ok ? "" : (card && !cardOk() || (card && !card.value) ? h("card_short") : h("amount_short"));
+      if (miss) miss.innerHTML = ok ? "" : (!qtyIsValid ? esc(literal("Укажите количество от 1 до 10", "Choose a quantity from 1 to 10", "Նշեք քանակը՝ 1-ից 10")) : card && !cardOk() || (card && !card.value) ? h("card_short") : h("amount_short"));
     }
     function cardErr(show) {
       if (!card) return;
@@ -104,8 +112,23 @@
         else { amount = 0; [].forEach.call(btns, function (b) { b.setAttribute("aria-pressed", "false"); }); aerr.innerHTML = ALERT + "<span>" + h("amount_err") + "</span>"; upd(); }
       });
     }
-    var stepB = f.querySelectorAll("[data-qty]");
-    [].forEach.call(stepB, function (b) { b.addEventListener("click", function () { qty = Math.min(10, Math.max(1, qty + +b.getAttribute("data-qty"))); upd(); }); });
+    // Presets are the primary quantity control. Manual entry is voluntary.
+    manualQuantity = !!qtyInput && qty > 4;
+    if (qtyInput) qtyInput.value = qty;
+    [].forEach.call(qtyChoices, function (b) { b.addEventListener("click", function () {
+      qty = +b.getAttribute("data-qty-set"); qtyIsValid = true; manualQuantity = false; upd();
+    }); });
+    if (qtyManual) qtyManual.addEventListener("click", function () {
+      if (!manualQuantity && qtyInput) qtyInput.value = qty;
+      manualQuantity = true; upd();
+      if (qtyInput) { qtyInput.focus(); qtyInput.select(); }
+    });
+    if (qtyInput) qtyInput.addEventListener("input", function () {
+      var raw = qtyInput.value.trim(), value = Number(raw);
+      qtyIsValid = /^\d+$/.test(raw) && Number.isInteger(value) && value >= 1 && value <= 10;
+      if (qtyIsValid) qty = value;
+      upd();
+    });
     // сумма из ссылки (amount, for) и восстановление после возврата
     if (product === "topup") {
       var a = q.has("amount")?+q.get("amount"):(saved&&Number.isFinite(saved.amount)?saved.amount:0), fr = q.get("for"), line = f.querySelector("[data-for-line]");
@@ -130,7 +153,7 @@
     if (product === "nocard" && saved && Number.isFinite(saved.amount) && saved.amount>0)pick(saved.amount,"preset");
     f.addEventListener("submit", function (e) {
       e.preventDefault();
-      if (pay.disabled && !bypass) return;
+      if (!qtyIsValid || (pay.disabled && !bypass)) return;
       if (card && !cardOk()) { cardErr(true); card.focus(); return; }
       if (C.opt("vpPayScn") === "offline" && !bypass) { C.setState("offline"); return; }
       bypass = false;
@@ -154,10 +177,43 @@
   }
   function unc() { return '<span class="unc">' + ALERT + "<span>" + h("unc") + "</span></span>"; }
 
+  function validStoredOrder(o) {
+    return !!o && typeof o.id === "string" && /^VP[A-Z0-9]{1,40}$/.test(o.id)
+      && Number.isSafeInteger(o.amount) && o.amount > 0 && o.amount <= 100000000
+      && ["topup", "nocard", "unlimited", "dino-ticket"].indexOf(o.product) >= 0
+      && Number.isInteger(o.qty) && o.qty >= 1 && o.qty <= 10
+      && typeof o.ts === "string" && Number.isFinite(Date.parse(o.ts))
+      && typeof o.last4 === "string" && /^(?:\d{4})?$/.test(o.last4);
+  }
+  function paymentTitle(o) {
+    return o.product === "unlimited" ? literal("Безлимит по каталогу парка", "Park catalogue unlimited pass", "Այգու կատալոգի անսահմանափակ աբոնեմենտ")
+      : o.product === "dino-ticket" ? literal("Билеты в Дино Парк", "Dino Park tickets", "Դինո Պարկի տոմսեր")
+      : o.product === "nocard" ? literal("Заказ карты парка", "Park card order", "Այգու քարտի պատվեր")
+      : literal("Пополнение карты", "Card top-up", "Քարտի լիցքավորում");
+  }
+  function paymentReady() {
+    var o = order(), box = D.querySelector(".paybox");
+    if (validStoredOrder(o) && !o.resultStatus && !o.resultAt) return true;
+    if (!box) return false;
+    var known = validStoredOrder(o), heading = known
+      ? literal("Заказ уже сохранён", "Your order is already saved", "Ձեր պատվերն արդեն պահպանված է")
+      : literal("Заказ не выбран", "No order selected", "Պատվեր ընտրված չէ");
+    var message = known
+      ? literal("Откройте сохранённый результат, чтобы посмотреть статус и билеты. Повторная оплата не нужна.", "Open the saved result to see its status and tickets. You do not need to pay again.", "Բացեք պահպանված արդյունքը՝ կարգավիճակն ու տոմսերը տեսնելու համար։ Կրկին վճարելու կարիք չկա։")
+      : literal("Сначала выберите билеты или укажите сумму пополнения. Затем здесь появится ваш заказ.", "Choose tickets or enter a top-up amount first. Your order will then appear here.", "Նախ ընտրեք տոմսերը կամ նշեք լիցքավորման գումարը։ Այնուհետև այստեղ կհայտնվի ձեր պատվերը։");
+    var first = known ? L+"/pay/result/index.html?order="+encodeURIComponent(o.id) : L+"/tickets/";
+    box.classList.add('payment-context-empty');
+    box.innerHTML = '<h2 data-payment-empty-heading>' + esc(heading) + '</h2><p>' + esc(message) + '</p><div class="payment-empty-actions" data-vp-action-group>'
+      + '<a data-payment-recover data-vp-cta="primary" href="' + esc(releaseURL(R+first)) + '">' + esc(known ? literal("Открыть результат", "View result", "Բացել արդյունքը") : literal("Выбрать билеты", "Choose tickets", "Ընտրել տոմսերը")) + '</a>'
+      + (known ? '' : '<a data-payment-topup data-vp-cta="secondary" href="' + esc(releaseURL(R+L+'/pay/')) + '">' + esc(literal("Пополнить карту", "Top up card", "Լիցքավորել քարտը")) + '</a>') + '</div>';
+    return false;
+  }
   function fillSum() {
     var o = order(), el = D.querySelectorAll("[data-sum-final]");
+    if (!validStoredOrder(o)) o = null;
     if (!o) { for (var z = 0; z < el.length; z++) el[z].innerHTML = h("sum_empty"); return o; }
     for (var i = 0; i < el.length; i++) el[i].innerHTML = h("sum_line", { l4: o.last4 || "…", x: amd(o.amount) });
+    var title = D.querySelector("[data-payment-title]"); if (title) title.textContent = paymentTitle(o);
     var al = D.querySelectorAll("[data-amt-label]"); for (var j = 0; j < al.length; j++) al[j].textContent = amd(o.amount);
     return o;
   }
@@ -176,35 +232,27 @@
   for (var i = 0; i < forms.length; i++) setupForm(forms[i]);
   if (SCR === "SCR-11") C.log("unlimited_view");
 
-  if (SCR === "SCR-08c") {
+  if (SCR === "SCR-08c" && paymentReady()) {
     var o = fillSum(); var to = L+"/pay/idram-mock/index.html?order=" + (o ? o.id : "") + "&lang=" + L+(q.get("review")==="1"?"&review=1":"");
     C.log("pay_redirect", { provider: "idram", order_ref: o ? o.id : "" });
     var b = D.querySelector("[data-go-provider]"); if (b) { b.href = R + to; }
     /* R08 п. 6: ?stay=1 оставляет экран без автоперехода (для замера и показа), как SCR-01 */
-    if (!C.qs().has("stay")) setTimeout(function () { location.href = releaseURL(R + to); }, 1600);
+    if (!C.qs().has("stay")) setTimeout(function () { if (paymentReady()) location.href = releaseURL(R + to); }, 1600);
   }
-  if (SCR === "SCR-08a") {
+  if (SCR === "SCR-08a" && paymentReady()) {
     fillSum(); C.log("widget_loaded", { provider: "idram", order_ref: (order() || {}).id || "" });
-    D.querySelector("[data-provider-pay]").addEventListener("click", function () { go(resultUrl(scenarioStatus())); });
+    D.querySelector("[data-provider-pay]").addEventListener("click", function () { if (paymentReady()) go(resultUrl(scenarioStatus())); });
   }
-  if (SCR === "SCR-08b") {
+  if (SCR === "SCR-08b" && paymentReady()) {
     fillSum(); var sl = siteLang();
-    D.querySelector("[data-provider-pay]").addEventListener("click", function () { go(resultUrl(D.body.getAttribute("data-state") === "f0a" ? "success" : scenarioStatus(), sl)); });
-    D.querySelector("[data-provider-cancel]").addEventListener("click", function (e) { e.preventDefault(); go(resultUrl("cancel", sl)); });
+    D.querySelector("[data-provider-pay]").addEventListener("click", function () { if (paymentReady()) go(resultUrl(D.body.getAttribute("data-state") === "f0a" ? "success" : scenarioStatus(), sl)); });
+    D.querySelector("[data-provider-cancel]").addEventListener("click", function (e) { e.preventDefault(); if (paymentReady()) go(resultUrl("cancel", sl)); });
   }
   if (SCR === "SCR-09") {
     var od = order(), fillingResult = false;
     var resultStates = ["success", "pending", "delay", "fail", "cancel"];
     function resultText(ru, en, hy) { return L === "hy" ? hy : L === "en" ? en : ru; }
-    function validResultOrder(o) {
-      return !!o && typeof o.id === "string" && /^VP[A-Z0-9]{1,40}$/.test(o.id)
-        && Number.isSafeInteger(o.amount) && o.amount > 0 && o.amount <= 100000000
-        && ["topup", "nocard", "unlimited", "dino-ticket"].indexOf(o.product) >= 0
-        && Number.isInteger(o.qty) && o.qty >= 1 && o.qty <= 10
-        && typeof o.ts === "string" && Number.isFinite(Date.parse(o.ts))
-        && typeof o.last4 === "string" && /^(?:\d{4})?$/.test(o.last4);
-    }
-    if (!validResultOrder(od)) od = null;
+    if (!validStoredOrder(od)) od = null;
     // The URL is navigation context. Only a stored demo response can issue a ready QR.
     var st = od ? (resultStates.indexOf(od.resultStatus) >= 0 ? od.resultStatus : "pending") : "missing";
     var resultActive=C.jget(SS(),"vpOrder",null);if(od&&resultActive&&resultActive.id===od.id&&!unfinished(od))C.set(SS(), "vpPending", "");

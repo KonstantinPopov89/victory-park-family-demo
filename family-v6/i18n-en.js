@@ -14,3 +14,7 @@ Object.assign(window.VP_TRANSLATIONS,{"Подбор аттракционов":{"
 Object.assign(window.VP_TRANSLATIONS,{"Листайте фото, сохраняйте понравившееся и выбирайте билеты.": {"en": "Browse photos, save your favourites and choose tickets."}});
 
 Object.assign(window.VP_TRANSLATIONS,{"Учебный каталог": {"en": "Demo catalogue"}, "Цены и условия этих примеров вымышлены.": {"en": "Prices and rules in these examples are fictional."}});
+
+Object.assign(window.VP_TRANSLATIONS, {"Сохраните понравившиеся аттракционы в подборе или каталоге. Это ещё не заказ.": {"en": "Save attractions you like in the picker or catalogue. This does not create an order."}});
+
+Object.assign(window.VP_TRANSLATIONS, {"Пакеты на компанию": {"en": "Packages for your group"}, "Выберите количество билетов. Цена указана за весь пакет.": {"en": "Choose the number of tickets. The price is for the whole package."}, "Пакет не всегда дешевле отдельных билетов.": {"en": "A package is not always cheaper than individual tickets."}});

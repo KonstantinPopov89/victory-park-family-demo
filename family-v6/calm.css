@@ -77,3 +77,40 @@ body[data-checkout=quick] :is(.product-tabs,.quick-tabs) [aria-pressed=true]:not
  body[data-vp-home] .gallery-rail .ride-teaser{min-width:82%!important}
 }
 @media print{body[data-v5]{background:#fff!important}.home-media,.home-services{display:none!important}}
+
+/* r33: secondary information follows the same rhythm in every guest template. */
+body[data-v5]:not([data-vp-discovery]) .v5-footer a{color:var(--vp-action-ink);font-weight:500;text-underline-offset:4px}
+body[data-v5]:not([data-vp-discovery]) .v5-footer a:hover{color:var(--vp-action-hover)}
+html:not([data-review="1"]) body[data-v5] .tr{text-decoration:none}
+body[data-v5]:not([data-vp-discovery]) .unified-form :is(.inp,.amounts button,.amounts .other){border:1px solid var(--vp-action-line);border-radius:10px;min-height:48px;font-size:16px;line-height:1.4;letter-spacing:0;font-weight:500}
+body[data-v5]:not([data-vp-discovery]) .unified-form .inp{padding:12px 14px}
+body[data-v5]:not([data-vp-discovery]) .unified-form :is(.inp,.amounts .other)::placeholder{color:var(--vp-quiet-text);font-weight:400}
+body[data-v5]:not([data-vp-discovery]) .unified-form .amounts button[aria-pressed="true"]{background:var(--vp-action-ink);color:#fff;border-color:var(--vp-action-ink)}
+body[data-v5]:not([data-vp-discovery]) .unified-form .amounts .other.on{border-color:var(--vp-action-ink);box-shadow:inset 0 0 0 1px var(--vp-action-ink)}
+body[data-v5]:not([data-vp-discovery]) .unified-form [aria-invalid="true"]{border-color:#a8314b;box-shadow:inset 0 0 0 1px #a8314b}
+body[data-v5]:not([data-vp-discovery]) .unified-form :is(input,button):focus-visible{outline:3px solid var(--vp-accent-pink);outline-offset:3px}
+body[data-v5]:not([data-vp-discovery]) .unified-form .summary{background:var(--vp-quiet);border:0;border-radius:10px;padding:14px 16px;font-size:16px;line-height:1.5;font-weight:600;margin-block:20px 12px}
+body[data-v5]:not([data-vp-discovery]) .unified-form .missing{font-size:13px;color:var(--vp-quiet-text);font-weight:400;line-height:1.5}
+body[data-v5]:not([data-vp-discovery]) .unified-form .help summary{color:var(--vp-action-ink);font-size:13px!important;font-weight:500}
+body[data-v5]:not([data-vp-discovery]) .unified-lead{margin-block:16px 24px}
+body[data-v5]:not([data-vp-discovery]) .unified-help{font-size:14px;color:var(--vp-quiet-text)}
+body[data-v5]:not([data-vp-discovery]) details.unified-help>summary{min-height:44px;cursor:pointer;align-content:center;font-weight:600;color:var(--vp-action-ink)}
+body[data-v5]:not([data-vp-discovery]) .unified-help p{margin-block:12px}
+body[data-v5]:not([data-vp-discovery]) .unified-page .unified-demo-note{color:var(--vp-quiet-text);font-size:13px;padding-block:10px;margin-bottom:16px}
+body[data-v5]:not([data-vp-discovery]) .unified-columns{gap:32px}
+
+body[data-v5] .vp-notfound{max-width:640px;margin:auto;min-height:50vh}
+body[data-v5] .vp-notfound>p{max-width:48ch;color:var(--vp-quiet-text);margin:0 0 24px}
+body[data-v5] .vp-notfound-links{display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:20px}
+body[data-v5] .vp-notfound-links a{display:inline-flex;min-height:44px;align-items:center;color:var(--vp-action-ink)}
+
+.vp-legacy-context{max-width:1120px;margin:16px auto;padding:16px 20px;background:#f0eef5;border:1px solid #dedbe7;border-radius:10px;color:#2f2e7d;font:14px/1.5 Montserrat,sans-serif}
+.vp-legacy-context p{margin:6px 0 12px}
+.vp-legacy-context[lang=hy]{font-family:"Noto Sans Armenian",sans-serif}
+@media(max-width:700px){.vp-legacy-context{margin:12px 16px}}
+
+body[data-v5]:not([data-vp-discovery]) .unified-payment .summary{background:var(--vp-quiet);border:0;border-radius:10px;padding:14px 16px;font-size:16px;line-height:1.5;font-weight:600;margin-block:20px 12px}
+/* A shared demo notice already identifies these pages; keep details on demand. */
+body[data-v5]>.vp-demo-bar{display:none}
+body[data-v5]>.vp-about-inline{margin:12px auto;padding:0 20px;border:0;color:var(--vp-quiet-text)}
+body[data-v5]>.vp-about-inline>summary{font-size:13px;min-height:44px;align-content:center;cursor:pointer}

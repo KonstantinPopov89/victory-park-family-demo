@@ -131,6 +131,9 @@ function loadRecord(saved){
 }
 function exportRecord(){
  if(readOnly){record.state.lang=state.lang;return record;}
+ // Editing the active order can release its ID. Keep following the editable
+ // draft instead of reopening its previous snapshot as a read-only archive.
+ if(resumeId&&resumeId!==state.orderId){resumeId=null;url();}
  state.orderSeq=Math.max(state.orderSeq,record.orderSeq||0);captureOrder(record,state,'form');record.state=structuredClone(state);record.qtyKnown=qtyKnown;record.ui={view:!state.eventId?'events':!state.sessionId||sessionPicker?'sessions':qtyKnown?'checkout':'group',qtyKnown};record.mapSnapshot=null;record.formUi={mapOpen,sessionPicker};
  return record;
 }

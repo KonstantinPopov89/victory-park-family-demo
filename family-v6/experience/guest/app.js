@@ -180,10 +180,11 @@ function renderQuick(){
  if(purchaseRouteIssue)return purchaseRouteNotice()+purchases();
  return `<div class="quick-flow">${checkoutSwitch()}<h1>Выберите билеты</h1><div class="quick-tabs" role="group" aria-label="Вид покупки">${productFormats('quick-tab')}</div><div class="quick-layout"><section class="quick-choice" id="direct" tabindex="-1">${quickProduct()}</section>${quickCart()}</div><div class="quick-context">${purchases()}${state.party.length||state.selections.demo.length||state.selections.real.length?'<details id="quick-saved-context"><summary>Наша компания и выбранные аттракционы</summary>'+savedContext()+'</details>':''}<a class="quick-catalog-link" href="${pickerReturn()}">Посмотреть аттракционы</a></div></div>`;
 }
+function packageLine(productId){return {id:id(),productId,rideId:null,personId:null,recipientKey:null,quantity:1,unitPrice:VP3.products[productId].price};}
 function choosePackage(productId){
  if(!VP3.isPackage(productId))return;
  const p=VP3.products[productId],lines=state.cart.lines.filter(l=>!VP3.isPackage(l));
- lines.push({id:id(),productId,rideId:null,personId:null,recipientKey:null,quantity:1,unitPrice:p.price});
+ lines.push(packageLine(productId));
  customTarget='';commitCart(lines,`${p.rides} билетов в пакете. Итого ${money(lines.reduce((sum,l)=>sum+l.unitPrice*l.quantity,0))}.`,false);
 }
 function setQuickQuantity(target,n){
@@ -461,7 +462,13 @@ if(document.body.dataset.page==='tickets'){
       state.mode='demo';save();
     }
   }
-  savePromotion();['offer','date','student','legacyProduct','legacyRide','legacyQty'].forEach(k=>params.delete(k));
+  // An explicit package-size link is a deliberate choice. Prefill only an empty
+  // draft, never a saved cart, payment/history view or completed order snapshot.
+  const requestedSize=params.get('size'),requestedPackage=params.get('product')==='package'&&/^[0-9]+$/.test(requestedSize||'')?VP3.packageProducts.find(p=>p.rides===Number(requestedSize)):null;
+  if(requestedPackage&&!order&&!params.has('resume')&&!purchaseRouteIssue&&!state.cart.lines.length&&location.hash!=='#purchase-history'){
+    clearCompanyApplication();state.mode='demo';state.cart.lines=[packageLine(requestedPackage.id)];markQuickDraft();save();
+  }
+  savePromotion();['offer','size','date','student','legacyProduct','legacyRide','legacyQty'].forEach(k=>params.delete(k));
   try{history.replaceState(history.state,'',location.pathname+(params.size?'?'+params.toString():'')+location.hash);}catch{}
 }
 if(document.body.dataset.page==='tickets'){directEntry=quick||params.has('product')||params.has('ride')||params.get('from')==='real'||location.hash==='#direct'||state.mode==='real'||!state.party.length;returnMode=params.get('from')==='real'||state.mode==='real'?'real':'';if(directEntry){if(!params.has('product')&&!needsProductChoice)params.set('product',activeProduct);if(returnMode==='real')params.set('from','real');try{history.replaceState(history.state,'',location.pathname+'?'+params.toString()+location.hash);}catch{}if(!order&&!purchaseRouteIssue){state.mode='demo';save();}}}

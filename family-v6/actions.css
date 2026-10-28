@@ -6,7 +6,8 @@
   --vp-action-line: #c8c5dc;
   --vp-action-radius: 10px;
 }
-:root body[data-v5] [data-vp-cta][data-vp-cta] {
+:root body[data-v5] [data-vp-cta][data-vp-cta],
+:root body[data-session-booking] #app [data-vp-cta][data-vp-cta] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -34,34 +35,41 @@
   touch-action: manipulation;
   transition: background-color .16s ease-out, border-color .16s ease-out;
 }
-:root body[data-v5] [data-vp-cta="primary"][data-vp-cta] {
+:root body[data-v5] [data-vp-cta="primary"][data-vp-cta],
+:root body[data-session-booking] #app [data-vp-cta="primary"][data-vp-cta] {
   background: var(--vp-action-ink);
   border-color: var(--vp-action-ink);
   color: #fff;
 }
 @media (hover: hover) {
-  :root body[data-v5] [data-vp-cta][data-vp-cta]:hover:not(:disabled):not([aria-disabled="true"]) {
+  :root body[data-v5] [data-vp-cta][data-vp-cta]:hover:not(:disabled):not([aria-disabled="true"]),
+  :root body[data-session-booking] #app [data-vp-cta][data-vp-cta]:hover:not(:disabled):not([aria-disabled="true"]) {
     background: #f1eff9;
     border-color: var(--vp-action-ink);
   }
-  :root body[data-v5] [data-vp-cta="primary"][data-vp-cta]:hover:not(:disabled):not([aria-disabled="true"]) {
+  :root body[data-v5] [data-vp-cta="primary"][data-vp-cta]:hover:not(:disabled):not([aria-disabled="true"]),
+  :root body[data-session-booking] #app [data-vp-cta="primary"][data-vp-cta]:hover:not(:disabled):not([aria-disabled="true"]) {
     background: var(--vp-action-hover);
     border-color: var(--vp-action-hover);
   }
 }
-:root body[data-v5] [data-vp-cta][data-vp-cta]:focus-visible {
+:root body[data-v5] [data-vp-cta][data-vp-cta]:focus-visible,
+:root body[data-session-booking] #app [data-vp-cta][data-vp-cta]:focus-visible {
   outline: 3px solid #d80b8c;
   outline-offset: 3px;
 }
-:root body[data-v5] [data-vp-cta][data-vp-cta]:is(:disabled,[aria-disabled="true"]) {
+:root body[data-v5] [data-vp-cta][data-vp-cta]:is(:disabled,[aria-disabled="true"]),
+:root body[data-session-booking] #app [data-vp-cta][data-vp-cta]:is(:disabled,[aria-disabled="true"]) {
   background: #edeaf4;
   border-color: #c8c5dc;
   color: #625d7b;
   opacity: 1;
   cursor: not-allowed;
 }
-:root body[data-v5] [data-vp-cta][data-vp-cta][aria-busy="true"] { cursor: wait; }
-:root body[data-v5] [data-vp-cta] > .arrow { display: none; }
+:root body[data-v5] [data-vp-cta][data-vp-cta][aria-busy="true"],
+:root body[data-session-booking] #app [data-vp-cta][data-vp-cta][aria-busy="true"] { cursor: wait; }
+:root body[data-v5] [data-vp-cta] > .arrow,
+:root body[data-session-booking] #app [data-vp-cta] > .arrow { display: none; }
 :root body[data-v5] [data-vp-action-group] {
   display: flex;
   flex-wrap: wrap;
@@ -79,5 +87,6 @@
   :root body[data-v5] :is(.hero-actions,.product-teaser,.visit-actions) [data-vp-cta] { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
-  :root body[data-v5] [data-vp-cta][data-vp-cta] { transition: none; }
+  :root body[data-v5] [data-vp-cta][data-vp-cta],
+  :root body[data-session-booking] #app [data-vp-cta][data-vp-cta] { transition: none; }
 }

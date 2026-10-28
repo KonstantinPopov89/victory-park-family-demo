@@ -89,3 +89,18 @@ html:not([data-review="1"]) body[data-unified-demo][data-vp-picker=deck] .card .
  body[data-unified-demo][data-vp-picker=deck] .card .tx{gap:8px}
 }
 .unified-form .summary:empty{display:none}
+
+/* Quantity presets share the calm input language; manual entry opens on request. */
+.unified-quantity-presets{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.unified-quantity-presets button{min-width:0;min-height:48px;border:1px solid #c8c5dc;border-radius:10px;background:#fff;color:#2f2e7d;font-family:inherit;font-size:16px;font-weight:600;line-height:1.4;padding:10px;cursor:pointer}
+.unified-quantity-presets [data-qty-manual]{grid-column:1/-1;font-size:14px}
+.unified-quantity-presets button[aria-pressed=true]{background:#2f2e7d;color:#fff;border-color:#2f2e7d}
+.unified-quantity-presets button:focus-visible,.unified-quantity-manual input:focus-visible{outline:3px solid #d80b8c;outline-offset:3px}
+.unified-quantity-manual{margin-top:16px;max-width:280px}
+.unified-quantity-manual label{display:block;margin-bottom:8px;font-size:14px;line-height:1.5}
+.unified-quantity-manual input{width:100%;min-height:48px;border:1px solid #c8c5dc;border-radius:10px;background:#fff;color:#2f2e7d;padding:10px 12px;font:inherit;font-size:16px}
+.unified-quantity-manual input[aria-invalid=true]{border-color:#9a2750}
+.unified-quantity-error{margin:8px 0 0;color:#9a2750;font-size:13px;line-height:1.5}
+.unified-quantity [hidden]{display:none!important}
+
+.unified-payment .payment-context-empty{text-align:start!important}
