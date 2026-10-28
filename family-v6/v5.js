@@ -43,7 +43,7 @@
       interests.append(ul);if(removedInterest){const undo=document.createElement('button');undo.type='button';undo.dataset.v6Restore='';undo.textContent=labels[1];interests.append(undo)}
       const actions=document.createElement('div');actions.className='v6-list-actions';actions.dataset.vpActionGroup='';
       if(ids.length){const buy=document.createElement('a');buy.href=base+'experience/guest/company.html?source=real&mode=exact&lang='+lang();buy.textContent=labels[2];buy.setAttribute('aria-describedby','real-list-boundary');buy.className='v6-list-buy';buy.dataset.vpCta='primary';actions.append(buy)}
-      const back=document.createElement('a');back.href=base+'experience/guest/attractions.html?mode=real&lang='+lang();back.textContent={ru:ids.length?'Вернуться к подбору':'Выбрать аттракционы',en:ids.length?'Back to discovery':'Find rides',hy:ids.length?'Վերադառնալ ընտրությանը':'Ընտրել ատրակցիոններ'}[lang()];back.dataset.vpCta=ids.length?'secondary':'primary';actions.append(back);interests.append(actions);
+      const back=document.createElement('a');back.href=base+'experience/guest/reels.html?mode=real&lang='+lang();back.textContent={ru:ids.length?'Вернуться к подбору':'Выбрать аттракционы',en:ids.length?'Back to discovery':'Find rides',hy:ids.length?'Վերադառնալ ընտրությանը':'Ընտրել ատրակցիոններ'}[lang()];back.dataset.vpCta=ids.length?'secondary':'primary';actions.append(back);interests.append(actions);
     }
   }
   const service=document.querySelector('[data-service-placeholder]');if(service){if(!review)for(const a of document.querySelectorAll('.v5-languages a')){a.href=base+a.lang+'/attractions/';a.removeAttribute('data-locale');a.removeAttribute('data-vp-lang');a.removeAttribute('data-lang-link');}

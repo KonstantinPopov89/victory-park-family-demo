@@ -23,7 +23,7 @@
   if(seen||interacted||matchMedia('(prefers-reduced-motion: reduce)').matches)return;
   cueTimer=setTimeout(()=>{
    if(interacted||!target.isConnected||document.hidden)return;
-   const frames=format==='feed'?[{transform:'scale(1.06) translateY(0)'},{transform:'scale(1.06) translateY(-16px)',offset:.45},{transform:'scale(1.06) translateY(0)',offset:.8},{transform:'scale(1)'}]:[{transform:'translateX(0) rotate(0)'},{transform:'translateX(13px) rotate(1.5deg)',offset:.3},{transform:'translateX(-10px) rotate(-1deg)',offset:.65},{transform:'translateX(0) rotate(0)'}];
+   const frames=format==='unified'?[{transform:'scale(1.04)'},{transform:'scale(1.04) translateY(-12px)',offset:.3},{transform:'scale(1.04)',offset:.5},{transform:'scale(1.04) translateX(12px)',offset:.75},{transform:'scale(1)'}]:format==='feed'?[{transform:'scale(1.06) translateY(0)'},{transform:'scale(1.06) translateY(-16px)',offset:.45},{transform:'scale(1.06) translateY(0)',offset:.8},{transform:'scale(1)'}]:[{transform:'translateX(0) rotate(0)'},{transform:'translateX(13px) rotate(1.5deg)',offset:.3},{transform:'translateX(-10px) rotate(-1deg)',offset:.65},{transform:'translateX(0) rotate(0)'}];
    cueAnimation=target.animate(frames,{duration:1150,easing:'ease-in-out'});
    cueAnimation.finished.then(()=>{cueAnimation=null;}).catch(()=>{});
   },220);
