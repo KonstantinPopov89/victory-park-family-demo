@@ -7,9 +7,52 @@ if(new URLSearchParams(location.search).get("review")!=="1")document.documentEle
   function st(kind) { try { var s = W[kind]; var k = "__vp"; s.setItem(k, "1"); s.removeItem(k); return s; } catch (e) { return null; } }
   var SS = st("sessionStorage"), LS = st("localStorage"), MEM = {};
   function get(s, k) { try { return s ? s.getItem(k) : (MEM[k] === undefined ? null : MEM[k]); } catch (e) { return null; } }
-  function set(s, k, v) { try { if (s) s.setItem(k, v); else MEM[k] = v; } catch (e) { MEM[k] = v; } }
-  function jget(s, k, d) { var v = get(s, k); if (!v) return d; try { return JSON.parse(v); } catch (e) { return d; } }
-  function jset(s, k, v) { set(s, k, JSON.stringify(v)); }
+  function set(s, k, v) { if (["vpLog","vpUtm","vpSid","vpNewEntry"].indexOf(k)>=0 && !analyticsAllowed()) return; try { if (s) s.setItem(k, v); else MEM[k] = v; } catch (e) { MEM[k] = v; } }
+  function plain(v) { return !!v && typeof v === "object" && !Array.isArray(v); }
+  function bounded(v, depth, budget) {
+    if (--budget.n < 0 || depth > 12) return false;
+    if (v === null || typeof v === "boolean") return true;
+    if (typeof v === "string") return v.length <= 8192;
+    if (typeof v === "number") return Number.isFinite(v);
+    if (!plain(v) && !Array.isArray(v)) return false;
+    var keys = Object.keys(v); if (keys.length > 1000) return false;
+    return keys.every(function(k) { return k.length <= 128 && ["__proto__", "prototype", "constructor"].indexOf(k) < 0 && bounded(v[k], depth + 1, budget); });
+  }
+  function slug(v) { return typeof v === "string" && /^[a-z0-9-]{1,64}$/.test(v); }
+  function smallText(v, max) { return typeof v === "string" && v.length <= max; }
+  function whole(v, min, max) { return Number.isSafeInteger(v) && v >= min && v <= max; }
+  function strings(v) { return Array.isArray(v) && v.length <= 100 && v.every(slug); }
+  function validUtm(v) { return plain(v) && Object.keys(v).every(function(k) { return UTM.indexOf(k) >= 0 && smallText(v[k],120); }); }
+  function savedOrder(v) {
+    return plain(v) && smallText(v.id,42) && /^VP[A-Z0-9]+$/.test(v.id) && whole(v.amount,1,100000000)
+      && ["topup","nocard","unlimited","dino-ticket"].indexOf(v.product)>=0 && whole(v.qty,1,10)
+      && LANGS.indexOf(v.lang)>=0 && smallText(v.ts,40) && Number.isFinite(Date.parse(v.ts))
+      && typeof v.last4==="string" && /^(?:\d{4})?$/.test(v.last4) && (!v.utm || validUtm(v.utm))
+      && (v.resultStatus===undefined || ["success","pending","delay","fail","cancel"].indexOf(v.resultStatus)>=0)
+      && (v.resultAt===undefined || smallText(v.resultAt,40) && Number.isFinite(Date.parse(v.resultAt)));
+  }
+  function validValue(k,v) {
+    if (!bounded(v,0,{n:50000})) return false;
+    if (k === "vpList" || k === "vpNoEscort") return strings(v);
+    if (k === "vpUtm") return validUtm(v);
+    if (k === "vpLog") return Array.isArray(v) && v.length<=400 && v.every(function(e) { return plain(e) && smallText(e.event,80) && smallText(e.ts,40) && smallText(e.screen,80) && smallText(e.lang,8) && smallText(e.session,64) && Object.keys(e).every(function(n) { return e[n]===null || typeof e[n]==="boolean" || typeof e[n]==="number" || smallText(e[n],512); }); });
+    if (k === "vpParty") return plain(v) && whole(v.adults,0,6) && Array.isArray(v.kids) && v.kids.length<=100 && v.kids.every(function(a) { return a===null || whole(a,0,17); });
+    if (k === "vpDuty") return plain(v) && v.v===1 && whole(v.off,0,31536000000) && plain(v.m) && Object.keys(v.m).length<=100 && Object.keys(v.m).every(function(id) { var e=v.m[id];return slug(id)&&plain(e)&&["on","off","unk"].indexOf(e.st)>=0&&smallText(e.reason,120)&&whole(e.at,0,8640000000000000)&&whole(e.exp,e.at,8640000000000000); }) && Array.isArray(v.hist) && v.hist.length<=50 && v.hist.every(function(x) { return smallText(x,512); });
+    if (k === "vpOrder") return savedOrder(v);
+    if (k === "vpOrders") return plain(v) && Object.keys(v).every(function(id) { return savedOrder(v[id]) && v[id].id===id; });
+    if (k === "vpDraft") return plain(v) && smallText(v.card,24) && whole(v.amount,0,100000000);
+    if (k === "vp.family.v6.purchaseDrafts") return plain(v) && Object.keys(v).every(function(id) { var d=v[id];return ["topup","nocard","unlimited","dino-ticket"].indexOf(id)>=0&&plain(d)&&whole(d.qty,1,10)&&whole(d.amount,0,100000000)&&smallText(d.card,24); });
+    return true;
+  }
+  var consentOverride;
+  function analyticsAllowed() { if(consentOverride!==undefined)return consentOverride;return W.VPAnalytics ? W.VPAnalytics.consent === "yes" : get(LS,"vp.v5.analyticsConsent") === "yes"; }
+  function analyticsKey(k) { return ["vpLog","vpUtm","vpSid","vpNewEntry"].indexOf(k)>=0; }
+  function jget(s, k, d) { var v = get(s,k); if (!v || v.length > 1048576 || analyticsKey(k) && !analyticsAllowed()) return d; try { var parsed=JSON.parse(v);return validValue(k,parsed)?parsed:d; } catch(e) { return d; } }
+  function jset(s, k, v) { if (analyticsKey(k) && !analyticsAllowed() || !validValue(k,v)) return false; var raw=JSON.stringify(v);if(raw.length>1048576)return false;set(s,k,raw);return true; }
+  function clearAnalytics() { W.__events=[];utm=null;["vp.v5.utm","vpLog","vpUtm","vpSid","vpNewEntry"].forEach(function(k) { try { if(SS)SS.removeItem(k); } catch(e) {} delete MEM[k]; });try{if(LS)for(var i=LS.length-1;i>=0;i--){var key=LS.key(i);if(key&&key.indexOf("vp.v5.order-attribution.")===0)LS.removeItem(key);}}catch(e){}renderLog(); }
+  function beginAnalytics() { if(!analyticsAllowed()){clearAnalytics();return;}session();var r=readUtm();utm=r.u;if(r.landing&&screen&&screen!=="MAP")log("landing_view"); }
+  W.addEventListener("storage",function(e){if(e.key==="vp.v5.analyticsConsent"&&e.newValue!=="yes")clearAnalytics();});
+  D.addEventListener("vp:analytics-consent",function(e){if(e.detail&&e.detail.consent==="no")consentOverride=false;else consentOverride=undefined;beginAnalytics();});
   function qs() { try { return new URLSearchParams(location.search); } catch (e) { return { get: function () { return null; }, has: function () { return false; } }; } }
 
   function pickLang() {
@@ -28,13 +71,14 @@ if(new URLSearchParams(location.search).get("review")!=="1")document.documentEle
   W.__events = jget(SS, "vpLog", []);
 
   function session() {
-    var s = get(SS, "vpSid");
+    if (!analyticsAllowed()) return "";
+    var s = get(SS, "vpSid"); if (!smallText(s,64)) s=null;
     if (!s) { s = Math.random().toString(36).slice(2, 10); set(SS, "vpSid", s); firstPage = true; }
     return s;
   }
   function readUtm() {
     var q = qs(), u = null;
-    UTM.forEach(function (k) { var v = q.get(k); if (v) { u = u || {}; u[k] = v; } });
+    UTM.forEach(function (k) { var v = q.get(k); if (v) { u = u || {}; u[k] = v.slice(0,120); } });
     var stored = jget(SS, "vpUtm", null);
     var newEntry = get(SS, "vpNewEntry") === "1";
     if (u) {
@@ -53,11 +97,13 @@ if(new URLSearchParams(location.search).get("review")!=="1")document.documentEle
   }
 
   function log(ev, extra) {
+    if (!analyticsAllowed()) return null;
     var o = { event: ev, ts: isoTZ(new Date()), screen: screen, lang: lang };
     var u = utm || jget(SS, "vpUtm", {}) || {};
     UTM.forEach(function (k) { o[k] = u[k] || ""; });
     o.session = session();
-    if (extra) for (var k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) o[k] = extra[k];
+    if (extra) for (var k in extra) if (Object.prototype.hasOwnProperty.call(extra, k)) if (extra[k]===null || typeof extra[k]==="boolean" || typeof extra[k]==="number" && Number.isFinite(extra[k]) || smallText(extra[k],512)) o[k] = extra[k];
+    if (!validValue("vpLog",[o])) return null;
     W.__events.push(o);
     if (W.__events.length > 400) W.__events = W.__events.slice(-400);
     jset(SS, "vpLog", W.__events);
@@ -104,7 +150,7 @@ if(new URLSearchParams(location.search).get("review")!=="1")document.documentEle
     vpPack: ["Размер пачки колоды", [["8", "8 карточек"], ["12", "12 карточек"]], "8"],
     vpEscort: ["Правило сопровождающего", [["example", "пример правила"], ["none", "нет данных парка"]], "example"]
   };
-  function opt(k) { var v = get(LS, k); return v || OPTS[k][2]; }
+  function opt(k) { if(!Object.prototype.hasOwnProperty.call(OPTS,k))return null;var v=get(LS,k);return OPTS[k][1].some(function(o){return o[0]===v;})?v:OPTS[k][2]; }
   function entries() {
     var L = LANGS.indexOf(lang) >= 0 ? lang : "hy", r = root;
     return [
@@ -215,9 +261,7 @@ if(new URLSearchParams(location.search).get("review")!=="1")document.documentEle
     screen = body.getAttribute("data-screen") || ""; lang = body.getAttribute("data-lang") || ""; root = body.getAttribute("data-root") || "";
     /* R09 п. 1: /q/ (data-screen="QR") только переадресует; событие захода пишет экран приземления с меткой qr */
     if (screen === "SCR-01" || screen === "QR" || screen === "SCR-04" && !lang) return;
-    session();
-    var r = readUtm(); utm = r.u;
-    if (r.landing && screen !== "MAP") { var ref = ""; try { ref = D.referrer ? new URL(D.referrer).host : ""; } catch (e) { } log("landing_view", { referrer_host: ref }); }
+    beginAnalytics();
     // языковые ссылки: та же страница, метка и параметры сохраняются
     var q = location.search, hsh = location.hash;
     var ll = D.querySelectorAll("a[data-lang-link]");
@@ -248,7 +292,7 @@ if(new URLSearchParams(location.search).get("review")!=="1")document.documentEle
   }
 
   W.VPCORE = { log: log, get: get, set: set, jget: jget, jset: jset, SS: function () { return SS; }, LS: function () { return LS; }, qs: qs, setState: setState, lazy: lazy,
-    list: list, setList: function (l) { var before=list(); if(W.VPJourneySync)W.VPJourneySync("local",{b:{before:before,after:l}},{bList:l});else jset(LS, "vpList", l); updBadge(); }, updBadge: updBadge, opt: opt, qrGo: qrGo, langEntry: langEntry, pickLang: pickLang,
-    utm: function () { return utm || jget(SS, "vpUtm", {}); }, screen: function () { return screen; }, lang: function () { return lang; }, root: function () { return root; } };
+    list: list, setList: function (l) { if(!validValue("vpList",l))return;var before=list(); if(W.VPJourneySync)W.VPJourneySync("local",{b:{before:before,after:l}},{bList:l});else jset(LS, "vpList", l); updBadge(); }, updBadge: updBadge, opt: opt, qrGo: qrGo, langEntry: langEntry, pickLang: pickLang,
+    utm: function () { return analyticsAllowed() ? utm || jget(SS, "vpUtm", {}) : {}; }, screen: function () { return screen; }, lang: function () { return lang; }, root: function () { return root; } };
   if (D.readyState === "loading") D.addEventListener("DOMContentLoaded", init); else init();
 })();

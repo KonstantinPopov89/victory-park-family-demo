@@ -6,7 +6,7 @@ const KEY='vp.family.v6.people.v1',PROMO='vp.family.v6.people.v1.promotion';
 const app=document.getElementById('company-app'),esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),money=n=>new Intl.NumberFormat('ru-RU').format(n||0)+'\u00a0֏';
 const source=new URLSearchParams(location.search).get('source'),connected=source==='real'||new URLSearchParams(location.search).get('intent')==='selected';
 const PLAN=connected?'vp.family.v6.people.v1.company.real':'vp.family.v6.people.v1.company';
-const read=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key)||'null')||fallback;}catch{return fallback;}};
+const read=(key,fallback)=>{try{return VPFamilyStorage.parse(localStorage.getItem(key))||fallback;}catch{return fallback;}};
 let restoredSelection;await navigator.locks.request(VPFamilyStorage.LOCK,()=>{restoredSelection=VPFamilyStorage.recoverState(localStorage,VP3.sanitizeState).state;VPFamilyStorage.recoverHistory(localStorage,VPC.validateOrder);});
 let state=connected?VP3.previewRealSelection(restoredSelection):restoredSelection,plan=VPCompany.normalize(read(PLAN,null)),promotion=VPC.normalizePromotion(read(PROMO,null)),message='',result=null,expanded=new Set(),focusId='',familyNotice='';
 if(!plan.companionId&&state.companionId&&!state.companionAutoSelected){plan.companionId=state.companionId;plan.adultRoles[state.companionId]='companion';}

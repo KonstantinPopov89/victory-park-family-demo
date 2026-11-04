@@ -7,7 +7,7 @@ const mapping=new Map(M.RIDES.map(r=>[r.catalogId,r.id]));
 function read(initialize=false){
  try{
   const raw=localStorage.getItem(M.KEY);
-  if(raw){const s=JSON.parse(raw);if(!M.validate(s))throw new Error('schema');return s;}
+  if(raw){const s=VPFamilyStorage.parseStrict(raw);if(!M.validate(s))throw new Error('schema');return s;}
   if(initialize){const s=M.presentationSeed();localStorage.setItem(M.KEY,JSON.stringify(s));return s;}
  }catch(error){/* Never present inaccessible or invalid data as an open ride. */}
  return M.presentationSeed(Date.now(),true);

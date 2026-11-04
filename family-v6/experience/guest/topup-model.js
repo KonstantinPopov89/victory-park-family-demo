@@ -23,6 +23,44 @@
       'DEMO-002': { id: 'DEMO-002', cash: 2500, bonus: 0 }
     }, draft: { intentId: id('draft'), cardId: '', amount: '5000' }, operations: [], activeId: null, currentId: null };
   }
+  // Browser persistence is an input boundary, including IndexedDB. Refuse a
+  // damaged ledger without replacing it or issuing another payment attempt.
+  function bounded(value, depth = 0, budget = { nodes: 500000, bytes: 16777216 }) {
+    if (--budget.nodes < 0 || depth > 16) return false;
+    if (value === null || typeof value === 'boolean') return true;
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value === 'string') { budget.bytes -= value.length * 2; return value.length <= 8192 && budget.bytes >= 0; }
+    if (typeof value !== 'object') return false;
+    const keys = Object.keys(value);
+    return keys.length <= 10000 && keys.every(key => key.length <= 128 && !['__proto__', 'prototype', 'constructor'].includes(key) && bounded(value[key], depth + 1, budget));
+  }
+  function validateLedger(value) {
+    if (!bounded(value)) return null;
+    const object = x => !!x && typeof x === 'object' && !Array.isArray(x);
+    const integer = (x, min = 0, max = Number.MAX_SAFE_INTEGER) => Number.isSafeInteger(x) && x >= min && x <= max;
+    const identifier = x => typeof x === 'string' && /^[A-Za-z0-9-]{1,100}$/.test(x);
+    const date = x => typeof x === 'string' && x.length <= 40 && Number.isFinite(Date.parse(x));
+    const balance = x => object(x) && integer(x.cash) && integer(x.bonus);
+    const cardNames = ['DEMO-001', 'DEMO-002'];
+    if (!object(value) || value.version !== 1 || !integer(value.revision) || !object(value.cards) || Object.keys(value.cards).length !== 2 ||
+      !cardNames.every(key => balance(value.cards[key]) && value.cards[key].id === key) || !object(value.draft) ||
+      !identifier(value.draft.intentId) || !['', ...cardNames].includes(value.draft.cardId) || typeof value.draft.amount !== 'string' || value.draft.amount.length > 12 ||
+      !Array.isArray(value.operations) || value.operations.length > 10000) return null;
+    const ids = new Set(), intents = new Set();
+    for (const op of value.operations) {
+      if (!object(op) || !identifier(op.id) || ids.has(op.id) || !identifier(op.intentId) || intents.has(op.intentId) || op.type !== 'card_topup' ||
+        !cardNames.includes(op.cardId) || !integer(op.amount, 1, 100000) || op.fee !== 0 || op.bonus !== 0 || !date(op.createdAt) || !SCENARIOS.includes(op.scenario) ||
+        !['declined', 'pending', 'unknown', 'confirmed'].includes(op.payment) || !['not_started', 'failed', 'pending', 'credited'].includes(op.credit) ||
+        !integer(op.paymentChecks) || !integer(op.creditChecks) || op.paymentAttempts !== 1 || ![0, 1].includes(op.creditEntries)) return null;
+      if (op.credit === 'credited' ? op.payment !== 'confirmed' || op.creditEntries !== 1 || !balance(op.balanceAfter) || !date(op.creditedAt) || Date.parse(op.creditedAt) < Date.parse(op.createdAt) : op.creditEntries !== 0 || op.balanceAfter !== null) return null;
+      if (op.payment !== 'confirmed' && op.credit !== 'not_started') return null;
+      ids.add(op.id); intents.add(op.intentId);
+    }
+    if (![null, ...ids].includes(value.currentId) || ![null, ...ids].includes(value.activeId)) return null;
+    const outstanding = value.operations.filter(pending);
+    if (outstanding.length > 1 || (outstanding[0]?.id || null) !== value.activeId) return null;
+    return clone(value);
+  }
   function pending(op) { return op && op.payment !== 'declined' && op.credit !== 'credited'; }
   function operation(state, opId) { return state.operations.find(o => o.id === opId); }
   function active(state) { return operation(state, state.activeId); }
@@ -114,11 +152,12 @@
     };
   }
   function createMemoryStore(seed) {
-    let state = seed ? clone(seed) : initial(), queue = Promise.resolve();
+    let state = seed ? validateLedger(seed) : initial(), queue = Promise.resolve();
+    if (!state) error('INVALID_STORAGE', 'Saved ledger is damaged.');
     return makeEngine({
       read: async () => clone(state),
       update(fn) {
-        const task = queue.then(() => { const next = clone(state); const result = fn(next); next.revision += 1; state = next; return clone(result); });
+        const task = queue.then(() => { const next = clone(state); const result = fn(next); next.revision += 1; if (!validateLedger(next)) error('INVALID_STORAGE', 'Updated ledger is invalid.'); state = next; return clone(result); });
         queue = task.catch(() => {}); return task;
       }
     });
@@ -144,10 +183,11 @@
         const get = store.get('state');
         get.onsuccess = () => {
           try {
-            const state = get.result || initial();
+            const state = get.result ? validateLedger(get.result) : initial();
+            if (!state) error('INVALID_STORAGE', 'Сохранённое учебное пополнение повреждено. Новая оплата не начата.');
             result = fn(state);
             if (write) state.revision += 1;
-            if (write || !get.result) store.put(state, 'state');
+            if (write || !get.result) { if (!validateLedger(state)) error('INVALID_STORAGE', 'Обновление не прошло проверку. Сохраненная операция остается без изменений.'); store.put(state, 'state'); }
           } catch (e) { failure = e; transaction.abort(); }
         };
         transaction.oncomplete = () => { if (write) channel?.postMessage('updated'); resolve(clone(result)); };
@@ -161,5 +201,5 @@
       close: async () => { channel?.close(); (await ready).close(); }
     });
   }
-  return { DB_NAME, SCENARIOS, initial, pending, amount, cardId, receipt, createMemoryStore, createBrowserStore };
+  return { DB_NAME, SCENARIOS, initial, validateLedger, pending, amount, cardId, receipt, createMemoryStore, createBrowserStore };
 });

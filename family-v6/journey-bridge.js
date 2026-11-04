@@ -7,10 +7,10 @@
  */
 (function (root, factory) {
   'use strict';
-  var api = factory(typeof module === 'object' && module.exports ? require('./shared-catalog.js') : root.VPSharedCatalog);
+  var api = factory(typeof module === 'object' && module.exports ? require('./shared-catalog.js') : root.VPSharedCatalog, typeof module === 'object' && module.exports ? require('./family-storage.js') : root.VPFamilyStorage);
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.VPJourneyBridge = api;
-}(typeof window === 'undefined' ? globalThis : window, function (catalog) {
+}(typeof window === 'undefined' ? globalThis : window, function (catalog, storageBoundary) {
   'use strict';
   var KEYS = Object.freeze({ a: 'vp.family.v6.people.v1', b: 'vpList', bridge: 'vp.journey.interests.v1' });
   // Identity-only crosswalk; exact source path/line/hash retained in QA provenance.
@@ -18,7 +18,7 @@
   var MAP_VERSION = 'prototype-catalog-35-v2';
   var LEGACY_MAP = ['autodrom', 'pendulum', 'planet'];
   function record(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
-  function ids(v) { return Array.isArray(v) && v.every(function (id) { return typeof id === 'string' && id.length > 0; }); }
+  function ids(v) { return Array.isArray(v) && v.length <= 1000 && v.every(function (id) { return typeof id === 'string' && id.length > 0 && id.length <= 128; }); }
   function unique(v) { return Array.from(new Set(v)); }
   function copy(v) { return JSON.parse(JSON.stringify(v)); }
   function aValid(v) { return record(v) && v.version === 3 && record(v.selections) && ids(v.selections.real); }
@@ -89,7 +89,7 @@
     try {
       if (!storage || typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function' || typeof storage.removeItem !== 'function') throw new TypeError('Storage unavailable.');
       Object.keys(KEYS).forEach(function (side) { before[side] = storage.getItem(KEYS[side]); });
-      function parse(side) { return before[side] === null ? null : JSON.parse(before[side]); }
+      function parse(side) { return before[side] === null ? null : storageBoundary.parseStrict(before[side]); }
       var a = parse('a'), b = parse('b'), bridge = parse('bridge');
       // JSON null is corrupted native storage, not a genuinely absent key.
       if (before.a !== null && a === null || before.b !== null && b === null || before.bridge !== null && bridge === null) throw new TypeError('Stored null is not a valid state.');
@@ -117,7 +117,7 @@
       ['bridge', 'a', 'b'].forEach(function (side) {
         if (values[side] === null || (side === 'b' && before.b === null && !values.b.length)) return;
         var raw = JSON.stringify(values[side]);
-        if (before[side] !== null && raw === JSON.stringify(JSON.parse(before[side]))) return;
+        if (before[side] !== null && raw === JSON.stringify(storageBoundary.parseStrict(before[side]))) return;
         written.push({ side: side, raw: raw });
         storage.setItem(KEYS[side], raw);
         if (storage.getItem(KEYS[side]) !== raw) throw new Error('Storage write did not persist.');
@@ -139,7 +139,7 @@
     options = options || {};
     if (!['a','b'].includes(side) || !ids(next)) return { ok:false, error:'Invalid interest selection.' };
     try {
-      var value = storage.getItem(KEYS[side]), native = value === null ? null : JSON.parse(value);
+      var value = storage.getItem(KEYS[side]), native = value === null ? null : storageBoundary.parseStrict(value);
       var before = options.before || (side === 'a' ? native && native.selections.real || [] : native || []);
       var intent = {}; intent[side] = { before:before, after:next };
       var syncOptions={createAState:options.createAState,intents:intent};

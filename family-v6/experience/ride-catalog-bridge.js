@@ -15,7 +15,7 @@
       if (event?.persisted) window.dispatchEvent(new StorageEvent('storage',{key:stateKey,newValue:localStorage.getItem(stateKey)}));
       const raw = sessionStorage.getItem(returnKey);
       if (!raw) return;
-      const value = JSON.parse(raw);
+      const value = VPFamilyStorage.parseStrict(raw);
       if (value.url !== location.href) return;
       sessionStorage.removeItem(returnKey);
       requestAnimationFrame(() => requestAnimationFrame(() => {

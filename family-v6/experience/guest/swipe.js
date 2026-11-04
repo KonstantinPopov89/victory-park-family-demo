@@ -24,7 +24,7 @@ const btn = (action, text, cls='', extra='') => `<button type="button" class="sp
 const all = [...VP3.demoRides, ...VP3.realRides];
 const lookup = id => all.find(r => r.id === id);
 let storageOK=true, state, journal, view='swipe', filter='all', forced=null, drag=null, modalKind=null, modalRide=null, returnFocus=null;
-try { state=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY)||'null')); } catch { state=VP3.emptyState();storageOK=false; }
+try { state=VP3.sanitizeState(VPFamilyStorage.parseStrict(localStorage.getItem(KEY)||'null')); } catch { state=VP3.emptyState();storageOK=false; }
 let realBaseline=state.selections.real.slice();
 try { const test='vp.swipe.storage-test';localStorage.setItem(test,'1');localStorage.removeItem(test); } catch {storageOK=false;}
 function cleanJournal(raw) {
@@ -36,7 +36,7 @@ function cleanJournal(raw) {
     out.modes[mode]={decisions,history};
   }return out;
 }
-try{journal=cleanJournal(JSON.parse(localStorage.getItem(JOURNEY)||'null'));}catch{journal=cleanJournal(null);storageOK=false;}
+try{journal=cleanJournal(VPFamilyStorage.parseStrict(localStorage.getItem(JOURNEY)||'null'));}catch{journal=cleanJournal(null);storageOK=false;}
 const params=new URLSearchParams(location.search);
 if(['real','demo'].includes(params.get('mode'))) state.mode=params.get('mode');
 const linked=lookup(params.get('ride'));if(linked){state.mode=linked.fictional?'demo':'real';forced=linked.id;}
@@ -84,7 +84,7 @@ const meta={
  'demo-small':{tag:'Первое приключение',text:'Знакомая карусель для маленьких исследователей.'},
  'demo-unknown':{tag:'Навстречу ветру',text:'Круг за кругом, с ощущением полёта над землёй.'},
 };
-function persist(){try{const u=new URL(location.href);u.searchParams.set('mode',state.mode);if(view==='catalog')u.searchParams.set('view','catalog');else u.searchParams.delete('view');if(view==='list')u.hash='plan';else if(u.hash==='#plan')u.hash='';if(!forced)u.searchParams.delete('ride');history.replaceState({...history.state,vpSwipeMode:state.mode,vpSwipeView:view},'',u.pathname+u.search+u.hash);}catch{}try{if(window.VPJourneySync){const result=VPJourneySync('local',{a:{before:realBaseline,after:state.selections.real}},{aState:state});if(!result?.ok)throw new Error('Interest storage unavailable');}else localStorage.setItem(KEY,JSON.stringify(state));state.selections.real=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY))).selections.real;realBaseline=state.selections.real.slice();localStorage.setItem(JOURNEY,JSON.stringify(journal));}catch{storageOK=false;}}
+function persist(){try{const u=new URL(location.href);u.searchParams.set('mode',state.mode);if(view==='catalog')u.searchParams.set('view','catalog');else u.searchParams.delete('view');if(view==='list')u.hash='plan';else if(u.hash==='#plan')u.hash='';if(!forced)u.searchParams.delete('ride');history.replaceState({...history.state,vpSwipeMode:state.mode,vpSwipeView:view},'',u.pathname+u.search+u.hash);}catch{}try{if(window.VPJourneySync){const result=VPJourneySync('local',{a:{before:realBaseline,after:state.selections.real}},{aState:state});if(!result?.ok)throw new Error('Interest storage unavailable');}else localStorage.setItem(KEY,JSON.stringify(state));state.selections.real=VP3.sanitizeState(VPFamilyStorage.parseStrict(localStorage.getItem(KEY))).selections.real;realBaseline=state.selections.real.slice();localStorage.setItem(JOURNEY,JSON.stringify(journal));}catch{storageOK=false;}}
 function announce(text){$('#sp-status').textContent='';requestAnimationFrame(()=>{$('#sp-status').textContent=text;});}
 function candidates(){let list=rides();if(state.mode==='real'){filter='all';list=window.VPDiscoveryContext?.filterRides(list)||list;}return list.filter(r=>filter==='all'||r.intensity===filter).slice().sort((a,b)=>window.VPDiscoveryContext.familyScore(b,state.party)-window.VPDiscoveryContext.familyScore(a,state.party));}
 function pending(){const list=candidates().filter(r=>!part().decisions[r.id]&&!selected().includes(r.id));const r=lookup(forced);return r&&candidates().includes(r)?[r,...list.filter(x=>x.id!==r.id)]:list;}
@@ -249,14 +249,14 @@ $('#sp-dialog').addEventListener('close',()=>{
  target?.focus({preventScroll:true});
 });
 document.addEventListener('vp:interests',()=>{try{
- const latest=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY)||'null'));
+ const latest=VP3.sanitizeState(VPFamilyStorage.parseStrict(localStorage.getItem(KEY)||'null'));
  if(JSON.stringify(latest.selections.real)===JSON.stringify(state.selections.real))return;
  state.selections.real=latest.selections.real;realBaseline=state.selections.real.slice();journal.modes.real.history=[];
  Object.keys(journal.modes.real.decisions).forEach(id=>{if(journal.modes.real.decisions[id]==='yes'&&!state.selections.real.includes(id))delete journal.modes.real.decisions[id];});
  render();if($('#sp-dialog').open&&modalKind!=='family')renderModal();
  }catch{}});
-window.addEventListener('storage',e=>{if(e.key===KEY){try{state=VP3.sanitizeState(JSON.parse(e.newValue||'null'));realBaseline=state.selections.real.slice();part().history=[];forced=null;render();if($('#sp-dialog').open&&modalKind!=='family')renderModal();announce('Выбор обновлён в другой вкладке.');}catch{}}if(e.key===JOURNEY){try{journal=cleanJournal(JSON.parse(e.newValue||'null'));showOnboard=false;render();}catch{}}});
-window.addEventListener('pageshow',e=>{if(e.persisted){try{state=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY)||'null'));realBaseline=state.selections.real.slice();journal=cleanJournal(JSON.parse(localStorage.getItem(JOURNEY)||'null'));showOnboard=false;if(['real','demo'].includes(history.state?.vpSwipeMode))state.mode=history.state.vpSwipeMode;if(['swipe','catalog','list'].includes(history.state?.vpSwipeView))view=history.state.vpSwipeView;render();}catch{}}});
+window.addEventListener('storage',e=>{if(e.key===KEY){try{state=VP3.sanitizeState(VPFamilyStorage.parseStrict(e.newValue||'null'));realBaseline=state.selections.real.slice();part().history=[];forced=null;render();if($('#sp-dialog').open&&modalKind!=='family')renderModal();announce('Выбор обновлён в другой вкладке.');}catch{}}if(e.key===JOURNEY){try{journal=cleanJournal(VPFamilyStorage.parseStrict(e.newValue||'null'));showOnboard=false;render();}catch{}}});
+window.addEventListener('pageshow',e=>{if(e.persisted){try{state=VP3.sanitizeState(VPFamilyStorage.parseStrict(localStorage.getItem(KEY)||'null'));realBaseline=state.selections.real.slice();journal=cleanJournal(VPFamilyStorage.parseStrict(localStorage.getItem(JOURNEY)||'null'));showOnboard=false;if(['real','demo'].includes(history.state?.vpSwipeMode))state.mode=history.state.vpSwipeMode;if(['swipe','catalog','list'].includes(history.state?.vpSwipeView))view=history.state.vpSwipeView;render();}catch{}}});
 document.addEventListener('error',e=>{if(e.target.tagName==='IMG'&&e.target.closest('#sp-root')){const fallback=document.createElement('div');fallback.className='sp-image-fallback';fallback.setAttribute('role','img');fallback.setAttribute('aria-label',e.target.alt+'; изображение недоступно');fallback.textContent='Изображение пока недоступно';e.target.replaceWith(fallback);}},true);
 persist();render();if(location.hash==='#family')openModal('family');if(linked)announce('Открыта карточка '+linked.name);
 window.addEventListener('pagehide',()=>{cancelGesture();persist();});

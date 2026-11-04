@@ -16,7 +16,7 @@
     }
     try {
       const raw = localStorage.getItem(key);
-      const parsed = JSON.parse(raw || 'null');
+      const parsed = VPFamilyStorage.parseStrict(raw || 'null');
       if (version === 'v2') {
         if (parsed !== null && !Array.isArray(parsed)) throw new SyntaxError('Invalid saved list');
         memory = parsed || [];
@@ -76,7 +76,7 @@
   } catch {}
 
   const open = $('photo-open'), dialog = $('photo-dialog'), full = $('photo-full'), stage = $('photo-stage');
-  const photos = JSON.parse(document.body.dataset.photos);
+  const photos = VPFamilyStorage.parseStrict(document.body.dataset.photos);
   let current = 0, pointerX = null;
   const hero = open.querySelector('img');
   function imageFailure() { open.classList.add('photo-failed'); $('photo-fallback').hidden = false; }

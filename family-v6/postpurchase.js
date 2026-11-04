@@ -87,7 +87,7 @@
     </article>`;
   }
   function current(root) {
-    const model = JSON.parse(decodeURIComponent(root.dataset.vpReceipt));
+    const model = VPFamilyStorage.parseStrict(decodeURIComponent(root.dataset.vpReceipt));
     const index = Number(root.querySelector('[data-pp-select]')?.value || 0);
     return {model, index, item:model.items[index] || model.items[0]};
   }
@@ -130,7 +130,7 @@
     window.VPI18n?.refreshUserValues?.();
     items = normalize(items);
     const title=t(items.every(x=>x.kind==='receipt')?'offlineReceiptTitle':'offlineTitle');
-    return '<!doctype html><html lang="'+language()+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:"><title>'+esc(title)+'</title><style>'+offlineStyle+'</style></head><body><main><h1>'+esc(title)+'</h1><p>'+esc(t('order'))+' '+esc(options.orderId||'')+'</p><p>'+esc(t('demo'))+'</p>'+(options.instruction?'<p>'+esc(tr(options.instruction))+'</p>':'')+'<div class="pp-offline-grid">'+printItems(items,options)+'</div></main></body></html>';
+    return '<!doctype html><html lang="'+language()+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'none\'; object-src \'none\'; base-uri \'none\'; connect-src \'none\'; form-action \'none\'; img-src data:; style-src \'unsafe-inline\'"><title>'+esc(title)+'</title><style>'+offlineStyle+'</style></head><body><main><h1>'+esc(title)+'</h1><p>'+esc(t('order'))+' '+esc(options.orderId||'')+'</p><p>'+esc(t('demo'))+'</p>'+(options.instruction?'<p>'+esc(tr(options.instruction))+'</p>':'')+'<div class="pp-offline-grid">'+printItems(items,options)+'</div></main></body></html>';
   }
   function contactType(value) {
     const v = String(value || '').trim();
@@ -228,7 +228,14 @@
     const {model,item}=current(root);
     return {orderId:model.orderId,code:item?.code,contact:root.querySelector('[data-pp-contact]')?.value||'',opened:[...root.querySelectorAll('details[open]')].filter(x=>!x.closest('.pp-print')).map(x=>x.className)};
   }
+  function viewDraft(value, stored=false) {
+    if(!value||typeof value!=='object'||Array.isArray(value)||typeof value.orderId!=='string'||!value.orderId.length||value.orderId.length>200||typeof value.contact!=='string'||value.contact.length>254||!Array.isArray(value.opened)||value.opened.length>20||value.opened.some(x=>typeof x!=='string'||x.length>200)||value.code!==undefined&&value.code!==null&&(typeof value.code!=='string'||value.code.length>200))return null;
+    const draft={orderId:value.orderId,code:value.code||'',contact:value.contact,opened:value.opened.slice()};
+    if(stored){if(!Number.isSafeInteger(value.createdAt)||value.createdAt<=0||typeof value.target!=='string'||!value.target.length||value.target.length>2048)return null;draft.createdAt=value.createdAt;draft.target=value.target;}
+    return draft;
+  }
   function restoreView(draft,root=D.querySelector('.vp-postpurchase')) {
+    draft=viewDraft(draft);
     if(!draft||!root||current(root).model.orderId!==draft.orderId)return false;
     root.querySelector('[data-pp-contact]').value=String(draft.contact||'').slice(0,254);
     for(const klass of draft.opened||[]){const detail=[...root.querySelectorAll('details')].find(x=>x.className===klass);if(detail)detail.open=true;}
@@ -245,8 +252,9 @@
     try{sessionStorage.setItem(handoffKey,JSON.stringify(draft));}catch{}
   }
   function restoreDraft() {
-    let draft;try{draft=JSON.parse(sessionStorage.getItem(handoffKey)||'null');}catch{return;}
+    let draft;try{draft=VPFamilyStorage.parseStrict(sessionStorage.getItem(handoffKey)||'null');}catch{return;}
     if(!draft)return;
+    draft=viewDraft(draft,true);if(!draft){try{sessionStorage.removeItem(handoffKey);}catch{}return;}
     const age=Date.now()-draft.createdAt;
     if(age<0||age>60000){try{sessionStorage.removeItem(handoffKey);}catch{}return;}
     if(draft.target!==routeKey(new URL(location.href)))return;
@@ -255,5 +263,5 @@
   D.addEventListener('click',e=>{const link=e.target.closest('a[data-lang-link],a[data-vp-lang]');if(link&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey&&e.button===0)prepareLanguageNavigation(link.href);},true);
   D.addEventListener('vp:catalog-rendered',restoreDraft);
   if(D.readyState==='loading')D.addEventListener('DOMContentLoaded',restoreDraft);else setTimeout(restoreDraft,0);
-  window.VPPostPurchase = Object.freeze({render, fileHTML, payload, contactType, captureView, restoreView, prepareLanguageNavigation, restoreDraft});
+  window.VPPostPurchase = Object.freeze({render, fileHTML, payload, contactType, captureView, viewDraft, restoreView, prepareLanguageNavigation, restoreDraft});
 }());

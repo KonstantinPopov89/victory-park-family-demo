@@ -26,10 +26,10 @@
   function refreshUserValues() {
     userValues.clear();
     try {
-      const s = JSON.parse(localStorage.getItem('vp.family.v6.people.v1') || '{}');
+      const s = VPFamilyStorage.parseStrict(localStorage.getItem('vp.family.v6.people.v1') || '{}');
       (s.party || []).forEach(p => { if(p.label && !/^(Взрослый|Ребёнок|Гость|Участник)( \d+)?$/.test(p.label)) userValues.add(p.label); });
       for(const key of ['vp.family.v6.people.v1.order','vp.family.v6.people.v1.orders']) {
-        const data = JSON.parse(localStorage.getItem(key)||'null');
+        const data = VPFamilyStorage.parseStrict(localStorage.getItem(key)||'null');
         for(const order of (Array.isArray(data)?data:[data]).filter(Boolean)) {
           for(const p of (order.party||[])) if(p.label&&!/^(Взрослый|Ребёнок|Гость|Участник)( \d+)?$/.test(p.label)) userValues.add(p.label);
           // Immutable receipts contain recipientLabel, not the current party array.
@@ -91,7 +91,7 @@
   function languageURL(next) {
     const url=new URL(location.href);url.searchParams.set('lang',next);
     const order=window.VP3UI?.getOrder();if(order)url.searchParams.set('resume',order.id);
-    return url;
+    return window.VPReleaseURL ? new URL(window.VPReleaseURL(url.href)) : url;
   }
   function localizeLinks(root=document) {
     root.querySelectorAll('a[href]').forEach(a=>{

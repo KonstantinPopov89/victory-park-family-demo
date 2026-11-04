@@ -1,5 +1,5 @@
 import {createMobileActions,mobileCopy} from './mobile-actions.mjs?vpv=dd56988a22bce250';
-import {STORAGE,transact,read,captureOrder,selectResume,BUSY} from './store.mjs?vpv=666be5d3a1299165';
+import {STORAGE,transact,read,captureOrder,selectResume,BUSY} from './store.mjs?vpv=097a322fb7927885';
 import {header as siteHeader,footer as siteFooter,decorate,label} from './chrome.mjs?vpv=ec7447b7015510f5';
 import {EVENTS, SESSIONS, SEATS, SCENARIOS, defaultState, availability, total, reduce, restore, tick, canHold, isClosed} from './engine.mjs?vpv=53adea77955e4349';
 import {translate} from './i18n.mjs?vpv=e639e1ea8ee01408';
@@ -119,7 +119,7 @@ function render(focus=false){if(mutating){needsRender=true;renderFocus=renderFoc
  else if(ui.view==='group')content=group();
  else if(ui.view==='map')content=mapView();
  else content=checkout();
- root.innerHTML=header()+`<main id="main" class="wrap quiz-wrap" data-view="${shownView}" data-phase="${state.phase}">${readOnly?`<p class="notice archive-note" role="status">${label(state.lang,resumeMissing?'missing':'archive')}</p>`:''}${resumeMissing?'':content+previousTicket()+reviewPanel()}</main>`+siteFooter(state);decorate(root,readOnly);
+ root.innerHTML=header()+`<main id="main" class="wrap quiz-wrap" data-view="${esc(shownView)}" data-phase="${esc(state.phase)}">${readOnly?`<p class="notice archive-note" role="status">${label(state.lang,resumeMissing?'missing':'archive')}</p>`:''}${resumeMissing?'':content+previousTicket()+reviewPanel()}</main>`+siteFooter(state);decorate(root,readOnly);
  if(focus){document.querySelector('h1')?.focus({preventScroll:true});window.scrollTo({top:0});}
  else if(focusId){document.getElementById(focusId)?.focus({preventScroll:true});}
  else if(focusAction){document.querySelector(`[data-action="${CSS.escape(focusAction)}"][data-value="${CSS.escape(focusValue||'')}"]`)?.focus({preventScroll:true});}
