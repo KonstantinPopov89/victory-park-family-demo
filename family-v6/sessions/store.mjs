@@ -42,9 +42,10 @@ export function selectResume(record,id){
  // Opening history never replaces a different in-flight order.
  return {state,readonly:true,missing:false};
 }
-let dbPromise;
+let dbPromise,databaseInvalidated=false;
 function database(){
- if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{const req=indexedDB.open(STORAGE,1);req.onupgradeneeded=()=>req.result.createObjectStore('booking');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+ if(databaseInvalidated)return Promise.reject(new Error('Booking storage was closed. Reload before starting a new booking.'));
+ if(!dbPromise)dbPromise=new Promise((resolve,reject)=>{const req=indexedDB.open(STORAGE,1);req.onupgradeneeded=()=>req.result.createObjectStore('booking');req.onsuccess=()=>{const db=req.result;db.onversionchange=()=>{databaseInvalidated=true;db.close();};resolve(db);};req.onerror=()=>reject(req.error);});
  return dbPromise;
 }
 export async function transact(transform,{recover=false}={}){

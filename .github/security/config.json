@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "site": "yerevan",
+  "include": [
+    "family-v6",
+    "404.html",
+    ".nojekyll"
+  ],
+  "required_files": [
+    "family-v6/index.html",
+    "family-v6/experience/guest/quick.html",
+    "family-v6/experience/guest/tickets.html",
+    "family-v6/vendor/qrcode.js",
+    "404.html",
+    ".nojekyll"
+  ],
+  "min_html_count": 261,
+  "public_base": "https://konstantinpopov89.github.io/victory-park-family-demo/",
+  "components": [
+    {
+      "name": "qrcode-generator",
+      "ecosystem": "npm",
+      "version": "1.4.4",
+      "path": "family-v6/vendor/qrcode.js",
+      "sha256": "18ae399f81182bc9de916e9c77b195df20cc58d6f2d55a62b085a299f1bf1780",
+      "embedded_in": [
+        "family-v6/checkout-bundle.js"
+      ]
+    },
+    {
+      "name": "actions/checkout",
+      "ecosystem": "GitHub Actions",
+      "version": "v7.0.1",
+      "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+    },
+    {
+      "name": "actions/upload-artifact",
+      "ecosystem": "GitHub Actions",
+      "version": "v7.0.2",
+      "sha": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+    },
+    {
+      "name": "actions/deploy-pages",
+      "ecosystem": "GitHub Actions",
+      "version": "v5.0.1",
+      "sha": "368f82528645a54fb793d4d04e342629a3f51346"
+    }
+  ],
+  "monitor": [
+    {
+      "url": "family-v6/",
+      "file": "family-v6/index.html"
+    },
+    {
+      "url": "family-v6/vendor/qrcode.js",
+      "file": "family-v6/vendor/qrcode.js"
+    },
+    {
+      "url": "family-v6/experience/guest/quick.html",
+      "file": "family-v6/experience/guest/quick.html"
+    },
+    {
+      "url": "family-v6/experience/guest/tickets.html",
+      "file": "family-v6/experience/guest/tickets.html"
+    }
+  ]
+}

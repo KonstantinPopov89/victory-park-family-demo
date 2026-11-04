@@ -8,7 +8,14 @@
   'use strict';
   var selectionKeys = ['product', 'ride', 'qty', 'date', 'student'];
   function validSaved(saved) {
-    return saved && saved.version === M.VERSION && saved.order && M.products[saved.order.productId] && Number.isInteger(saved.order.quantity) && saved.order.quantity >= 1 && saved.order.quantity <= M.MAX_QUANTITY;
+    const order=saved?.order;
+    return saved?.version===M.VERSION && order && typeof order==='object' && !Array.isArray(order)
+      && typeof order.productId==='string' && Object.hasOwn(M.products,order.productId)
+      && Number.isInteger(order.quantity) && order.quantity>=1 && order.quantity<=M.MAX_QUANTITY
+      && (order.offerId===null || typeof order.offerId==='string' && order.offerId.length<=64)
+      && (order.rideId===null || typeof order.rideId==='string' && order.rideId.length<=80)
+      && (order.visitDate===null || typeof order.visitDate==='string' && /^\d{4}-\d{2}-\d{2}$/.test(order.visitDate))
+      && typeof order.studentAcknowledged==='boolean';
   }
   function selectedOffer(params, saved) {
     if (params.has('offer')) return params.get('offer') === 'none' ? null : params.get('offer');
@@ -46,14 +53,15 @@
   }
   function start(win) {
     var saved = null, hasMainCart = false;
-    try { saved = JSON.parse(win.sessionStorage.getItem('vp.promotions.v1')); } catch (_) {}
+    try { const raw=win.sessionStorage.getItem('vp.promotions.v1');if(typeof raw==='string'&&raw.length<=65536)saved=JSON.parse(raw); } catch (_) {}
     try {
       var state = JSON.parse(win.localStorage.getItem('vp.family.v6.people.v1'));
       hasMainCart = !!(state && state.cart && Array.isArray(state.cart.lines) && state.cart.lines.length);
     } catch (_) {}
     var result = destination(win.location.search, saved, hasMainCart);
     if (result.receiptQuery) {
-      win.history.replaceState(null, '', 'offer-checkout.html?' + result.receiptQuery + '#receipt');
+      const url='offer-checkout.html?' + result.receiptQuery + '#receipt';
+      win.history.replaceState(null, '', win.VPReleaseURL ? win.VPReleaseURL(url) : url);
       return;
     }
     win.VPO_REDIRECTING = true;

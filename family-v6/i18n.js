@@ -91,7 +91,7 @@
   function languageURL(next) {
     const url=new URL(location.href);url.searchParams.set('lang',next);
     const order=window.VP3UI?.getOrder();if(order)url.searchParams.set('resume',order.id);
-    return url;
+    return window.VPReleaseURL ? new URL(window.VPReleaseURL(url.href)) : url;
   }
   function localizeLinks(root=document) {
     root.querySelectorAll('a[href]').forEach(a=>{

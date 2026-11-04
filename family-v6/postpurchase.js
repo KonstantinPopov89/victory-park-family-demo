@@ -130,7 +130,7 @@
     window.VPI18n?.refreshUserValues?.();
     items = normalize(items);
     const title=t(items.every(x=>x.kind==='receipt')?'offlineReceiptTitle':'offlineTitle');
-    return '<!doctype html><html lang="'+language()+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:"><title>'+esc(title)+'</title><style>'+offlineStyle+'</style></head><body><main><h1>'+esc(title)+'</h1><p>'+esc(t('order'))+' '+esc(options.orderId||'')+'</p><p>'+esc(t('demo'))+'</p>'+(options.instruction?'<p>'+esc(tr(options.instruction))+'</p>':'')+'<div class="pp-offline-grid">'+printItems(items,options)+'</div></main></body></html>';
+    return '<!doctype html><html lang="'+language()+'"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'none\'; object-src \'none\'; base-uri \'none\'; connect-src \'none\'; form-action \'none\'; img-src data:; style-src \'unsafe-inline\'"><title>'+esc(title)+'</title><style>'+offlineStyle+'</style></head><body><main><h1>'+esc(title)+'</h1><p>'+esc(t('order'))+' '+esc(options.orderId||'')+'</p><p>'+esc(t('demo'))+'</p>'+(options.instruction?'<p>'+esc(tr(options.instruction))+'</p>':'')+'<div class="pp-offline-grid">'+printItems(items,options)+'</div></main></body></html>';
   }
   function contactType(value) {
     const v = String(value || '').trim();

@@ -91,6 +91,11 @@
  }
 
  function migrate(storage){
+  if(storage.getItem('vp.family.v6.privacy.erased')!==null){
+   const marker={version:1,complete:true,legacyOrderId:null};
+   storage.setItem(KEYS.marker,JSON.stringify(marker));
+   return marker;
+  }
   const marker=parse(storage.getItem(KEYS.marker));
   if(marker?.version===1&&marker.complete===true)return marker;
   if(storage.getItem(KEYS.marker)!==null)throw new Error('Unknown profile migration marker');
@@ -128,6 +133,7 @@
  // Call under LOCK when recovering or starting a payment. A newer success always
  // wins over an old pending copy of the same id. No state/profile re-import occurs.
  function legacyOrder(storage,validate,lineIds=[]){
+  if(storage.getItem('vp.family.v6.privacy.erased')!==null)return null;
   const old=validate(parse(storage.getItem(LEGACY.order)));if(!old)return null;
   const active=validate(parse(storage.getItem(KEYS.order)));
   const history=parse(storage.getItem(KEYS.history));

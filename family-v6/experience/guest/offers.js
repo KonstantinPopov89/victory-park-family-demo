@@ -9,7 +9,7 @@
   var filters = { all: 'Все', promotion: 'Скидки', package: 'Пакеты', bonus: 'Бонусы', benefit: 'Льготы' };
   var storageKey = 'vp.promotions.v1';
   function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
-  function money(value) { return value == null ? 'Не рассчитано' : value.toLocaleString('ru-RU') + ' ֏'; }
+  function money(value) { return !Number.isSafeInteger(value) || value < 0 ? 'Не рассчитано' : value.toLocaleString('ru-RU') + ' ֏'; }
   function humanDate(value) { if (!value) return ''; return new Date(value + 'T12:00:00Z').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Yerevan' }); }
   function addDays(value, count) { var d = new Date(value + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + count); return d.toISOString().slice(0, 10); }
   function stateOf(offer, today) { if (offer.status !== 'active') return offer.status; if (offer.end && today > offer.end) return 'expired'; if (offer.start && today < offer.start) return 'upcoming'; return 'active'; }
@@ -76,6 +76,50 @@
       visitDate: normalizeVisitDate(order.visitDate),
       rideId: order.productId === 'ticket' ? order.rideId : null
     });
+  }
+  function validSavedOrder(order) {
+    return order && typeof order === 'object' && !Array.isArray(order)
+      && (order.offerId === null || typeof order.offerId === 'string' && order.offerId.length <= 64)
+      && typeof order.productId === 'string' && Object.hasOwn(M.products, order.productId)
+      && (order.rideId === null || typeof order.rideId === 'string' && order.rideId.length <= 80)
+      && Number.isInteger(order.quantity) && order.quantity >= 1 && order.quantity <= M.MAX_QUANTITY
+      && (order.visitDate === null || typeof order.visitDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(order.visitDate))
+      && typeof order.studentAcknowledged === 'boolean'
+      && Object.keys(order).every(key=>['offerId','productId','rideId','quantity','visitDate','studentAcknowledged'].includes(key));
+  }
+  function readSaved(raw) {
+    if (typeof raw !== 'string' || raw.length > 65536) return null;
+    try { const saved=JSON.parse(raw);return saved?.version===M.VERSION && validSavedOrder(saved.order)?saved:null; } catch { return null; }
+  }
+  function restoreReceipt(saved, expectedOrder) {
+    if (!saved || saved.version!==M.VERSION || !validSavedOrder(saved.order) || !ordersMatch(saved.order,expectedOrder)) return null;
+    const receipt=saved.receipt;
+    if (!receipt || typeof receipt.issuedAt!=='string' || !/^\d{4}-\d{2}-\d{2}$/.test(receipt.issuedAt)) return null;
+    const validDate=value=>typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&Number.isFinite(Date.parse(value+'T12:00:00Z'))&&new Date(value+'T12:00:00Z').toISOString().slice(0,10)===value;
+    const text=(value,max=500)=>typeof value==='string'&&value.length>0&&value.length<=max;
+    const texts=value=>Array.isArray(value)&&value.length>0&&value.length<=30&&value.every(item=>text(item));
+    const amount=value=>Number.isSafeInteger(value)&&value>=0&&value<=100000000;
+    const result=receipt.result;
+    if(!validDate(receipt.issuedAt)||!result||typeof result!=='object'||!validSavedOrder(result.order)||!ordersMatch(saved.order,result.order)||result.canCheckout!==true||result.eligible!==true||!Array.isArray(result.issues)||result.issues.length||!Array.isArray(result.lines)||!result.lines.length||result.lines.length>20)return null;
+    if(!['subtotal','discount','payable','bonus'].every(key=>amount(result[key]))||result.subtotal<=0||result.payable<=0||result.discount>result.subtotal||result.payable!==result.subtotal-result.discount)return null;
+    let subtotal=0,quantity=0;
+    for(const line of result.lines){
+      if(!line||line.productId!==saved.order.productId||!Number.isInteger(line.quantity)||line.quantity<1||line.quantity>M.MAX_QUANTITY||!amount(line.unitPrice)||line.unitPrice<=0||line.total!==line.unitPrice*line.quantity||!text(line.name,200)||!text(line.recipientLabel,200)||!texts(line.terms))return null;
+      subtotal+=line.total;quantity+=line.quantity;
+    }
+    if(subtotal!==result.subtotal||quantity!==saved.order.quantity)return null;
+    if(saved.order.offerId===null){if(result.offer!==null||result.applied!==false||result.discount||result.bonus)return null;}
+    else {
+      const offer=result.offer,known=M.getOffer(saved.order.offerId);
+      if(!known||!offer||offer.id!==saved.order.offerId||!text(offer.title,200)||!texts(offer.terms)||result.applied!==true||offer.requiresVisitDate!==undefined&&typeof offer.requiresVisitDate!=='boolean')return null;
+      if(offer.requiresVisitDate&&!validDate(saved.order.visitDate))return null;
+      const discount=offer.id==='weekday20'?Math.round(subtotal*0.2):offer.id==='student15'?Math.round(subtotal*0.15):0;
+      if(result.discount!==discount||result.bonus!==(offer.id==='bonus500'?500:0))return null;
+    }
+    if(result.bonus&&(result.bonusValidFrom!==addDays(receipt.issuedAt,1)||result.bonusValidUntil!==addDays(receipt.issuedAt,30)))return null;
+    // Historical prices remain historical. Validate types and arithmetic, then
+    // render strings as text; the current catalogue only prices new purchases.
+    return {issuedAt:receipt.issuedAt,result:JSON.parse(JSON.stringify(result))};
   }
   function ordersMatch(first, second) {
     if (!first || !second || typeof first !== 'object' || typeof second !== 'object' || Array.isArray(first) || Array.isArray(second)) return false;
@@ -145,8 +189,8 @@
     if (params.has('student')) order.studentAcknowledged = params.get('student') === '1';
     if (!isList && !['product', 'ride', 'qty', 'date', 'student'].some(function (key) { return params.has(key); }) && location.hash !== '#receipt') {
       try {
-        var draft = JSON.parse(sessionStorage.getItem(storageKey));
-        if (draft && draft.version === M.VERSION && draft.order && M.products[draft.order.productId] && Number.isInteger(draft.order.quantity) && draft.order.quantity >= 1 && draft.order.quantity <= M.MAX_QUANTITY) {
+        var draft = readSaved(sessionStorage.getItem(storageKey));
+        if (draft) {
           var requestedOffer = order.offerId;
           if (requestedOffer !== draft.order.offerId) {
             var restoredChoice = chooseOffer(draft.order, requestedOffer);
@@ -169,11 +213,11 @@
       var url = new URL(location.href);
       url.search = new URLSearchParams({ offer: order.offerId || 'none', product: order.productId || '', ride: order.rideId || '', qty: String(order.quantity), date: order.visitDate || '', student: order.studentAcknowledged ? '1' : '0' }).toString();
       if (receipt) url.hash = 'receipt'; else url.hash = '';
-      try { history.replaceState(null, '', url); } catch (_) {}
+      try { history.replaceState(null, '', window.VPReleaseURL ? window.VPReleaseURL(url.href) : url); } catch (_) {}
       try { sessionStorage.setItem(storageKey, JSON.stringify({ version: M.VERSION, order: order, receipt: receipt })); } catch (_) {}
     }
     if (!isList && location.hash === '#receipt') {
-      try { var saved = JSON.parse(sessionStorage.getItem(storageKey)); if (saved && saved.version === M.VERSION && saved.receipt && saved.receipt.result && saved.receipt.result.canCheckout && ordersMatch(saved.order, order)) receipt = saved.receipt; } catch (_) {}
+      try { receipt = restoreReceipt(readSaved(sessionStorage.getItem(storageKey)), order); } catch (_) {}
       if (!receipt) notice = 'Образец заказа не сохранился. Проверьте выбор и оформите учебный заказ ещё раз.';
     }
     function totals(r) {
@@ -195,7 +239,7 @@
     function renderReceipt() {
       document.body.classList.remove('has-mobile-checkout');
       var r = receipt.result;
-      app.innerHTML = '<div class="receipt"><div class="confirmation" aria-hidden="true">✓</div><h1 tabindex="-1" id="receipt-heading">Учебный заказ собран</h1><p class="receipt-intro">Оплаты не было. Этот образец не является билетом и не даёт права на посещение.</p><section class="receipt-box"><h2>Состав и выбранная выгода</h2>' + r.lines.map(function (line) { return '<p><strong>' + esc(line.name) + ' · ' + line.quantity + ' шт.</strong><br>' + esc(line.recipientLabel) + '</p>'; }).join('') + '<p>' + esc(r.offer ? r.offer.title : 'Без предложения, по полной цене') + '</p>' + (r.offer && r.offer.requiresVisitDate ? '<p><strong>Дата визита: ' + humanDate(r.order.visitDate) + '</strong></p>' : '') + totals(r) + '</section><section class="receipt-box"><h2>Как использовать в учебном примере</h2><p>' + (r.offer && r.offer.id === 'student15' ? 'При получении нужно показать действующий студенческий документ. Все билеты предназначены его владельцу.' : r.bonus ? 'Бонус в этом образце начислен один раз. Его можно использовать на отдельные билеты при следующем визите в указанный срок.' : 'Срок и права сохранены в составе заказа ниже. Перед катанием нужно отдельно проверить допуск.') + '</p>' + r.lines.slice(0, 1).map(function (line) { return '<ul>' + line.terms.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>'; }).join('') + (r.offer ? '<details class="offer-terms"><summary>Условия выбранной выгоды</summary>' + terms(r.offer) + '</details>' : '') + '</section><div class="receipt-actions" data-vp-action-group><a class="action secondary" data-vp-cta="secondary" href="' + esc(legacySelectionHref(order)) + '">Вернуться к билетам</a><a class="action" data-vp-cta="primary" href="offers.html">Все предложения</a></div></div>';
+      app.innerHTML = '<div class="receipt"><div class="confirmation" aria-hidden="true">✓</div><h1 tabindex="-1" id="receipt-heading">Учебный заказ собран</h1><p class="receipt-intro">Оплаты не было. Этот образец не является билетом и не даёт права на посещение.</p><section class="receipt-box"><h2>Состав и выбранная выгода</h2>' + r.lines.map(function (line) { return '<p><strong>' + esc(line.name) + ' · ' + esc(line.quantity) + ' шт.</strong><br>' + esc(line.recipientLabel) + '</p>'; }).join('') + '<p>' + esc(r.offer ? r.offer.title : 'Без предложения, по полной цене') + '</p>' + (r.offer && r.offer.requiresVisitDate ? '<p><strong>Дата визита: ' + humanDate(r.order.visitDate) + '</strong></p>' : '') + totals(r) + '</section><section class="receipt-box"><h2>Как использовать в учебном примере</h2><p>' + (r.offer && r.offer.id === 'student15' ? 'При получении нужно показать действующий студенческий документ. Все билеты предназначены его владельцу.' : r.bonus ? 'Бонус в этом образце начислен один раз. Его можно использовать на отдельные билеты при следующем визите в указанный срок.' : 'Срок и права сохранены в составе заказа ниже. Перед катанием нужно отдельно проверить допуск.') + '</p>' + r.lines.slice(0, 1).map(function (line) { return '<ul>' + line.terms.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>'; }).join('') + (r.offer ? '<details class="offer-terms"><summary>Условия выбранной выгоды</summary>' + terms(r.offer) + '</details>' : '') + '</section><div class="receipt-actions" data-vp-action-group><a class="action secondary" data-vp-cta="secondary" href="' + esc(legacySelectionHref(order)) + '">Вернуться к билетам</a><a class="action" data-vp-cta="primary" href="offers.html">Все предложения</a></div></div>';
     }
     function render(focusId) {
       if (isList) {
@@ -249,5 +293,5 @@
     }
     render();
   }
-  return { checkoutHref: checkoutHref, legacySelectionHref: legacySelectionHref, renderCartSummary: renderCartSummary, renderList: renderList, renderReference: renderReference, normalizeVisitDate: normalizeVisitDate, ordersMatch: ordersMatch, chooseOffer: chooseOffer, issueAction: issueAction, start: start };
+  return { checkoutHref: checkoutHref, legacySelectionHref: legacySelectionHref, renderCartSummary: renderCartSummary, renderList: renderList, renderReference: renderReference, normalizeVisitDate: normalizeVisitDate, ordersMatch: ordersMatch, chooseOffer: chooseOffer, issueAction: issueAction, readSaved:readSaved, restoreReceipt:restoreReceipt, start: start };
 }));
