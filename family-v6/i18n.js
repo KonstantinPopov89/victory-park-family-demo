@@ -26,10 +26,10 @@
   function refreshUserValues() {
     userValues.clear();
     try {
-      const s = JSON.parse(localStorage.getItem('vp.family.v6.people.v1') || '{}');
+      const s = VPFamilyStorage.parseStrict(localStorage.getItem('vp.family.v6.people.v1') || '{}');
       (s.party || []).forEach(p => { if(p.label && !/^(Взрослый|Ребёнок|Гость|Участник)( \d+)?$/.test(p.label)) userValues.add(p.label); });
       for(const key of ['vp.family.v6.people.v1.order','vp.family.v6.people.v1.orders']) {
-        const data = JSON.parse(localStorage.getItem(key)||'null');
+        const data = VPFamilyStorage.parseStrict(localStorage.getItem(key)||'null');
         for(const order of (Array.isArray(data)?data:[data]).filter(Boolean)) {
           for(const p of (order.party||[])) if(p.label&&!/^(Взрослый|Ребёнок|Гость|Участник)( \d+)?$/.test(p.label)) userValues.add(p.label);
           // Immutable receipts contain recipientLabel, not the current party array.

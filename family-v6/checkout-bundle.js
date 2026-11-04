@@ -872,10 +872,10 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
  */
 (function (root, factory) {
   'use strict';
-  var api = factory(typeof module === 'object' && module.exports ? require('./shared-catalog.js') : root.VPSharedCatalog);
+  var api = factory(typeof module === 'object' && module.exports ? require('./shared-catalog.js') : root.VPSharedCatalog, typeof module === 'object' && module.exports ? require('./family-storage.js') : root.VPFamilyStorage);
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.VPJourneyBridge = api;
-}(typeof window === 'undefined' ? globalThis : window, function (catalog) {
+}(typeof window === 'undefined' ? globalThis : window, function (catalog, storageBoundary) {
   'use strict';
   var KEYS = Object.freeze({ a: 'vp.family.v6.people.v1', b: 'vpList', bridge: 'vp.journey.interests.v1' });
   // Identity-only crosswalk; exact source path/line/hash retained in QA provenance.
@@ -883,7 +883,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
   var MAP_VERSION = 'prototype-catalog-35-v2';
   var LEGACY_MAP = ['autodrom', 'pendulum', 'planet'];
   function record(v) { return v !== null && typeof v === 'object' && !Array.isArray(v); }
-  function ids(v) { return Array.isArray(v) && v.every(function (id) { return typeof id === 'string' && id.length > 0; }); }
+  function ids(v) { return Array.isArray(v) && v.length <= 1000 && v.every(function (id) { return typeof id === 'string' && id.length > 0 && id.length <= 128; }); }
   function unique(v) { return Array.from(new Set(v)); }
   function copy(v) { return JSON.parse(JSON.stringify(v)); }
   function aValid(v) { return record(v) && v.version === 3 && record(v.selections) && ids(v.selections.real); }
@@ -954,7 +954,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
     try {
       if (!storage || typeof storage.getItem !== 'function' || typeof storage.setItem !== 'function' || typeof storage.removeItem !== 'function') throw new TypeError('Storage unavailable.');
       Object.keys(KEYS).forEach(function (side) { before[side] = storage.getItem(KEYS[side]); });
-      function parse(side) { return before[side] === null ? null : JSON.parse(before[side]); }
+      function parse(side) { return before[side] === null ? null : storageBoundary.parseStrict(before[side]); }
       var a = parse('a'), b = parse('b'), bridge = parse('bridge');
       // JSON null is corrupted native storage, not a genuinely absent key.
       if (before.a !== null && a === null || before.b !== null && b === null || before.bridge !== null && bridge === null) throw new TypeError('Stored null is not a valid state.');
@@ -982,7 +982,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
       ['bridge', 'a', 'b'].forEach(function (side) {
         if (values[side] === null || (side === 'b' && before.b === null && !values.b.length)) return;
         var raw = JSON.stringify(values[side]);
-        if (before[side] !== null && raw === JSON.stringify(JSON.parse(before[side]))) return;
+        if (before[side] !== null && raw === JSON.stringify(storageBoundary.parseStrict(before[side]))) return;
         written.push({ side: side, raw: raw });
         storage.setItem(KEYS[side], raw);
         if (storage.getItem(KEYS[side]) !== raw) throw new Error('Storage write did not persist.');
@@ -1004,7 +1004,7 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
     options = options || {};
     if (!['a','b'].includes(side) || !ids(next)) return { ok:false, error:'Invalid interest selection.' };
     try {
-      var value = storage.getItem(KEYS[side]), native = value === null ? null : JSON.parse(value);
+      var value = storage.getItem(KEYS[side]), native = value === null ? null : storageBoundary.parseStrict(value);
       var before = options.before || (side === 'a' ? native && native.selections.real || [] : native || []);
       var intent = {}; intent[side] = { before:before, after:next };
       var syncOptions={createAState:options.createAState,intents:intent};
@@ -3833,7 +3833,7 @@ var qrcode = function() {
     </article>`;
   }
   function current(root) {
-    const model = JSON.parse(decodeURIComponent(root.dataset.vpReceipt));
+    const model = VPFamilyStorage.parseStrict(decodeURIComponent(root.dataset.vpReceipt));
     const index = Number(root.querySelector('[data-pp-select]')?.value || 0);
     return {model, index, item:model.items[index] || model.items[0]};
   }
@@ -3974,7 +3974,14 @@ var qrcode = function() {
     const {model,item}=current(root);
     return {orderId:model.orderId,code:item?.code,contact:root.querySelector('[data-pp-contact]')?.value||'',opened:[...root.querySelectorAll('details[open]')].filter(x=>!x.closest('.pp-print')).map(x=>x.className)};
   }
+  function viewDraft(value, stored=false) {
+    if(!value||typeof value!=='object'||Array.isArray(value)||typeof value.orderId!=='string'||!value.orderId.length||value.orderId.length>200||typeof value.contact!=='string'||value.contact.length>254||!Array.isArray(value.opened)||value.opened.length>20||value.opened.some(x=>typeof x!=='string'||x.length>200)||value.code!==undefined&&value.code!==null&&(typeof value.code!=='string'||value.code.length>200))return null;
+    const draft={orderId:value.orderId,code:value.code||'',contact:value.contact,opened:value.opened.slice()};
+    if(stored){if(!Number.isSafeInteger(value.createdAt)||value.createdAt<=0||typeof value.target!=='string'||!value.target.length||value.target.length>2048)return null;draft.createdAt=value.createdAt;draft.target=value.target;}
+    return draft;
+  }
   function restoreView(draft,root=D.querySelector('.vp-postpurchase')) {
+    draft=viewDraft(draft);
     if(!draft||!root||current(root).model.orderId!==draft.orderId)return false;
     root.querySelector('[data-pp-contact]').value=String(draft.contact||'').slice(0,254);
     for(const klass of draft.opened||[]){const detail=[...root.querySelectorAll('details')].find(x=>x.className===klass);if(detail)detail.open=true;}
@@ -3991,8 +3998,9 @@ var qrcode = function() {
     try{sessionStorage.setItem(handoffKey,JSON.stringify(draft));}catch{}
   }
   function restoreDraft() {
-    let draft;try{draft=JSON.parse(sessionStorage.getItem(handoffKey)||'null');}catch{return;}
+    let draft;try{draft=VPFamilyStorage.parseStrict(sessionStorage.getItem(handoffKey)||'null');}catch{return;}
     if(!draft)return;
+    draft=viewDraft(draft,true);if(!draft){try{sessionStorage.removeItem(handoffKey);}catch{}return;}
     const age=Date.now()-draft.createdAt;
     if(age<0||age>60000){try{sessionStorage.removeItem(handoffKey);}catch{}return;}
     if(draft.target!==routeKey(new URL(location.href)))return;
@@ -4001,7 +4009,7 @@ var qrcode = function() {
   D.addEventListener('click',e=>{const link=e.target.closest('a[data-lang-link],a[data-vp-lang]');if(link&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey&&e.button===0)prepareLanguageNavigation(link.href);},true);
   D.addEventListener('vp:catalog-rendered',restoreDraft);
   if(D.readyState==='loading')D.addEventListener('DOMContentLoaded',restoreDraft);else setTimeout(restoreDraft,0);
-  window.VPPostPurchase = Object.freeze({render, fileHTML, payload, contactType, captureView, restoreView, prepareLanguageNavigation, restoreDraft});
+  window.VPPostPurchase = Object.freeze({render, fileHTML, payload, contactType, captureView, viewDraft, restoreView, prepareLanguageNavigation, restoreDraft});
 }());
 
 ;
@@ -4026,15 +4034,15 @@ let state,order=null,warning='',familyOpen=false,focusPerson='family',undo=null,
 let reviewing=false,reviewedToken='',viewingHistory=false,copyFailure=false,editingCompanion=false,resolveScenario='issuance';
 let purchaseRouteIssue='',formError='',copyStatus='',scenario='success',promotion=VPC.normalizePromotion(null),ticketPersonId='',accompaniment=null;
 let quickRideId='',quickPersonId='',needsProductChoice=false;
-try{promotion=VPC.normalizePromotion(JSON.parse(localStorage.getItem(PROMO)||'null'));}catch{}
+try{promotion=VPC.normalizePromotion(VPFamilyStorage.parseStrict(localStorage.getItem(PROMO)||'null'));}catch{}
 try {await navigator.locks.request(LOCK,()=>{const recovered=VPFamilyStorage.recoverState(localStorage,VP3.sanitizeState);state=recovered.state;if(!recovered.saved)storageAvailable=false;const history=VPFamilyStorage.recoverHistory(localStorage,VPC.validateOrder);if(!history.saved)storageAvailable=false;});} catch {state=VP3.emptyState();storageAvailable=false;warning='Браузер не сохранил выбор. Можно продолжить в этой вкладке.';}
-try {const raw=JSON.parse(localStorage.getItem(ORDER)||'null');if(raw){order=VPC.validateOrder(raw);if(!order)warning='Сохранённый образец заказа повреждён. Соберите заказ заново.';}}catch {warning='Предыдущий демо-заказ недоступен. Реальных списаний не было.';}
+try {const raw=VPFamilyStorage.parseStrict(localStorage.getItem(ORDER)||'null');if(raw){order=VPC.validateOrder(raw);if(!order)warning='Сохранённый образец заказа повреждён. Соберите заказ заново.';}}catch {warning='Предыдущий демо-заказ недоступен. Реальных списаний не было.';}
 // Completed receipts open only on explicit history/resume; a new entry always selects a product.
 const entryQuery=new URLSearchParams(location.search);
 if(entryQuery.get('recover')==='legacy')try{await navigator.locks.request(LOCK,()=>{
  const recovered=VPFamilyStorage.legacyOrder(localStorage,VPC.validateOrder);
  if(recovered){order=recovered;if(!saveOrder())throw new Error('Order recovery could not be saved');}
- else{const old=VPC.validateOrder(JSON.parse(localStorage.getItem(VPFamilyStorage.LEGACY.order)||'null'));const paid=pastOrders().find(o=>o.id===old?.id);if(paid&&(!order||['success','declined'].includes(order.status)))order=paid;}
+ else{const old=VPC.validateOrder(VPFamilyStorage.parseStrict(localStorage.getItem(VPFamilyStorage.LEGACY.order)||'null'));const paid=pastOrders().find(o=>o.id===old?.id);if(paid&&(!order||['success','declined'].includes(order.status)))order=paid;}
  if(order){entryQuery.set('resume',order.id);entryQuery.delete('recover');history.replaceState(history.state,'',location.pathname+'?'+entryQuery.toString()+location.hash);}
 });}catch{warning='Не удалось проверить ответ. Сохранённый заказ остаётся доступен; повторно не оплачивайте.';}
 if(order&&['success','declined'].includes(order.status)&&!entryQuery.has('resume')){completedEntry=order.status==='success'&&state.cart.lines.some(line=>order.lines.some(paid=>paid.id===line.id));settlePaidLines(order);order=null;}
@@ -4066,7 +4074,7 @@ function saveOrder(){
  }catch{storageAvailable=false;warning='Не удалось сохранить заказ в браузере. Сохраните готовые билеты в файл. Текущая покупка остаётся открытой.';return false;}
 }
 // Receipt navigation is separate from the active payment stored in ORDER.
-function storedOrder(){try{return VPC.validateOrder(JSON.parse(localStorage.getItem(ORDER)||'null'));}catch{return null;}}
+function storedOrder(){try{return VPC.validateOrder(VPFamilyStorage.parseStrict(localStorage.getItem(ORDER)||'null'));}catch{return null;}}
 function settlePaidLines(paid){if(paid?.status!=='success')return;const paidIds=new Set(paid.lines.map(l=>l.id)),remaining=state.cart.lines.filter(l=>!paidIds.has(l.id));if(remaining.length!==state.cart.lines.length){state.cart.lines=remaining;save();}}
 function orderURL(id){const url=new URL(location.href);if(id)url.searchParams.set('resume',id);else url.searchParams.delete('resume');try{history.replaceState(history.state,'',url.pathname+url.search+url.hash);}catch{}if(typeof params!=='undefined'){if(id)params.set('resume',id);else params.delete('resume');}}
 function restoreOrderView(){
@@ -4312,7 +4320,7 @@ function receipt(){
 }
 
 function companyStorageKey(){return state?.selectedJourney?'vp.family.v6.people.v1.company.real':COMPANY;}
-function companyData(){try{return JSON.parse(localStorage.getItem(companyStorageKey())||'null');}catch{return null;}}
+function companyData(){try{return VPFamilyStorage.parseStrict(localStorage.getItem(companyStorageKey())||'null');}catch{return null;}}
 function companyRoute(){return checkoutRoute('company.html'+(state.selectedJourney?'?source=real&mode=exact':companyData()?.mode==='exact'?'?mode=exact':''));}
 function companyContext(){
  const applied=companyData()?.lastApplied;if(!applied)return null;
@@ -4381,7 +4389,7 @@ function setQuantity(target,n){
 }
 function directPass(pId){if(!state.riders.includes(pId))state.riders.push(pId);ticketPersonId=pId;const current=state.cart.lines.find(l=>l.productId==='unlimited'&&l.personId===pId);if(current&&isRequiredLine(current))return;if(person(pId)&&!hasKnownAge(person(pId)))agePerson=pId;commitCart(current?state.cart.lines.filter(l=>l.id!==current.id):[...state.cart.lines,{id:id(),productId:'unlimited',rideId:null,personId:pId,recipientKey:null,quantity:1,unitPrice:VP3.products.unlimited.price}],current?'Безлимит удалён.':'Безлимит и необходимое сопровождение добавлены.',false);}
 function purchaseAdd(companion=false){if(state.party.length>=8)return;const p=newParticipant();state.party.push(p);ticketPersonId=p.id;agePerson=p.id;if(companion){update('Участник добавлен. Укажите возраст, чтобы выбрать сопровождение.');jump('#purchase-people');return;}const missing=state.cart.lines.filter(l=>!VP3.isPackage(l)&&!VP3.isDirectLine(l)&&!l.personId);if(missing.length===1)missing[0].personId=p.id;else if(activeProduct==='unlimited'){state.cart.lines.push({id:id(),productId:'unlimited',rideId:null,personId:p.id,recipientKey:null,quantity:1,unitPrice:VP3.products.unlimited.price});if(!state.riders.includes(p.id))state.riders.push(p.id);}update('Получатель добавлен.');jump('#purchase-people');}
-async function pay(){if(busy||order||(!quick&&needsReview()&&!reviewing)||companyContext()?.changed)return;if(!navigator.onLine){formError='Нет связи. Подключитесь к интернету и попробуйте оплатить снова. Платёж не начат.';render();focusField('checkout-errors');return;}const a=calculateCart(state,promotion);if(!a.canCheckout){formError='Проверьте состав и получателей заказа.';render();jump('#checkout-errors');return;}busy=true;render();const run=async()=>{try{const recovered=VPFamilyStorage.legacyOrder(localStorage,VPC.validateOrder,state.cart.lines.map(l=>l.id));if(recovered){order=recovered;if(!saveOrder())throw new Error('Order recovery could not be saved');settlePaidLines(order);orderURL(order.id);busy=false;render();return;}const other=VPC.validateOrder(JSON.parse(localStorage.getItem(ORDER)||'null'));if(other&&(!['success','declined'].includes(other.status)||other.status==='success'&&state.cart.lines.some(line=>other.lines.some(paid=>paid.id===line.id)))){order=other;settlePaidLines(other);orderURL(other.id);busy=false;render();return;}}catch{busy=false;warning='Не удалось проверить ответ. Сохранённый заказ остаётся доступен; повторно не оплачивайте.';render();return;}order=VPC.snapshotOrder(state,promotion,'DEMO-'+id(),'pending',undefined,purchaseOptions);if(!order){busy=false;formError='Не удалось создать образец. Проверьте заказ.';render();return;}if(!saveOrder()){busy=false;render();return;}orderURL(order.id);render();await new Promise(resolve=>setTimeout(resolve,300));const confirmed=VPC.confirmPayment(order,!navigator.onLine||scenario==='offline'?'pending':scenario);if(!confirmed){busy=false;warning='Не удалось проверить ответ оплаты. Повторно не оплачивайте; проверьте сохранённый заказ.';render();return;}order=confirmed;saveOrder();busy=false;render();window.scrollTo({top:0});$('#result-heading')?.focus({preventScroll:true});announce('Статус заказа обновлён.');};try{if(navigator.locks?.request)await navigator.locks.request(LOCK,run);else{busy=false;formError='В этом браузере недоступна защита заказа между вкладками. Откройте прототип в современном браузере.';render();}}catch{busy=false;warning='Не удалось завершить проверку. Если заказ создан, проверяйте его статус.';render();}}
+async function pay(){if(busy||order||(!quick&&needsReview()&&!reviewing)||companyContext()?.changed)return;if(!navigator.onLine){formError='Нет связи. Подключитесь к интернету и попробуйте оплатить снова. Платёж не начат.';render();focusField('checkout-errors');return;}const a=calculateCart(state,promotion);if(!a.canCheckout){formError='Проверьте состав и получателей заказа.';render();jump('#checkout-errors');return;}busy=true;render();const run=async()=>{try{const recovered=VPFamilyStorage.legacyOrder(localStorage,VPC.validateOrder,state.cart.lines.map(l=>l.id));if(recovered){order=recovered;if(!saveOrder())throw new Error('Order recovery could not be saved');settlePaidLines(order);orderURL(order.id);busy=false;render();return;}const other=VPC.validateOrder(VPFamilyStorage.parseStrict(localStorage.getItem(ORDER)||'null'));if(other&&(!['success','declined'].includes(other.status)||other.status==='success'&&state.cart.lines.some(line=>other.lines.some(paid=>paid.id===line.id)))){order=other;settlePaidLines(other);orderURL(other.id);busy=false;render();return;}}catch{busy=false;warning='Не удалось проверить ответ. Сохранённый заказ остаётся доступен; повторно не оплачивайте.';render();return;}order=VPC.snapshotOrder(state,promotion,'DEMO-'+id(),'pending',undefined,purchaseOptions);if(!order){busy=false;formError='Не удалось создать образец. Проверьте заказ.';render();return;}if(!saveOrder()){busy=false;render();return;}orderURL(order.id);render();await new Promise(resolve=>setTimeout(resolve,300));const confirmed=VPC.confirmPayment(order,!navigator.onLine||scenario==='offline'?'pending':scenario);if(!confirmed){busy=false;warning='Не удалось проверить ответ оплаты. Повторно не оплачивайте; проверьте сохранённый заказ.';render();return;}order=confirmed;saveOrder();busy=false;render();window.scrollTo({top:0});$('#result-heading')?.focus({preventScroll:true});announce('Статус заказа обновлён.');};try{if(navigator.locks?.request)await navigator.locks.request(LOCK,run);else{busy=false;formError='В этом браузере недоступна защита заказа между вкладками. Откройте прототип в современном браузере.';render();}}catch{busy=false;warning='Не удалось завершить проверку. Если заказ создан, проверяйте его статус.';render();}}
 async function resolveOrder(){
  if(busy||!order||!['pending','issuance','partial'].includes(order.status))return;
  if(!navigator.onLine){warning='Нет связи. Статус заказа не изменён. Повторите проверку после подключения.';render();return;}
@@ -4461,9 +4469,9 @@ if(act==='new-order'){orderURL(null);if(viewingHistory){viewingHistory=false;con
 });
 document.addEventListener('change',e=>{const el=e.target,field=el.dataset.field;if(field==='quick-ride'){quickRideId=el.value;customTarget='';render();return;}if(field==='quick-person'){quickPersonId=person(el.value)?.id||'';customTarget='';render();return;}if(field==='scenario'){scenario=el.value;return;}if(field==='copy-scenario'){copyFailure=el.value==='failure';return;}if(field==='resolve-scenario'){resolveScenario=el.value;return;}if(['promotion','visit-date','student'].includes(field)){if(field==='promotion'){const next=el.value==='none'?null:el.value;if(next!==promotion.offerId)promotion.studentAcknowledged=false;promotion.offerId=next;}if(field==='visit-date')promotion.visitDate=el.value||null;if(field==='student')promotion.studentAcknowledged=el.checked;savePromotion();render();announce('Предложение сохранено. Состав заказа не изменён.');return;}if(field!=='height')return;const p=person(el.dataset.person);if(!p)return;const raw=el.value.trim().replace(',','.'),n=Number(raw),valid=raw===''||(/^\d+(\.\d+)?$/.test(raw)&&n>=40&&n<=250);const error=document.getElementById(el.getAttribute('aria-describedby'))||document.getElementById('height-error-'+el.dataset.ride+'-'+p.id);if(!valid){el.setAttribute('aria-invalid','true');if(error)error.textContent='Укажите рост от 40 до 250 см или оставьте пустым.';return;}p.height=raw===''?null:n;el.removeAttribute('aria-invalid');if(error)error.textContent='';clearIssues();update('Рост сохранён. Условия и цена пересчитаны.');});
 document.addEventListener('submit',e=>{const f=e.target;if(f.matches('.custom-quantity-form')){e.preventDefault();const input=f.elements.quantity,target=f.dataset.target,raw=input.value.trim(),n=Number(raw);if(!/^\d+$/.test(raw)||!setQuantity(target,n)){$('#quantity-error').textContent='Введите целое число от 1 до 20. Заказ не изменён.';input.setAttribute('aria-invalid','true');input.focus({preventScroll:true});}else{requestAnimationFrame(()=>{const action=n>4?'custom-quantity':'quantity';const control=[...document.querySelectorAll('[data-action]')].find(el=>el.dataset.action===action&&el.dataset.target===target&&(n>4||Number(el.dataset.value)===n));control?.focus({preventScroll:true});});}return;}if(f.id==='direct-person-form'){e.preventDefault();const name=f.elements.name.value.trim();if(!name){$('#recipient-error').textContent='Укажите имя получателя.';return;}if(state.party.some(p=>p.label.toLocaleLowerCase()===name.toLocaleLowerCase())){$('#recipient-error').textContent='Такой участник уже есть. Выберите его выше.';return;}if(state.party.length>=8){$('#recipient-error').textContent='В прототипе до восьми участников. Выберите существующего.';return;}const p={...newParticipant(),label:name};state.party.push(p);directPass(p.id);return;}if(f.id==='copy-form'){e.preventDefault();const input=$('#copy-email');if(!input.value.trim()||!input.checkValidity()){copyStatus='Проверьте адрес электронной почты.';$('#copy-status').textContent=copyStatus;input.setAttribute('aria-invalid','true');input.focus();return;}input.removeAttribute('aria-invalid');copyStatus=copyFailure?'Не удалось отправить копию (учебный сценарий). Билеты доступны выше. Попробуйте снова.':'Проверка завершена. В прототипе письмо не отправлено, адрес не сохранён. Билеты доступны выше.';$('#copy-status').textContent=copyStatus;input.value='';}});
-window.addEventListener('storage',e=>{if([COMPANY,'vp.family.v6.people.v1.company.real'].includes(e.key)&&!busy)render();if(e.key===PROMO&&!busy){try{promotion=VPC.normalizePromotion(JSON.parse(e.newValue||'null'));render();}catch{}}if(e.key===KEY&&!busy){try{state=VP3.sanitizeState(JSON.parse(e.newValue||'null'));undo=null;render();announce('Выбор обновлён в другой вкладке.');}catch{}}if(e.key===ORDER){try{if(!viewingHistory)order=VPC.validateOrder(JSON.parse(e.newValue||'null'));render();}catch{}}});
+window.addEventListener('storage',e=>{if([COMPANY,'vp.family.v6.people.v1.company.real'].includes(e.key)&&!busy)render();if(e.key===PROMO&&!busy){try{promotion=VPC.normalizePromotion(VPFamilyStorage.parseStrict(e.newValue||'null'));render();}catch{}}if(e.key===KEY&&!busy){try{state=VP3.sanitizeState(VPFamilyStorage.parseStrict(e.newValue||'null'));undo=null;render();announce('Выбор обновлён в другой вкладке.');}catch{}}if(e.key===ORDER){try{if(!viewingHistory)order=VPC.validateOrder(VPFamilyStorage.parseStrict(e.newValue||'null'));render();}catch{}}});
 window.addEventListener('pagehide',()=>{try{history.replaceState({...history.state,vp3scroll:window.scrollY,vp3Mode:state.mode},'');}catch{}});
-window.addEventListener('pageshow',e=>{if(e.persisted){try{promotion=VPC.normalizePromotion(JSON.parse(localStorage.getItem(PROMO)||'null'));state=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY)||'null'));restoreOrderView();if(document.body.dataset.page==='picker'&&['real','demo'].includes(history.state?.vp3Mode))state.mode=history.state.vp3Mode;if(document.body.dataset.page==='tickets'&&directEntry&&!order)state.mode='demo';save();render();}catch{}}});
+window.addEventListener('pageshow',e=>{if(e.persisted){try{promotion=VPC.normalizePromotion(VPFamilyStorage.parseStrict(localStorage.getItem(PROMO)||'null'));state=VP3.sanitizeState(VPFamilyStorage.parseStrict(localStorage.getItem(KEY)||'null'));restoreOrderView();if(document.body.dataset.page==='picker'&&['real','demo'].includes(history.state?.vp3Mode))state.mode=history.state.vp3Mode;if(document.body.dataset.page==='tickets'&&directEntry&&!order)state.mode='demo';save();render();}catch{}}});
 const params=new URLSearchParams(location.search);
 // Keep the URL's locale current when product navigation reuses these parameters.
 document.addEventListener('vp:language',e=>params.set('lang',e.detail.language));
@@ -4563,7 +4571,7 @@ window.VP3UI={getState:()=>clone(state),getOrder:()=>clone(order)};
  };
  const sessionKey='vp.family.v6.sessions.v1';
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- function read(key,session=false){try{return JSON.parse((session?sessionStorage:localStorage).getItem(key)||'null');}catch{return null;}}
+ function read(key,session=false){try{return VPFamilyStorage.parseStrict((session?sessionStorage:localStorage).getItem(key)||'null');}catch{return null;}}
  function readSessionStore(){
   return new Promise(resolve=>{
    let settled=false,db=null;
@@ -4692,11 +4700,16 @@ window.VPQR=function(value){
  function hyFont(){let el=document.querySelector('[data-hy-font]');if(lang()==='hy'&&!el){el=document.createElement('link');el.rel='stylesheet';el.href=base+'hy-fonts.css?vpv='+assetVersions['hy-fonts.css'];el.dataset.hyFont='';document.head.append(el)}else if(lang()!=='hy'&&el)el.remove()}
  hyFont();
  let storedConsent;try{storedConsent=localStorage.getItem('vp.v5.analyticsConsent')}catch{}
- const events=[];window.dataLayer=window.dataLayer||[];const utm={};try{Object.assign(utm,JSON.parse(sessionStorage.getItem('vp.v5.utm')||'{}'))}catch{}for(const k of ['utm_source','utm_medium','utm_campaign','utm_content'])if(q.has(k))utm[k]=q.get(k).slice(0,120);try{sessionStorage.setItem('vp.v5.utm',JSON.stringify(utm))}catch{}
+ if(!['yes','no'].includes(storedConsent))storedConsent=null;
+ const events=[];window.dataLayer=Array.isArray(window.dataLayer)?window.dataLayer:[];const utm={},utmKeys=['utm_source','utm_medium','utm_campaign','utm_content'];
+ function clearAnalytics(){events.length=0;for(let i=window.dataLayer.length-1;i>=0;i--)if(window.dataLayer[i]?.environment==='prototype'&&window.dataLayer[i]?.payment_mode==='simulated')window.dataLayer.splice(i,1);for(const k of Object.keys(utm))delete utm[k];try{for(const k of ['vp.v5.utm','vpLog','vpUtm','vpSid','vpNewEntry'])sessionStorage.removeItem(k)}catch{}try{for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k?.startsWith('vp.v5.order-attribution.'))localStorage.removeItem(k)}}catch{}}
+ function readAttribution(){if(storedConsent!=='yes'){clearAnalytics();return;}try{const raw=sessionStorage.getItem('vp.v5.utm');const saved=raw&&raw.length<=4096?JSON.parse(raw):{};for(const k of utmKeys)if(typeof saved?.[k]==='string')utm[k]=saved[k].slice(0,120)}catch{}for(const k of utmKeys)if(q.has(k))utm[k]=q.get(k).slice(0,120);try{sessionStorage.setItem('vp.v5.utm',JSON.stringify(utm))}catch{}}
+ readAttribution();
+ function setConsent(value,persist=true){storedConsent=['yes','no'].includes(value)?value:null;if(persist)try{if(storedConsent)localStorage.setItem('vp.v5.analyticsConsent',storedConsent);else localStorage.removeItem('vp.v5.analyticsConsent')}catch{}readAttribution();lastProduct=lastQty=lastOrder='';landingSent=false;document.dispatchEvent(new CustomEvent('vp:analytics-consent'));landing();if(document.body)decorate();}
  function emit(event,detail={}){if(storedConsent!=='yes')return;const row={event,environment:'prototype',payment_mode:'simulated',language:lang(),...detail,utm:{...utm}};events.push(row);window.dataLayer.push(row);document.dispatchEvent(new CustomEvent('vp:analytics',{detail:row}));const log=document.querySelector('#v5-event-log');if(log)log.textContent=JSON.stringify(events,null,2)}
- window.VPAnalytics={events,emit,transport:null,get consent(){return storedConsent},utm};let lastProduct='',lastQty='',lastOrder='',landingSent=false;
+ window.VPAnalytics={events,emit,setConsent,transport:null,get consent(){return storedConsent},utm};let lastProduct='',lastQty='',lastOrder='',landingSent=false;
  function landing(){if(!landingSent&&storedConsent==='yes'){landingSent=true;emit('landing_view',{path:location.pathname})}}
- function trackState(){const ui=window.VP3UI;if(!ui)return;const state=ui.getState(),o=ui.getOrder();const product=document.querySelector('[data-action="product-focus"][aria-pressed="true"]')?.dataset.product;if(product&&product!==lastProduct){lastProduct=product;emit('product_view',{product})}const qty=state.cart.lines.reduce((n,l)=>n+l.quantity,0);if(String(qty)!==lastQty){lastQty=String(qty);if(qty>0)emit('quantity_select',{quantity:qty})}if(o){const key=o.id+':'+o.status;if(key!==lastOrder){lastOrder=key;const orderNumber=short(o.id);if(o.status==='pending')emit('payment_start',{orderNumber,value:o.total});else if(o.status==='success')emit('payment_success',{orderNumber,value:o.total});else if(o.status==='declined')emit('payment_failure',{orderNumber});try{localStorage.setItem('vp.v5.order-attribution.'+o.id,JSON.stringify({orderNumber,utm:{...utm},analyticsConsent:storedConsent||'no'}))}catch{}}}}
+ function trackState(){if(storedConsent!=='yes')return;const ui=window.VP3UI;if(!ui)return;const state=ui.getState(),o=ui.getOrder();const product=document.querySelector('[data-action="product-focus"][aria-pressed="true"]')?.dataset.product;if(product&&product!==lastProduct){lastProduct=product;emit('product_view',{product})}const qty=state.cart.lines.reduce((n,l)=>n+l.quantity,0);if(String(qty)!==lastQty){lastQty=String(qty);if(qty>0)emit('quantity_select',{quantity:qty})}if(o){const key=o.id+':'+o.status;if(key!==lastOrder){lastOrder=key;const orderNumber=short(o.id);if(o.status==='pending')emit('payment_start',{orderNumber,value:o.total});else if(o.status==='success')emit('payment_success',{orderNumber,value:o.total});else if(o.status==='declined')emit('payment_failure',{orderNumber});try{localStorage.setItem('vp.v5.order-attribution.'+o.id,JSON.stringify({orderNumber,utm:{...utm},analyticsConsent:storedConsent||'no'}))}catch{}}}}
  function short(id){let hash=2166136261;for(const c of id)hash=Math.imul(hash^c.charCodeAt(0),16777619);return 'VP6-'+(hash>>>0).toString(16).toUpperCase().padStart(8,'0')}
  let removedInterest='';
  function decorate(){
@@ -4749,11 +4762,11 @@ document.querySelectorAll('.v5-demo').forEach(e=>{if(e.textContent!==c.demo)e.te
   if(review){const log=document.createElement('details');log.className='v5-info';log.innerHTML='<summary>Analytics debug (local dataLayer, transport not configured)</summary><pre id="v5-event-log"></pre>';document.body.append(log)}
   const dockObserver=new ResizeObserver(()=>{document.documentElement.style.setProperty('--v5-dock-height',Math.max(0,...[...document.querySelectorAll('.mobile-bar,.sticky-cta')].map(e=>e.getBoundingClientRect().height))+'px')});document.querySelectorAll('#mobile,.sticky-cta').forEach(dock=>dockObserver.observe(dock));
  }
- document.addEventListener('vp:interests',scheduleDecoration);window.addEventListener('storage',decorate);
+ document.addEventListener('vp:interests',scheduleDecoration);window.addEventListener('storage',e=>{if(e.key==='vp.v5.analyticsConsent')setConsent(e.newValue,false);else decorate()});
  document.addEventListener('vp:catalog-rendered',scheduleDecoration);document.addEventListener('vp:language',decorate);
  document.addEventListener('click',async e=>{
   const remove=e.target.closest('[data-v6-remove]'),restore=e.target.closest('[data-v6-restore]');if(remove){const id=remove.dataset.v6Remove;removedInterest=id;VPCORE.setList(VPCORE.list().filter(x=>x!==id));decorate();document.querySelector('[data-v6-restore]')?.focus();return}if(restore&&removedInterest){const id=removedInterest;removedInterest='';VPCORE.setList([...new Set([...VPCORE.list(),id])]);decorate();document.querySelector('[data-v6-remove=\"'+id+'\"]')?.focus();return}
-  const consent=e.target.closest('[data-v5-consent]');if(consent){storedConsent=consent.dataset.v5Consent;try{localStorage.setItem('vp.v5.analyticsConsent',storedConsent)}catch{}consent.closest('.v5-consent').remove();lastProduct=lastQty=lastOrder='';landing();decorate();return}
+  const consent=e.target.closest('[data-v5-consent]');if(consent){setConsent(consent.dataset.v5Consent);consent.closest('.v5-consent')?.remove();return}
   if(e.target.closest('[data-v5-print]'))window.print();
   if(e.target.closest('.v5-price-anchor')){const el=document.querySelector('.v5-price-details');if(el)el.open=true;}
   if(e.target.closest('[data-v5-share]')){const o=window.VP3UI?.getOrder();if(!o)return;const text=`Victory Park · ${copy().order}: ${short(o.id)}. ${copy().qr}`;{const tools=document.querySelector('.v5-ticket-tools');if(!tools.querySelector('.v5-messengers')){const links=document.createElement('div');links.className='v5-messengers v5-link-list';links.innerHTML=`<a target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(text)}">WhatsApp</a><a target="_blank" rel="noopener" href="https://t.me/share/url?url=${encodeURIComponent('https://konstantinpopov89.github.io'+base)}&text=${encodeURIComponent(text)}">Telegram</a>`;tools.append(links)}}}

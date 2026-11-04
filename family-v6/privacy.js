@@ -69,6 +69,9 @@
    }else if(!doc.querySelector('[data-vp-privacy-link]')){
     const foot=doc.createElement('div'),link=doc.createElement('a');foot.className='vp-privacy-control';foot.style.cssText='padding:16px 20px 96px;text-align:center;font:14px/1.5 system-ui';link.href=privacyURL();link.textContent=words.link;link.dataset.vpPrivacyLink='';link.style.cssText='color:#35306c;text-decoration:underline;display:inline-block;padding:12px';foot.append(link);doc.body.append(foot);
    }
+   const revoke=doc.createElement('button');revoke.type='button';revoke.dataset.vpAnalyticsOff='';revoke.textContent={ru:'Отключить аналитику',en:'Turn off analytics',hy:'Անջատել վերլուծությունը'}[lang()];revoke.style.cssText='display:block;margin:12px auto;padding:12px';
+   revoke.addEventListener('click',()=>{let saved=true;try{root.localStorage.setItem('vp.v5.analyticsConsent','no');}catch{saved=false;}try{for(const k of ['vp.v5.utm','vpLog','vpUtm','vpSid','vpNewEntry'])root.sessionStorage.removeItem(k);for(let i=root.localStorage.length-1;i>=0;i--){const k=root.localStorage.key(i);if(k?.startsWith('vp.v5.order-attribution.'))root.localStorage.removeItem(k)}}catch{saved=false;}if(root.VPAnalytics)root.VPAnalytics.setConsent('no');else doc.dispatchEvent(new CustomEvent('vp:analytics-consent',{detail:{consent:'no'}}));revoke.textContent=(saved?{ru:'Аналитика отключена',en:'Analytics is off',hy:'Վերլուծությունն անջատված է'}:{ru:'Отключено в этой вкладке. Браузер не сохранил выбор.',en:'Off in this tab. The browser could not save your choice.',hy:'Անջատված է այս ներդիրում։ Դիտարկիչը չպահպանեց ընտրությունը։'})[lang()];});
+   (doc.querySelector('.vp-privacy-control')||page||doc.body).append(revoke);
   });
  }
  return {ERASED,DATABASES,owned,clearStorage,erase,install};

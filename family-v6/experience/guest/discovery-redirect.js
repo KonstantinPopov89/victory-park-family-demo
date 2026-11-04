@@ -23,7 +23,7 @@
     next.hash = here.hash;
     let mode = query.get('mode');
     if (!['real', 'demo'].includes(mode)) {
-      try { mode = JSON.parse(localStorage.getItem('vp.family.v6.people.v1') || 'null')?.mode; } catch {}
+      try { mode = VPFamilyStorage.parseStrict(localStorage.getItem('vp.family.v6.people.v1') || 'null')?.mode; } catch {}
       if (!['real', 'demo'].includes(mode)) mode = 'demo';
     }
     // Existing real attraction links also used names without a mode parameter.

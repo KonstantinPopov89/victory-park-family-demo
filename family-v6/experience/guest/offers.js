@@ -244,7 +244,7 @@
     function render(focusId) {
       if (isList) {
         var sharedState = null;
-        try { sharedState = JSON.parse(localStorage.getItem('vp.family.v6.people.v1')); } catch (_) {}
+        try { sharedState = VPFamilyStorage.parseStrict(localStorage.getItem('vp.family.v6.people.v1')); } catch (_) {}
         app.innerHTML = renderList(filter, M.getToday(), sharedState);
       }
       else if (receipt) renderReceipt(); else renderCheckout();

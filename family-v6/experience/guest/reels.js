@@ -6,7 +6,7 @@
   const $ = s => document.querySelector(s), esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const params = new URLSearchParams(location.search), reduced = matchMedia('(prefers-reduced-motion: reduce)');
   let memory = M.emptyState(), storageFailed = false, writeBlocked = false;
-  function read(key, fallback) { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { storageFailed = true; return fallback; } }
+  function read(key, fallback) { try { const v = localStorage.getItem(key); return v ? VPFamilyStorage.parseStrict(v) : fallback; } catch { storageFailed = true; return fallback; } }
   let raw = read(KEY, memory), state = M.sanitizeState(raw);
   let mode = ['demo','real'].includes(params.get('mode')) ? params.get('mode') : state.mode;
   const deepRide=M.realRides.concat(M.demoRides).find(r=>r.id===params.get('ride'));

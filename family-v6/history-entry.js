@@ -14,7 +14,7 @@
  };
  const sessionKey='vp.family.v6.sessions.v1';
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- function read(key,session=false){try{return JSON.parse((session?sessionStorage:localStorage).getItem(key)||'null');}catch{return null;}}
+ function read(key,session=false){try{return VPFamilyStorage.parseStrict((session?sessionStorage:localStorage).getItem(key)||'null');}catch{return null;}}
  function readSessionStore(){
   return new Promise(resolve=>{
    let settled=false,db=null;

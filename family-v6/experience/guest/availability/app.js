@@ -7,18 +7,18 @@ function append(parent,...children){children.filter(Boolean).forEach(c=>parent.a
 function button(text,fn,cls='button secondary compact',id){const b=el('button',text,cls);b.type='button';if(id)b.id=id;b.addEventListener('click',fn);return b;}
 function message(text,error=false){notice=text;const n=$('system-message');n.textContent=text;n.className=error?'error':'success';n.hidden=!text;}
 function seedDemo(safe=false){return M.presentationSeed(Date.now(),safe);}
-function read(){try{const raw=localStorage.getItem(M.KEY);if(!raw){state=seedDemo();localStorage.setItem(M.KEY,JSON.stringify(state));return;}const parsed=JSON.parse(raw);if(!M.validate(parsed))throw new Error('schema');state=parsed;}catch(e){state=seedDemo(true);storageOK=false;corrupt=true;message('Не удалось прочитать сохранённые данные. Показаны неизвестные статусы. В сценариях можно сбросить учебный пример.',true);}}
+function read(){try{const raw=localStorage.getItem(M.KEY);if(!raw){state=seedDemo();localStorage.setItem(M.KEY,JSON.stringify(state));return;}const parsed=VPFamilyStorage.parseStrict(raw);if(!M.validate(parsed))throw new Error('schema');state=parsed;}catch(e){state=seedDemo(true);storageOK=false;corrupt=true;message('Не удалось прочитать сохранённые данные. Показаны неизвестные статусы. В сценариях можно сбросить учебный пример.',true);}}
 read();
 function save(action,{demo=false}={}){
  try{
  if(!storageOK&&!demo)throw new Error('Локальное хранилище недоступно. Изменение не сохранено.');
  if(!demo&&(state.simulation.saveError||state.simulation.offline||!navigator.onLine))throw new Error('Не удалось сохранить. Статус и история не изменены. Проверьте связь или выключите учебный сбой в сценариях.');
  // Read latest revision before mutation so a second tab cannot blindly overwrite it.
- const raw=localStorage.getItem(M.KEY),latest=raw?JSON.parse(raw):state;
+ const raw=localStorage.getItem(M.KEY),latest=raw?VPFamilyStorage.parseStrict(raw):state;
  if(!M.validate(latest))throw new Error('Сохранённые данные повреждены. Изменение не сохранено.');
  if(!demo&&(latest.revision!==state.revision||latest.clock.realStart!==state.clock.realStart)){state=latest;render();throw new Error('Данные изменились в другой вкладке. Проверьте их и повторите действие.');}
  const next=M.reduce(latest,action,M.now(latest));localStorage.setItem(M.KEY,JSON.stringify(next));
- const check=JSON.parse(localStorage.getItem(M.KEY));if(!M.validate(check)||check.revision!==next.revision)throw new Error('Не удалось подтвердить локальное сохранение.');
+ const check=VPFamilyStorage.parseStrict(localStorage.getItem(M.KEY));if(!M.validate(check)||check.revision!==next.revision)throw new Error('Не удалось подтвердить локальное сохранение.');
  state=check;storageOK=true;corrupt=false;render();message(demo?'Учебный сценарий применён. Откройте панель или гостевой экран.':'Сохранено локально. Гостевой экран этого браузера обновлён. На действующий сайт не отправлено.');return true;
  }catch(e){message(e.message,true);return false;}
 }
@@ -156,7 +156,7 @@ function reset(){try{const next=seedDemo();localStorage.setItem(M.KEY,JSON.strin
 $('edit-form').addEventListener('submit',event=>{event.preventDefault();try{if(state.clock.realStart+':'+state.revision!==formRevision)throw new Error('Данные изменились в другой вкладке. Закройте форму и проверьте актуальное состояние.');const action=formAction();const ok=action.type==='reset'?reset():save(action);if(ok)closeDialog();else{$('form-error').textContent=notice;$('form-error').hidden=false;}}catch(e){$('form-error').textContent=e.message;$('form-error').hidden=false;}});
 $('dialog-close').addEventListener('click',closeDialog);$('dialog-cancel').addEventListener('click',closeDialog);
 if($('search')){$('search').addEventListener('input',()=>renderRides(M.derive(state)));const clear=()=>{$('search').value='';renderRides(M.derive(state));$('search').focus();};$('clear-search').addEventListener('click',clear);$('empty-reset').addEventListener('click',clear);}
-window.addEventListener('storage',e=>{if(e.key!==M.KEY&&e.key!==null)return;try{const parsed=JSON.parse(e.newValue);if(!M.validate(parsed))throw new Error('schema');state=parsed;storageOK=true;corrupt=false;render();message('Учебные данные обновлены в другой вкладке.');}catch(error){state=seedDemo(true);storageOK=false;corrupt=true;render();message('Изменённые данные не прошли проверку. Работа объектов не подтверждена.',true);}});
+window.addEventListener('storage',e=>{if(e.key!==M.KEY&&e.key!==null)return;try{const parsed=VPFamilyStorage.parseStrict(e.newValue);if(!M.validate(parsed))throw new Error('schema');state=parsed;storageOK=true;corrupt=false;render();message('Учебные данные обновлены в другой вкладке.');}catch(error){state=seedDemo(true);storageOK=false;corrupt=true;render();message('Изменённые данные не прошли проверку. Работа объектов не подтверждена.',true);}});
 window.addEventListener('online',render);window.addEventListener('offline',render);window.addEventListener('pageshow',render);document.addEventListener('visibilitychange',()=>{if(!document.hidden)render();});
 initScenarios();render();setInterval(render,5000);
 })();

@@ -22,7 +22,7 @@
         state = model.presentationSeed();
         localStorage.setItem(model.KEY, JSON.stringify(state));
       } else {
-        state = JSON.parse(raw);
+        state = VPFamilyStorage.parseStrict(raw);
         if (!model.validate(state)) throw Error('Invalid demo status state');
       }
       return { rides: model.derive(state).rides, unavailable: false };

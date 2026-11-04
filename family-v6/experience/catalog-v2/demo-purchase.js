@@ -6,9 +6,9 @@ const $=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=
 const money=n=>new Intl.NumberFormat('ru-RU').format(n)+' AMD';
 let warning='', state, order=null, familyOpen=false, focusPerson='', selectedTab='plan', undoCart=null, busy=false, storageAvailable=true, quantityTarget='', activeProduct='single';
 const clone=v=>JSON.parse(JSON.stringify(v));
-try { const saved=localStorage.getItem(KEY); state=VP.sanitizeState(JSON.parse(saved||'null')); if(!saved)state.mode='demo'; } catch { storageAvailable=false; state=VP.emptyState(); state.mode='demo'; warning='Сохранённые данные недоступны. Можно продолжить в этой вкладке.'; }
+try { const saved=localStorage.getItem(KEY); state=VP.sanitizeState(VPFamilyStorage.parseStrict(saved||'null')); if(!saved)state.mode='demo'; } catch { storageAvailable=false; state=VP.emptyState(); state.mode='demo'; warning='Сохранённые данные недоступны. Можно продолжить в этой вкладке.'; }
 function restoreOrder(raw){
- const parsed=JSON.parse(raw||'null'); if(!parsed)return null;
+ const parsed=VPFamilyStorage.parseStrict(raw||'null'); if(!parsed)return null;
  const valid=VP.validateOrder(parsed);
  if(!valid)warning='Сохранённый демо-заказ повреждён. Реальных списаний нет; пересоберите заказ.';
  return valid;
@@ -122,7 +122,7 @@ if(e.target.id==='copy-form'){e.preventDefault();const email=$('#copy-email');if
 
 });
 document.addEventListener('keydown',e=>{if(!e.target.matches('[role="tab"][data-product]')||!['ArrowLeft','ArrowRight','Home','End'].includes(e.key))return;e.preventDefault();const ids=['single','package','unlimited'],i=ids.indexOf(e.target.dataset.product),next=e.key==='Home'?0:e.key==='End'?2:(i+(e.key==='ArrowRight'?1:2))%3;focusProduct(ids[next]);});
-window.addEventListener('storage',e=>{if(e.key===ORDER){try{order=restoreOrder(e.newValue);render();announce('Статус заказа обновлён в другой вкладке.');}catch{warning='Не удалось прочитать статус заказа из другой вкладки.';render();}return;}if(e.key===KEY){try{state=VP.sanitizeState(JSON.parse(e.newValue));render();announce('Выбор обновлён в другой вкладке.');}catch{warning='Изменение из другой вкладки не прочитано.';render();}}});
+window.addEventListener('storage',e=>{if(e.key===ORDER){try{order=restoreOrder(e.newValue);render();announce('Статус заказа обновлён в другой вкладке.');}catch{warning='Не удалось прочитать статус заказа из другой вкладки.';render();}return;}if(e.key===KEY){try{state=VP.sanitizeState(VPFamilyStorage.parseStrict(e.newValue));render();announce('Выбор обновлён в другой вкладке.');}catch{warning='Изменение из другой вкладки не прочитано.';render();}}});
 const requestedType=new URLSearchParams(location.search).get('type');if(['single','package','unlimited'].includes(requestedType))activeProduct=requestedType;else if(state.cart.lines.some(l=>l.productId==='unlimited'))activeProduct='unlimited';else if(state.cart.lines.some(l=>l.productId==='package5'))activeProduct='package';
 render();
 if(document.body.dataset.page==='tickets'&&requestedType&&!order)requestAnimationFrame(()=>focusProduct(requestedType,true));

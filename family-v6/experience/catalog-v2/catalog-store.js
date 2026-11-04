@@ -27,7 +27,7 @@
   }
   function read(value) {
     if (!value) return [];
-    try { return sanitize(JSON.parse(value)); }
+    try { return sanitize(VPFamilyStorage.parseStrict(value)); }
     catch { error = 'Не удалось прочитать прежний список этой версии. Можно сохранить аттракционы заново.'; return []; }
   }
   try { saved = read(localStorage.getItem(KEY)); }

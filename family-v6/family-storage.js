@@ -15,7 +15,9 @@
  const KEYS=Object.freeze({state:prefix,order:prefix+'.order',history:prefix+'.orders',promotion:prefix+'.promotion',company:prefix+'.company',realCompany:prefix+'.company.real',quickDraft:prefix+'.quickDraft',marker:prefix+'.migration',journal:prefix+'.migration.pending'});
  const LEGACY=Object.freeze({state:'vp.family.v5',order:'vp.family.v5.order',history:'vp.family.v5.orders',promotion:'vp.family.v5.promotion',company:'vp.family.v5.company',realCompany:'vp.family.v5.company.real',quickDraft:'vp.family.v6.quickDraft'});
  const LOCK='vp.family.v5.payment', slots=Object.keys(LEGACY), terminal=new Set(['success','declined']);
- const parse=value=>{try{return JSON.parse(value||'null');}catch{return null;}};
+ function bounded(value,depth=0,budget={n:100000}){if(--budget.n<0||depth>16)return false;if(value===null||typeof value==='boolean')return true;if(typeof value==='number')return Number.isFinite(value);if(typeof value==='string')return value.length<=65536;if(typeof value!=='object')return false;const keys=Object.keys(value);return keys.length<=5000&&keys.every(k=>k.length<=256&&!['__proto__','prototype','constructor'].includes(k)&&bounded(value[k],depth+1,budget));}
+ function parseStrict(value){if(value!==undefined&&value!==null&&typeof value!=='string'||value?.length>4194304)throw new Error('Saved data exceeds safe limits');const parsed=JSON.parse(value||'null');if(!bounded(parsed))throw new Error('Saved data exceeds safe limits');return parsed;}
+ const parse=value=>{try{return parseStrict(value);}catch{return null;}};
  const recoveryKey=prefix+'.recovery',historyBackup=KEYS.history+'.backup',stateBackup=KEYS.state+'.backup';
  const recoveryKeys=new Set([KEYS.history,KEYS.state]);
  const memoryNotices=new Set(),memoryValues=new Map();
@@ -163,5 +165,5 @@
   if(!document.getElementById('family-storage-error')){const panel=document.createElement('section');panel.id='family-storage-error';panel.setAttribute('role','alert');panel.setAttribute('data-i18n-skip','');panel.style.cssText='position:fixed;inset:0;z-index:99999;background:#faf9f5;color:#35306c;padding:24px;display:flex;flex-direction:column;justify-content:center;gap:16px;font:18px/1.5 system-ui';const title=document.createElement('h1'),body=document.createElement('p'),button=document.createElement('button');title.textContent=text[0];body.textContent=text[1];button.textContent=text[2];button.style.cssText='min-height:48px;font:inherit;cursor:pointer';button.onclick=()=>location.reload();panel.append(title,body,button);document.body.append(panel);}
   return false;
  }
- const api={KEYS,LEGACY,LOCK,prepare,migrate,legacyOrder,wait,readHistory,recoverHistory,writeHistory,recoverState,writeState,recoveryHTML,notices,installBoot,ready:null};return api;
+ const api={bounded,parse,parseStrict,KEYS,LEGACY,LOCK,prepare,migrate,legacyOrder,wait,readHistory,recoverHistory,writeHistory,recoverState,writeState,recoveryHTML,notices,installBoot,ready:null};return api;
 });

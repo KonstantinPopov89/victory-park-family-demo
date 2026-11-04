@@ -1,10 +1,10 @@
 /* Older promotion links keep their draft, then use the shared family cart. */
 (function (root, factory) {
   'use strict';
-  var api = factory(typeof module === 'object' && module.exports ? require('./offers-model.js') : root.VPO);
+  var api = factory(typeof module === 'object' && module.exports ? require('./offers-model.js') : root.VPO, typeof module === 'object' && module.exports ? require('../../family-storage.js') : root.VPFamilyStorage);
   if (typeof module === 'object' && module.exports) module.exports = api;
   else root.VPFamilyStorage.wait().then(ok=>{if(ok)api.start(root);});
-}(typeof window !== 'undefined' ? window : null, function (M) {
+}(typeof window !== 'undefined' ? window : null, function (M, storageBoundary) {
   'use strict';
   var selectionKeys = ['product', 'ride', 'qty', 'date', 'student'];
   function validSaved(saved) {
@@ -55,7 +55,7 @@
     var saved = null, hasMainCart = false;
     try { const raw=win.sessionStorage.getItem('vp.promotions.v1');if(typeof raw==='string'&&raw.length<=65536)saved=JSON.parse(raw); } catch (_) {}
     try {
-      var state = JSON.parse(win.localStorage.getItem('vp.family.v6.people.v1'));
+      var state = storageBoundary.parseStrict(win.localStorage.getItem('vp.family.v6.people.v1'));
       hasMainCart = !!(state && state.cart && Array.isArray(state.cart.lines) && state.cart.lines.length);
     } catch (_) {}
     var result = destination(win.location.search, saved, hasMainCart);
