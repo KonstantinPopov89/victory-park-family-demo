@@ -59,7 +59,7 @@
   return o.currency==='AMD'&&Number.isSafeInteger(o.unitPrice)&&o.unitPrice>0&&o.unitPrice*o.qty===o.amount;
  }
  function orders(sessionStore){
-  const rows=[],a=new Map(),b=new Map(),history=read('vp.family.v6.people.v1.orders');
+  const rows=[],a=new Map(),b=new Map(),history=VPFamilyStorage.readHistory(localStorage,window.VPC.validateOrder).rows;
   for(const raw of [...(Array.isArray(history)?history:[]),read('vp.family.v6.people.v1.order')]){const o=window.VPC?.validateOrder(raw);if(o)a.set(o.id,o);}
   for(const o of a.values())rows.push({model:'a',id:o.id,title:'a',amount:o.total,status:o.status,time:o.createdAt||o.ts||'',card:''});
   const all=read('vpOrders');if(all&&typeof all==='object'&&!Array.isArray(all))for(const [key,o] of Object.entries(all))if(validB(o)&&key===o.id)b.set(o.id,o);
@@ -101,11 +101,12 @@
    const date=Number.isFinite(Date.parse(row.time))?new Intl.DateTimeFormat(lang==='hy'?'hy-AM':lang==='en'?'en-GB':'ru-RU',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Yerevan'}).format(new Date(row.time)):'';
    return '<article class="past-order" style="flex-wrap:wrap" data-history-model="'+row.model+'" data-history-id="'+esc(row.id)+'"><span style="flex:1 1 200px"><strong>'+c[row.title]+'</strong><small>'+esc(row.id)+' · '+new Intl.NumberFormat(lang).format(row.amount)+' ֏'+(row.card?' · '+c.card+' …'+esc(row.card):'')+'</small><small>'+esc(date)+'</small><small>'+esc(c[row.status]||c.pending)+'</small></span><a class="btn btn-outline" data-vp-cta="secondary" href="'+esc(route(row,lang))+'">'+label+'</a></article>';
   };
-  const content='<h1 id="purchase-history-title">'+c.title+(purchases.length?' ('+purchases.length+')':'')+'</h1><p class="helper">'+(rows.length?c.note:c.empty)+'</p>'+purchases.map(renderRow).join('')+(drafts.length?'<details class="history-drafts"><summary>'+c.drafts+' ('+drafts.length+')</summary>'+drafts.map(renderRow).join('')+'</details>':'')+'<div class="history-actions"><a class="btn btn-primary" data-vp-cta="primary" data-history-choose href="quick.html?lang='+lang+'">'+c.choose+'</a></div><details class="history-test-card"><summary>'+c.testTopup+'</summary><p class="helper">'+c.testTopupNote+'</p><a class="btn btn-outline" data-vp-cta="secondary" data-history-test-topup href="topup.html?lang='+lang+'">'+c.testTopup+'</a></details>';
+  const content=VPFamilyStorage.recoveryHTML(localStorage,lang)+'<h1 id="purchase-history-title">'+c.title+(purchases.length?' ('+purchases.length+')':'')+'</h1><p class="helper">'+(rows.length?c.note:c.empty)+'</p>'+purchases.map(renderRow).join('')+(drafts.length?'<details class="history-drafts"><summary>'+c.drafts+' ('+drafts.length+')</summary>'+drafts.map(renderRow).join('')+'</details>':'')+'<div class="history-actions"><a class="btn btn-primary" data-vp-cta="primary" data-history-choose href="quick.html?lang='+lang+'">'+c.choose+'</a></div><details class="history-test-card"><summary>'+c.testTopup+'</summary><p class="helper">'+c.testTopupNote+'</p><a class="btn btn-outline" data-vp-cta="secondary" data-history-test-topup href="topup.html?lang='+lang+'">'+c.testTopup+'</a></details>';
   if(section.innerHTML!==content)section.innerHTML=content;
   if(!focused){focused=true;requestAnimationFrame(()=>{if(section.isConnected&&location.hash==='#purchase-history'){window.scrollTo({top:0,behavior:'instant'});section.focus({preventScroll:true});}});}
  }
  document.addEventListener('vp:catalog-rendered',showHistory);
+ document.addEventListener('vp:storage-recovery',showHistory);
  document.addEventListener('vp:language',showHistory);
  document.addEventListener('vp:sessions-updated',showHistory);
  window.addEventListener('hashchange',showHistory);

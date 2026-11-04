@@ -1,1 +1,9 @@
-(()=>{const assetVersions=/* vp-asset-versions:start */{"i18n-en.js":"fc3f93a570813789","i18n-hy.js":"4f1451df79877e79"}/* vp-asset-versions:end */;const b=new URL('.',document.currentScript.src).pathname,l=new URLSearchParams(location.search).get('lang')||document.documentElement.lang||'ru';if(l==='ru'){window.VP_TRANSLATIONS={};return;}document.write('<script src="'+b+'i18n-'+(['ru','hy','en'].includes(l)?l:'ru')+'.js?vpv='+assetVersions['i18n-'+l+'.js']+'"><\/script>')})();
+(()=>{
+ const assetVersions=/* vp-asset-versions:start */{"i18n-en.js":"dc9592ba99c4c081","i18n-hy.js":"f18f2a930082face"}/* vp-asset-versions:end */;
+ const base=new URL('.',document.currentScript.src).pathname;
+ const allowed=['ru','hy','en'],requested=new URLSearchParams(location.search).get('lang');
+ let saved='ru';try{saved=localStorage.getItem('vpLang')||'ru';}catch{}
+ const language=allowed.includes(requested)?requested:allowed.includes(saved)?saved:'ru';
+ if(language==='ru'){window.VP_TRANSLATIONS={};return;}
+ document.write('<script src="'+base+'i18n-'+language+'.js?vpv='+assetVersions['i18n-'+language+'.js']+'"><\/script>');
+})();

@@ -1160,8 +1160,9 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
     return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value ? parsed : null;
   }
   function addDays(value, count) { var result = date(value); result.setUTCDate(result.getUTCDate() + count); return result.toISOString().slice(0, 10); }
+  var todayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Yerevan', year: 'numeric', month: '2-digit', day: '2-digit' });
   function getToday() {
-    var parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Yerevan', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+    var parts = todayFormatter.formatToParts(new Date());
     var values = {}; parts.forEach(function (part) { values[part.type] = part.value; });
     return values.year + '-' + values.month + '-' + values.day;
   }
@@ -3894,6 +3895,18 @@ var qrcode = function() {
     dialog.innerHTML = '<div class="pp-dialog-heading"><h2>'+esc(title)+'</h2><button type="button" data-pp-close>'+esc(t('close'))+'</button></div>'+(type==='large' ? '<div class="pp-large-qr">'+svg(item)+'</div><code>'+esc(item.code)+'</code><p>'+esc(t('demo'))+'</p>' : '<p class="pp-preview-note">'+esc(t('walletNote'))+'</p>'+card(item,{wallet:true})+'<code>'+esc(item.code)+'</code>');
     D.body.append(dialog);
     dialog.addEventListener('click', e => { if(e.target.closest('[data-pp-close]') || e.target===dialog) dialog.close(); });
+    dialog.addEventListener('keydown', e => {
+      if(e.key !== 'Tab') return;
+      const controls = Array.from(dialog.querySelectorAll('button,a[href],input,select,textarea,[tabindex]'))
+        .filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+      const first = controls[0], last = controls[controls.length - 1];
+      if(!first) return;
+      if(e.shiftKey && (D.activeElement === first || !dialog.contains(D.activeElement))) {
+        e.preventDefault(); last.focus();
+      } else if(!e.shiftKey && (D.activeElement === last || !dialog.contains(D.activeElement))) {
+        e.preventDefault(); first.focus();
+      }
+    });
     dialog.addEventListener('close',()=>{dialog.remove();if(opener?.isConnected)opener.focus();});
     if(typeof dialog.showModal==='function') dialog.showModal(); else {dialog.setAttribute('open','');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');}
     dialog.querySelector('[data-pp-close]').focus();
@@ -4005,7 +4018,8 @@ const purchaseOptions=quick?Object.freeze({deferUnknownProfile:true}):undefined;
 const KEY='vp.family.v6.people.v1', ORDER='vp.family.v6.people.v1.order', LOCK='vp.family.v5.payment', HISTORY='vp.family.v6.people.v1.orders', QUICK_DRAFT='vp.family.v6.people.v1.quickDraft';
 let quickDraftSaved=false,completedEntry=false;try{quickDraftSaved=localStorage.getItem(QUICK_DRAFT)==='1';}catch{}
 const $=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const clone=v=>JSON.parse(JSON.stringify(v)), money=n=>new Intl.NumberFormat('ru-RU').format(n||0)+'\u00a0֏';
+const numberFormatter=new Intl.NumberFormat('ru-RU');
+const clone=v=>JSON.parse(JSON.stringify(v)), money=n=>numberFormatter.format(n||0)+'\u00a0֏';
 const btn=(act,label,data='',cls='btn')=>`<button type="button" class="${cls}" data-action="${act}" ${data}>${label}</button>`;
 const note=(s,tone='info')=>`<div class="notice" data-tone="${tone}">${esc(s)}</div>`;
 let state,order=null,warning='',familyOpen=false,focusPerson='family',undo=null,busy=false,activeProduct='unlimited',customTarget='',storageAvailable=true,agePerson='',directEntry=false,returnMode='';
@@ -4013,7 +4027,7 @@ let reviewing=false,reviewedToken='',viewingHistory=false,copyFailure=false,edit
 let purchaseRouteIssue='',formError='',copyStatus='',scenario='success',promotion=VPC.normalizePromotion(null),ticketPersonId='',accompaniment=null;
 let quickRideId='',quickPersonId='',needsProductChoice=false;
 try{promotion=VPC.normalizePromotion(JSON.parse(localStorage.getItem(PROMO)||'null'));}catch{}
-try {state=VP3.sanitizeState(JSON.parse(localStorage.getItem(KEY)||'null'));} catch {state=VP3.emptyState();storageAvailable=false;warning='Браузер не сохранил выбор. Можно продолжить в этой вкладке.';}
+try {await navigator.locks.request(LOCK,()=>{const recovered=VPFamilyStorage.recoverState(localStorage,VP3.sanitizeState);state=recovered.state;if(!recovered.saved)storageAvailable=false;const history=VPFamilyStorage.recoverHistory(localStorage,VPC.validateOrder);if(!history.saved)storageAvailable=false;});} catch {state=VP3.emptyState();storageAvailable=false;warning='Браузер не сохранил выбор. Можно продолжить в этой вкладке.';}
 try {const raw=JSON.parse(localStorage.getItem(ORDER)||'null');if(raw){order=VPC.validateOrder(raw);if(!order)warning='Сохранённый образец заказа повреждён. Соберите заказ заново.';}}catch {warning='Предыдущий демо-заказ недоступен. Реальных списаний не было.';}
 // Completed receipts open only on explicit history/resume; a new entry always selects a product.
 const entryQuery=new URLSearchParams(location.search);
@@ -4039,15 +4053,15 @@ const newParticipant=()=>({id:id(),label:'Участник '+(Math.max(0,...stat
 const pickerReturn=()=>returnMode==='real'||state?.selectedJourney||order?.selectedJourney?'reels.html?mode=real#plan':'reels.html#plan';
 const id=()=> 'v3-'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2,8));
 function announce(text){$('#announce').textContent=text;}
-function save(){try {localStorage.setItem(KEY,JSON.stringify(state));}catch {storageAvailable=false;warning='Выбор не сохраняется в браузере. При переходе или обновлении он может потеряться.';}}
+function save(){try {VPFamilyStorage.writeState(localStorage,state);}catch {storageAvailable=false;warning='Выбор не сохраняется в браузере. При переходе или обновлении он может потеряться.';}}
 function markQuickDraft(){if(quick)try{localStorage.setItem(QUICK_DRAFT,'1');quickDraftSaved=true;}catch{}}
 function startDefaultPurchase(){if(!quick||order||state.cart.lines.length)return;delete state.selectedJourney;activeProduct='unlimited';state.mode='demo';state.cart.lines=Array.from({length:3},()=>({id:id(),productId:'unlimited',rideId:null,personId:null,recipientKey:'direct-pass-'+id(),quantity:1,unitPrice:VP3.products.unlimited.price}));params.set('product','unlimited');try{history.replaceState(history.state,'',location.pathname+'?'+params.toString()+location.hash);}catch{}markQuickDraft();save();}
 function savePromotion(){try{localStorage.setItem(PROMO,JSON.stringify(promotion));}catch{storageAvailable=false;warning='Предложение сохранено только в этой вкладке.';}}
-function pastOrders(){try{return (JSON.parse(localStorage.getItem(HISTORY)||'[]')||[]).map(VPC.validateOrder).filter(o=>o&&o.status==='success').slice(0,20);}catch{return [];}}
+function pastOrders(){return VPFamilyStorage.readHistory(localStorage,VPC.validateOrder).rows.filter(order=>order.status==='success').slice(0,20);}
 function saveOrder(){
  try {
   if(order)localStorage.setItem(ORDER,JSON.stringify(order));else localStorage.removeItem(ORDER);
-  if(order?.status==='success')localStorage.setItem(HISTORY,JSON.stringify([order,...pastOrders().filter(o=>o.id!==order.id)].slice(0,20)));
+  if(order?.status==='success')VPFamilyStorage.writeHistory(localStorage,[order,...pastOrders().filter(o=>o.id!==order.id)].slice(0,20),VPC.validateOrder);
   return true;
  }catch{storageAvailable=false;warning='Не удалось сохранить заказ в браузере. Сохраните готовые билеты в файл. Текущая покупка остаётся открытой.';return false;}
 }
@@ -4067,9 +4081,11 @@ function restoreOrderView(){
 function checkoutRoute(file){const query=new URLSearchParams(location.search),next=new URL(file,location.href);for(const key of ['lang','review','picker'])if(query.has(key))next.searchParams.set(key,query.get(key));return next.pathname+next.search;}
 function purchases(){const saved=pastOrders();return saved.length?`<details class="purchase-history" id="purchase-history"><summary>Мои покупки (${saved.length})</summary><p class="helper">Последние 20 учебных покупок в этом браузере. На другом устройстве понадобятся сохранённые файлы.</p>${saved.map(o=>`<div class="past-order"><span>${esc(o.id)}<small>${money(o.total)}</small></span>${btn('open-order','Открыть билеты',`data-vp-cta="secondary" data-order="${esc(o.id)}"`,'btn btn-outline')}</div>`).join('')}</details>`:'';}
 
-function update(message){save();render();if(message)announce(message);}
+function update(message){if(order)save();render();if(message)announce(message);}
 function jump(selector){requestAnimationFrame(()=>$(selector)?.scrollIntoView({block:'start',behavior:'smooth'}));}
-function calculateCart(input,promo){return VPC.calculate(input,promo,undefined,purchaseOptions);}
+let renderPricing=null;
+// Reuse only within one synchronous render. Payment and every later edit recalculate.
+function calculateCart(input,promo){if(renderPricing&&input===state&&promo===promotion)return renderPricing.assessment??(renderPricing.assessment=VPC.calculate(input,promo,undefined,purchaseOptions));return VPC.calculate(input,promo,undefined,purchaseOptions);}
 function syncCompanions(){if(order||!VP3.reconcileCompanions)return;accompaniment=VP3.reconcileCompanions(state,purchaseOptions);state=accompaniment.state;}
 function audience(){const people=focusPerson==='family'||focusPerson==='all'?state.party:[person(focusPerson)].filter(Boolean);return people;}
 function admission(r,p){return VP3.admission?VP3.admission(r,p):{status:VP3.ageHint(r,p).status==='outside'?'blocked':'unknown',reasons:[]};}
@@ -4153,7 +4169,7 @@ function checkoutSwitch(){
 }
 function packageChoices(){
  const lines=state.cart.lines.filter(l=>VP3.isPackage(l)),selectedId=lines.length===1&&lines[0].quantity===1?lines[0].productId:'';
- return `<div class="package-choice"><p class="package-label">Билетов в пакете</p><div class="package-grid" role="group" aria-label="Размер пакета">${VP3.packageProducts.map(p=>btn('package-size',`<strong>${p.rides}</strong><span>${new Intl.NumberFormat('ru-RU').format(p.price)} ֏</span>`,`data-product="${p.id}" aria-pressed="${selectedId===p.id}" aria-label="${p.rides} билетов за ${money(p.price)}"`,'package-size')).join('')}</div>${lines.length>1||lines.some(l=>l.quantity>1)?'<p class="helper">Выбор размера заменит все пакеты в заказе одним новым пакетом. Остальные билеты сохранятся.</p>':''}</div>`;
+ return `<div class="package-choice"><p class="package-label">Билетов в пакете</p><div class="package-grid" role="group" aria-label="Размер пакета">${VP3.packageProducts.map(p=>btn('package-size',`<strong>${p.rides}</strong><span>${numberFormatter.format(p.price)} ֏</span>`,`data-product="${p.id}" aria-pressed="${selectedId===p.id}" aria-label="${p.rides} билетов за ${money(p.price)}"`,'package-size')).join('')}</div>${lines.length>1||lines.some(l=>l.quantity>1)?'<p class="helper">Выбор размера заменит все пакеты в заказе одним новым пакетом. Остальные билеты сохранятся.</p>':''}</div>`;
 }
 function packageProduct(){return `<article class="product" id="product-package" tabindex="-1"><h3>Пакет для всей компании</h3>${packageChoices()}<p class="package-terms"><strong>Любые аттракционы · 30 дней с покупки.</strong><br>1 билет = 1 катание 1 человека. Можно делить и приходить в разные дни.</p><p class="helper">Уточните условия и оплату сопровождения на кассе перед покупкой.</p></article>`;}
 function quickCurrentQty(){
@@ -4221,11 +4237,12 @@ function legacyRecipient(l){
  return `<div class="line-recipient-fix"><p class="helper">${canContinue?'Можно продолжить без анкеты. Уточните условия и оплату сопровождения на кассе перед покупкой.':'Для старого черновика нужно выбрать получателя, чтобы учесть сопровождение.'}</p><div class="chips">${state.party.map(p=>btn('assign-line-person',esc(participantName(p))+' · '+esc(ageLabel(p)),`data-line="${l.id}" data-person="${p.id}"`,'chip')).join('')}</div>${canContinue?btn('make-direct-line','Продолжить без анкеты',`data-line="${l.id}"`,'btn btn-outline'):''}${!state.party.length?(quick?`<a class="btn btn-text" data-checkout-switch href="tickets.html?product=${product}#cart">Указать получателя</a>`:btn('fix-recipient','Добавить получателя',`data-product="${product}"`,'btn btn-outline')):''}</div>`;
 }
 function pricedCart(input){
+ if(renderPricing&&input===state&&renderPricing.quote)return renderPricing.quote;
  const q=VP3.quoteCart(input,purchaseOptions), options=q.needsCompanionChoice?q.companionOptions.filter(x=>x.available):[{personId:input.companionId,total:q.total}];
  let beforePromotion=false;
  const priced=options.map(option=>{const draft=clone(input);if(q.needsCompanionChoice){if(option.personId){draft.companionId=option.personId;}else{draft.party.push({id:'quote-adult',label:'Сопровождающий',role:'adult',age:18,height:null});draft.companionId='quote-adult';}draft.companionAutoSelected=false;}const result=calculateCart(draft,promotion);if(result.issues.length)beforePromotion=true;return {...option,total:result.issues.length?option.total:result.payable};});
  const totals=priced.map(x=>x.total),total=totals.length?Math.min(...totals):q.total,max=q.maxTotal===null?null:totals.length?Math.max(...totals):q.maxTotal;
- return {...q,total,payable:total,minTotal:total,maxTotal:max,beforePromotion,companionOptions:priced};
+ const result={...q,total,payable:total,minTotal:total,maxTotal:max,beforePromotion,companionOptions:priced};if(renderPricing&&input===state)renderPricing.quote=result;return result;
 }
 function basketQuote(){return pricedCart(state);}
 function cartLines(){
@@ -4334,7 +4351,22 @@ function renderTickets(){
  return `<div class="checkout-flow">${checkoutSwitch()}<div class="checkout-heading"><a class="btn btn-text" href="reels.html#plan">← К нашим аттракционам</a><h1>Выберите билеты</h1><p>Учебная покупка. Деньги не списываются.</p></div>${purchases()}${riderPicker()}${summary}${selected().length?`<p class="saved-summary">В вашем списке: ${selected().map(rid=>esc(ride(rid)?.name)).join(' · ')}. <a href="reels.html#plan">Изменить</a></p>`:''}${recommendations()}<details class="self-choice" id="self-choice"><summary>Выбрать другие билеты, пакет или безлимит</summary>${directProducts()}</details>${demoTools()}</div>`;
 }
 
-function render(){const receiptView=window.VPPostPurchase?.captureView();document.body.classList.toggle('has-receipt',!!order);syncCompanions();if(reviewing&&!state.cart.lines.length){reviewing=false;reviewedToken='';requestAnimationFrame(()=>jump(directEntry?'#direct':'#recommendations'));}if(!order)save();if(!person(ticketPersonId)){const selectedPeople=state.riders.map(person).filter(Boolean);ticketPersonId=(selectedPeople.length===1?selectedPeople[0]:state.party.length===1?state.party[0]:null)?.id||'';}const active=document.activeElement,activeId=active?.id,ds=active?.dataset?{...active.dataset}:null;const openIds=[...document.querySelectorAll('#app details[open]')].map(d=>d.id).filter(x=>x&&x!=='family');document.body.dataset.mode=state.mode;document.body.classList.toggle('family-editing',document.body.dataset.page==='picker'&&familyOpen);$('#app').innerHTML=(warning?note(warning,'error'):'')+(state.tariffNotice&&!order?note(state.tariffNotice,'warning'):'')+(state._issues?.length?note('Сохранённые данные частично повреждены. Проверьте компанию и заказ; при необходимости очистите выбор в описании прототипа.','error'):'')+(document.body.dataset.page==='picker'?renderPicker():renderTickets());for(const did of openIds){const d=document.getElementById(did);if(d)d.open=true;}$('#family')?.addEventListener('toggle',e=>{if(e.target.isConnected){familyOpen=e.target.open;document.body.classList.toggle('family-editing',document.body.dataset.page==='picker'&&familyOpen);}});const count=state.cart.lines.reduce((n,l)=>n+l.quantity,0);if($('#cart-count'))$('#cart-count').textContent=count?' ('+count+')':'';document.querySelectorAll('[data-mobile-cart-count]').forEach(el=>el.textContent=count?' ('+count+')':'');$('#app').setAttribute('aria-busy',String(busy));$('#mobile').innerHTML=busy?'<div class="mobile-bar checkout-dock"><div><strong>Проверяем оплату</strong><small>Учебный ответ</small></div><button class="btn btn-primary" disabled>Подождите</button></div>':order?'':document.body.dataset.page==='tickets'?checkoutBar():`<div class="mobile-bar"><div><strong>${selected().length} в списке</strong></div><a class="btn btn-primary" href="#plan">Наш список</a></div>`;if(quick&&needsProductChoice&&!order){$('#mobile').innerHTML='';}else if(document.body.dataset.page==='tickets'&&purchaseRouteIssue&&!order){$('#mobile').innerHTML='';}else if(document.body.dataset.page==='tickets'&&state.mode==='real'&&!order){$('#mobile').innerHTML='<div class="mobile-bar"><div><strong>Список сохранён</strong><small>Настоящие аттракционы</small></div><a class="btn btn-primary" href="reels.html#plan">К списку</a></div>';}if(companyRepairMode()&&!order)$('#mobile').innerHTML='<div class="mobile-bar checkout-dock">'+companyRepairReturn()+'</div>';if(activeId&&document.getElementById(activeId))document.getElementById(activeId).focus({preventScroll:true});else if(ds?.action){const match=[...document.querySelectorAll('[data-action]')].find(el=>Object.entries(ds).every(([k,v])=>el.dataset[k]===v));match?.focus({preventScroll:true});}window.VPPostPurchase?.restoreView(receiptView);document.dispatchEvent(new Event('vp:catalog-rendered'));}
+let renderFocusVersion=0,pendingRenderFocus=null;
+function restoreRenderFocus(target,version){
+ if(!target||target.element.isConnected){pendingRenderFocus=null;return;}
+ pendingRenderFocus=target;
+ requestAnimationFrame(()=>{
+  if(version!==renderFocusVersion||pendingRenderFocus!==target)return;
+  pendingRenderFocus=null;
+  // A result, dialog or later user action can claim focus after the DOM replacement.
+  const active=document.activeElement;
+  if(active&&active!==document.body&&active!==document.documentElement)return;
+  const next=target.id?document.getElementById(target.id):target.data?.action?[...document.querySelectorAll('[data-action]')].find(el=>Object.entries(target.data).every(([k,v])=>el.dataset[k]===v)):null;
+  if(next?.isConnected&&!next.disabled)next.focus({preventScroll:true});
+ });
+}
+function render(){const previous=renderPricing,version=++renderFocusVersion;renderPricing={};try{renderContents(version);}finally{renderPricing=previous;}}
+function renderContents(version){const receiptView=window.VPPostPurchase?.captureView();document.body.classList.toggle('has-receipt',!!order);syncCompanions();if(reviewing&&!state.cart.lines.length){reviewing=false;reviewedToken='';requestAnimationFrame(()=>jump(directEntry?'#direct':'#recommendations'));}if(!order)save();if(!person(ticketPersonId)){const selectedPeople=state.riders.map(person).filter(Boolean);ticketPersonId=(selectedPeople.length===1?selectedPeople[0]:state.party.length===1?state.party[0]:null)?.id||'';}const active=document.activeElement,focusTarget=active&&active!==document.body&&active!==document.documentElement?{element:active,id:active.id,data:active.dataset?{...active.dataset}:null}:pendingRenderFocus;const openIds=[...document.querySelectorAll('#app details[open]')].map(d=>d.id).filter(x=>x&&x!=='family');document.body.dataset.mode=state.mode;document.body.classList.toggle('family-editing',document.body.dataset.page==='picker'&&familyOpen);$('#app').innerHTML=VPFamilyStorage.recoveryHTML(localStorage,language())+(warning?note(warning,'error'):'')+(state.tariffNotice&&!order?note(state.tariffNotice,'warning'):'')+(state._issues?.length?note('Сохранённые данные частично повреждены. Проверьте компанию и заказ; при необходимости очистите выбор в описании прототипа.','error'):'')+(document.body.dataset.page==='picker'?renderPicker():renderTickets());for(const did of openIds){const d=document.getElementById(did);if(d)d.open=true;}$('#family')?.addEventListener('toggle',e=>{if(e.target.isConnected){familyOpen=e.target.open;document.body.classList.toggle('family-editing',document.body.dataset.page==='picker'&&familyOpen);}});const count=state.cart.lines.reduce((n,l)=>n+l.quantity,0);if($('#cart-count'))$('#cart-count').textContent=count?' ('+count+')':'';document.querySelectorAll('[data-mobile-cart-count]').forEach(el=>el.textContent=count?' ('+count+')':'');$('#app').setAttribute('aria-busy',String(busy));$('#mobile').innerHTML=busy?'<div class="mobile-bar checkout-dock"><div><strong>Проверяем оплату</strong><small>Учебный ответ</small></div><button class="btn btn-primary" disabled>Подождите</button></div>':order?'':document.body.dataset.page==='tickets'?checkoutBar():`<div class="mobile-bar"><div><strong>${selected().length} в списке</strong></div><a class="btn btn-primary" href="#plan">Наш список</a></div>`;if(quick&&needsProductChoice&&!order){$('#mobile').innerHTML='';}else if(document.body.dataset.page==='tickets'&&purchaseRouteIssue&&!order){$('#mobile').innerHTML='';}else if(document.body.dataset.page==='tickets'&&state.mode==='real'&&!order){$('#mobile').innerHTML='<div class="mobile-bar"><div><strong>Список сохранён</strong><small>Настоящие аттракционы</small></div><a class="btn btn-primary" href="reels.html#plan">К списку</a></div>';}if(companyRepairMode()&&!order)$('#mobile').innerHTML='<div class="mobile-bar checkout-dock">'+companyRepairReturn()+'</div>';window.VPPostPurchase?.restoreView(receiptView);document.dispatchEvent(new Event('vp:catalog-rendered'));restoreRenderFocus(focusTarget,version);}
 function addPerson(){if(state.party.length>=8)return;const p=newParticipant();state.party.push(p);familyOpen=true;agePerson=p.id;update();requestAnimationFrame(()=>$('#person-'+p.id)?.scrollIntoView({block:'nearest',behavior:'smooth'}));}
 function clearIssues(){state._issues=[];formError='';}
 function commitCart(lines,message,reveal=true){undo={kind:'cart',message:'Заказ изменён.',lines:clone(state.cart.lines),company:companyData()};clearCompanyApplication();state.cart={lines};markQuickDraft();clearIssues();update(message);if(reveal&&state.cart.lines.length&&!customTarget)requestAnimationFrame(()=>focusField('cart'));}
@@ -4471,6 +4503,7 @@ if(document.body.dataset.page==='tickets'){directEntry=quick||params.has('produc
 if(params.has('resume'))restoreOrderView();
 if(params.get('checkout')==='review'&&!quick&&!order&&state.cart.lines.length){reviewing=true;reviewedToken=reviewToken();}
 if(freshDefault&&!order&&!purchaseRouteIssue)startDefaultPurchase();
+document.addEventListener('vp:storage-recovery',()=>render());
 window.addEventListener('offline',()=>{warning=order?'Нет связи. Сохранённый статус не обновляется. Повторно не оплачивайте.':'Нет связи. Выбор остаётся в этой вкладке; оплата недоступна.';render();});
 window.addEventListener('online',()=>{warning='';render();announce(order?'Связь восстановлена. Проверьте статус заказа.':'Связь восстановлена.');});
 
@@ -4575,7 +4608,7 @@ window.VP3UI={getState:()=>clone(state),getOrder:()=>clone(order)};
   return o.currency==='AMD'&&Number.isSafeInteger(o.unitPrice)&&o.unitPrice>0&&o.unitPrice*o.qty===o.amount;
  }
  function orders(sessionStore){
-  const rows=[],a=new Map(),b=new Map(),history=read('vp.family.v6.people.v1.orders');
+  const rows=[],a=new Map(),b=new Map(),history=VPFamilyStorage.readHistory(localStorage,window.VPC.validateOrder).rows;
   for(const raw of [...(Array.isArray(history)?history:[]),read('vp.family.v6.people.v1.order')]){const o=window.VPC?.validateOrder(raw);if(o)a.set(o.id,o);}
   for(const o of a.values())rows.push({model:'a',id:o.id,title:'a',amount:o.total,status:o.status,time:o.createdAt||o.ts||'',card:''});
   const all=read('vpOrders');if(all&&typeof all==='object'&&!Array.isArray(all))for(const [key,o] of Object.entries(all))if(validB(o)&&key===o.id)b.set(o.id,o);
@@ -4617,11 +4650,12 @@ window.VP3UI={getState:()=>clone(state),getOrder:()=>clone(order)};
    const date=Number.isFinite(Date.parse(row.time))?new Intl.DateTimeFormat(lang==='hy'?'hy-AM':lang==='en'?'en-GB':'ru-RU',{dateStyle:'short',timeStyle:'short',timeZone:'Asia/Yerevan'}).format(new Date(row.time)):'';
    return '<article class="past-order" style="flex-wrap:wrap" data-history-model="'+row.model+'" data-history-id="'+esc(row.id)+'"><span style="flex:1 1 200px"><strong>'+c[row.title]+'</strong><small>'+esc(row.id)+' · '+new Intl.NumberFormat(lang).format(row.amount)+' ֏'+(row.card?' · '+c.card+' …'+esc(row.card):'')+'</small><small>'+esc(date)+'</small><small>'+esc(c[row.status]||c.pending)+'</small></span><a class="btn btn-outline" data-vp-cta="secondary" href="'+esc(route(row,lang))+'">'+label+'</a></article>';
   };
-  const content='<h1 id="purchase-history-title">'+c.title+(purchases.length?' ('+purchases.length+')':'')+'</h1><p class="helper">'+(rows.length?c.note:c.empty)+'</p>'+purchases.map(renderRow).join('')+(drafts.length?'<details class="history-drafts"><summary>'+c.drafts+' ('+drafts.length+')</summary>'+drafts.map(renderRow).join('')+'</details>':'')+'<div class="history-actions"><a class="btn btn-primary" data-vp-cta="primary" data-history-choose href="quick.html?lang='+lang+'">'+c.choose+'</a></div><details class="history-test-card"><summary>'+c.testTopup+'</summary><p class="helper">'+c.testTopupNote+'</p><a class="btn btn-outline" data-vp-cta="secondary" data-history-test-topup href="topup.html?lang='+lang+'">'+c.testTopup+'</a></details>';
+  const content=VPFamilyStorage.recoveryHTML(localStorage,lang)+'<h1 id="purchase-history-title">'+c.title+(purchases.length?' ('+purchases.length+')':'')+'</h1><p class="helper">'+(rows.length?c.note:c.empty)+'</p>'+purchases.map(renderRow).join('')+(drafts.length?'<details class="history-drafts"><summary>'+c.drafts+' ('+drafts.length+')</summary>'+drafts.map(renderRow).join('')+'</details>':'')+'<div class="history-actions"><a class="btn btn-primary" data-vp-cta="primary" data-history-choose href="quick.html?lang='+lang+'">'+c.choose+'</a></div><details class="history-test-card"><summary>'+c.testTopup+'</summary><p class="helper">'+c.testTopupNote+'</p><a class="btn btn-outline" data-vp-cta="secondary" data-history-test-topup href="topup.html?lang='+lang+'">'+c.testTopup+'</a></details>';
   if(section.innerHTML!==content)section.innerHTML=content;
   if(!focused){focused=true;requestAnimationFrame(()=>{if(section.isConnected&&location.hash==='#purchase-history'){window.scrollTo({top:0,behavior:'instant'});section.focus({preventScroll:true});}});}
  }
  document.addEventListener('vp:catalog-rendered',showHistory);
+ document.addEventListener('vp:storage-recovery',showHistory);
  document.addEventListener('vp:language',showHistory);
  document.addEventListener('vp:sessions-updated',showHistory);
  window.addEventListener('hashchange',showHistory);
@@ -4653,7 +4687,8 @@ window.VPQR=function(value){
  const assetVersions=/* vp-asset-versions:start */{"hy-fonts.css":"3be0b3d029ad2107"}/* vp-asset-versions:end */;
  const base=new URL('.',document.currentScript.src).pathname,q=new URLSearchParams(location.search),review=q.get('review')==='1';document.documentElement.dataset.review=review?'1':'0';
  const C={ru:{demo:'Демо: цены для примера, без списаний.',single:'Билет на катание',pack:'Пакет катаний',pass:'Безлимит на 3 аттракциона',example:'В демо',from:'от',buy:'Выбрать',hours:'Часы работы: 10:00-22:00',rule:'Уточните условия и оплату сопровождения на кассе перед покупкой.',pdf:'Сохранить в PDF / печать',share:'Отправить в мессенджер',order:'Номер заказа',qr:'Образец QR. Не действует для прохода.',entrance:'Это образец. Перед посещением купите действующий билет на кассе.',allow:'Разрешить аналитику',deny:'Без аналитики',consent:'Разрешить сбор событий этого демо? Имена, номера карт и контакты не записываются.',empty:'Список пока пуст',swipe:'Выбрать свайпом',topup:'Пополнить карту'},en:{demo:'Demo: example prices, no charge.',single:'Single ride ticket',pack:'Ride package',pass:'3-ride unlimited pass',example:'Demo price',from:'from',buy:'Choose',hours:'Opening hours: 10:00-22:00',rule:'Ask at the cash desk about accompanying adults and their payment before buying.',pdf:'Save as PDF / print',share:'Share in a messenger',order:'Order number',qr:'Sample QR. Not valid for admission.',entrance:'This is a sample. Buy a valid ticket at the cash desk before visiting.',allow:'Allow analytics',deny:'No analytics',consent:'Allow demo events to be recorded? Names, card numbers and contact details are excluded.',empty:'Your list is empty',swipe:'Choose by swiping',topup:'Top up your card'},hy:{demo:'Ցուցադրություն․ գները օրինակ են, առանց գանձման։',single:'Մեկ զբոսանքի տոմս',pack:'Զբոսանքների փաթեթ',pass:'3 ատրակցիոնի անսահմանափակ տոմս',example:'Ցուցադրական գին',from:'սկսած',buy:'Ընտրել',hours:'Աշխատաժամեր: 10:00-22:00',rule:'Գնելուց առաջ դրամարկղում ճշտեք ուղեկցման և ուղեկցողի վճարման պայմանները։',pdf:'Պահպանել PDF / տպել',share:'Ուղարկել մեսենջերով',order:'Պատվերի համար',qr:'QR նմուշ։ Մուտքի համար չի գործում։',entrance:'Սա նմուշ է։ Այցից առաջ գործող տոմս գնեք դրամարկղում։',allow:'Թույլատրել վերլուծությունը',deny:'Առանց վերլուծության',consent:'Թույլատրե՞լ գրանցել ցուցադրության իրադարձությունները։ Անուններ, քարտի համարներ և կոնտակտներ չեն գրանցվում։',empty:'Ցանկը դեռ դատարկ է',swipe:'Ընտրել սահեցնելով',topup:'Լիցքավորել քարտը'}};
- const lang=()=>['ru','hy','en'].includes(document.documentElement.lang)?document.documentElement.lang:'ru',copy=()=>C[lang()],money=n=>new Intl.NumberFormat('ru-RU').format(n).replace(/ /g,'\u00a0')+'\u00a0֏';
+ const numberFormatter=new Intl.NumberFormat('ru-RU');
+ const lang=()=>['ru','hy','en'].includes(document.documentElement.lang)?document.documentElement.lang:'ru',copy=()=>C[lang()],money=n=>numberFormatter.format(n).replace(/ /g,'\u00a0')+'\u00a0֏';
  function hyFont(){let el=document.querySelector('[data-hy-font]');if(lang()==='hy'&&!el){el=document.createElement('link');el.rel='stylesheet';el.href=base+'hy-fonts.css?vpv='+assetVersions['hy-fonts.css'];el.dataset.hyFont='';document.head.append(el)}else if(lang()!=='hy'&&el)el.remove()}
  hyFont();
  let storedConsent;try{storedConsent=localStorage.getItem('vp.v5.analyticsConsent')}catch{}
@@ -4706,14 +4741,16 @@ document.querySelectorAll('.v5-demo').forEach(e=>{if(e.textContent!==c.demo)e.te
   const receipt=document.querySelector('#receipt'),o=window.VP3UI?.getOrder();if(receipt&&o&&!review){receipt.querySelectorAll('.badge,.ticket-code').forEach(el=>el.dataset.reviewOnly='');for(const e of receipt.querySelectorAll('.purchase-help strong'))if(e.textContent===o.id)e.textContent=short(o.id);}if(!review)for(const row of document.querySelectorAll('.past-order')){const id=row.querySelector('[data-order]')?.dataset.order,node=row.querySelector('span')?.firstChild;if(id&&node?.nodeType===3&&node.data.trim()!==short(id))node.data=short(id);}if(receipt&&o&&['success','partial'].includes(o.status)&&!receipt.querySelector('.v5-ticket-tools')){const n=short(o.id),tools=document.createElement('section');tools.className='v5-ticket-tools';tools.innerHTML=`<strong>${c.order}: <span class="v5-short-order">${n}</span></strong>${receipt.querySelector('.vp-postpurchase')?'':(window.VPQR?VPQR(n):'')}<p>${c.entrance}</p><div class="v5-link-list" data-vp-action-group><button type="button" data-vp-cta="secondary" data-v5-print>${c.pdf}</button><button type="button" data-vp-cta="secondary" data-v5-share>${c.share}</button></div>`;receipt.querySelector('h1').after(tools);receipt.querySelectorAll('.badge,.ticket-code').forEach(el=>el.dataset.reviewOnly='');}
   trackState();const docks=[...document.querySelectorAll('.mobile-bar,.sticky-cta')].map(e=>e.getBoundingClientRect()).filter(r=>r.height&&r.bottom>=innerHeight-1);document.documentElement.style.setProperty('--v5-dock-height',(docks.length?Math.max(...docks.map(r=>r.height)):0)+'px');
  }
+ let decorationPending=false,decorationObserver;
+ function scheduleDecoration(){if(decorationPending)return;decorationPending=true;requestAnimationFrame(()=>{decorationPending=false;decorationObserver?.disconnect();decorate();decorationObserver?.observe(document.querySelector('main')||document.body,{subtree:true,childList:true,characterData:true});});}
  function ready(){
-  landing();decorate();const main=document.querySelector('main');let pending=false;const observe=new MutationObserver(()=>{if(!pending){pending=true;requestAnimationFrame(()=>{pending=false;observe.disconnect();decorate();observe.observe(main||document.body,{subtree:true,childList:true,characterData:true})})}});observe.observe(main||document.body,{subtree:true,childList:true,characterData:true});
+  landing();decorate();decorationObserver=new MutationObserver(scheduleDecoration);decorationObserver.observe(document.querySelector('main')||document.body,{subtree:true,childList:true,characterData:true});
   if(!storedConsent&&!document.body.hasAttribute('data-vp-discovery')){const consent=document.createElement('section');consent.className='v5-consent';consent.setAttribute('aria-label','Analytics');const c=copy();consent.innerHTML=`<p>${c.consent}</p><button type="button" data-v5-consent="yes">${c.allow}</button><button type="button" data-v5-consent="no">${c.deny}</button>`;document.body.append(consent)}
   if(review){const log=document.createElement('details');log.className='v5-info';log.innerHTML='<summary>Analytics debug (local dataLayer, transport not configured)</summary><pre id="v5-event-log"></pre>';document.body.append(log)}
-  const dock=document.querySelector('#mobile');if(dock)new ResizeObserver(()=>{document.documentElement.style.setProperty('--v5-dock-height',Math.max(0,...[...document.querySelectorAll('.mobile-bar,.sticky-cta')].map(e=>e.getBoundingClientRect().height))+'px')}).observe(dock);
+  const dockObserver=new ResizeObserver(()=>{document.documentElement.style.setProperty('--v5-dock-height',Math.max(0,...[...document.querySelectorAll('.mobile-bar,.sticky-cta')].map(e=>e.getBoundingClientRect().height))+'px')});document.querySelectorAll('#mobile,.sticky-cta').forEach(dock=>dockObserver.observe(dock));
  }
- document.addEventListener('vp:interests',decorate);window.addEventListener('storage',decorate);
- document.addEventListener('vp:catalog-rendered',()=>requestAnimationFrame(decorate));document.addEventListener('vp:language',decorate);
+ document.addEventListener('vp:interests',scheduleDecoration);window.addEventListener('storage',decorate);
+ document.addEventListener('vp:catalog-rendered',scheduleDecoration);document.addEventListener('vp:language',decorate);
  document.addEventListener('click',async e=>{
   const remove=e.target.closest('[data-v6-remove]'),restore=e.target.closest('[data-v6-restore]');if(remove){const id=remove.dataset.v6Remove;removedInterest=id;VPCORE.setList(VPCORE.list().filter(x=>x!==id));decorate();document.querySelector('[data-v6-restore]')?.focus();return}if(restore&&removedInterest){const id=removedInterest;removedInterest='';VPCORE.setList([...new Set([...VPCORE.list(),id])]);decorate();document.querySelector('[data-v6-remove=\"'+id+'\"]')?.focus();return}
   const consent=e.target.closest('[data-v5-consent]');if(consent){storedConsent=consent.dataset.v5Consent;try{localStorage.setItem('vp.v5.analyticsConsent',storedConsent)}catch{}consent.closest('.v5-consent').remove();lastProduct=lastQty=lastOrder='';landing();decorate();return}

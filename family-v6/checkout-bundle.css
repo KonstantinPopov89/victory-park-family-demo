@@ -711,7 +711,7 @@ body[data-checkout=quick] .receipt{overflow-wrap:anywhere}
 body[data-checkout=quick] .receipt .ticket-top,body[data-checkout=quick] .receipt .total{flex-wrap:wrap}
 
 /* History is a destination, separate from the current purchase form and its CTA. */
-body[data-history-view] #app>:not([data-unified-history]),
+body[data-history-view] #app>:not([data-unified-history]):not([data-vp-boot]),
 body[data-history-view] #mobile,
 body:not([data-history-view]) [data-unified-history]{display:none!important}
 body[data-history-view]{padding-bottom:0!important}
@@ -728,6 +728,9 @@ body[data-history-view] .history-test-card>p{margin-block:8px 12px}
 /* This section receives programmatic focus after navigation, never a tab stop. */
 body[data-history-view] [data-unified-history]:focus{outline:none}
 @media(max-width:700px){body[data-history-view] .past-order>a,body[data-history-view] .history-actions>a{width:100%}}
+
+/* Keep loading recovery and damaged-storage guidance usable before checkout is ready. */
+#vp-boot-state{min-height:100svh;padding:24px 0;max-width:760px;margin:auto}#vp-boot-state h1{font:600 clamp(28px,5vw,42px)/1.2 var(--body,Montserrat,Arial,sans-serif)}#vp-boot-state p{max-width:44em}#vp-boot-state .btn-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}.vp-storage-recovery{margin:16px 0;padding:18px;border:1px solid #c9b88c;background:#fff8e8;color:#51401c}.vp-storage-recovery p{margin:0 0 12px}.vp-storage-recovery button{min-height:44px}
 
 /* /victory-park-family-demo/family-v6/theme.css */
 /* Shared visual finish. Existing product engines and their state stay authoritative. */

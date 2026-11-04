@@ -114,3 +114,7 @@ body[data-v5]:not([data-vp-discovery]) .unified-payment .summary{background:var(
 body[data-v5]>.vp-demo-bar{display:none}
 body[data-v5]>.vp-about-inline{margin:12px auto;padding:0 20px;border:0;color:var(--vp-quiet-text)}
 body[data-v5]>.vp-about-inline>summary{font-size:13px;min-height:44px;align-content:center;cursor:pointer}
+
+/* Keep the optional analytics decision above the purchase dock when scrolled into view. */
+body[data-v5] .v5-consent{padding-bottom:calc(20px + var(--v5-dock-height,0px) + env(safe-area-inset-bottom,0px))}
+body[data-vp-home] .buy-section .section-intro{color:var(--vp-quiet-text)}

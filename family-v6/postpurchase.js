@@ -149,6 +149,18 @@
     dialog.innerHTML = '<div class="pp-dialog-heading"><h2>'+esc(title)+'</h2><button type="button" data-pp-close>'+esc(t('close'))+'</button></div>'+(type==='large' ? '<div class="pp-large-qr">'+svg(item)+'</div><code>'+esc(item.code)+'</code><p>'+esc(t('demo'))+'</p>' : '<p class="pp-preview-note">'+esc(t('walletNote'))+'</p>'+card(item,{wallet:true})+'<code>'+esc(item.code)+'</code>');
     D.body.append(dialog);
     dialog.addEventListener('click', e => { if(e.target.closest('[data-pp-close]') || e.target===dialog) dialog.close(); });
+    dialog.addEventListener('keydown', e => {
+      if(e.key !== 'Tab') return;
+      const controls = Array.from(dialog.querySelectorAll('button,a[href],input,select,textarea,[tabindex]'))
+        .filter(el => !el.disabled && el.tabIndex >= 0 && el.getClientRects().length && getComputedStyle(el).visibility !== 'hidden');
+      const first = controls[0], last = controls[controls.length - 1];
+      if(!first) return;
+      if(e.shiftKey && (D.activeElement === first || !dialog.contains(D.activeElement))) {
+        e.preventDefault(); last.focus();
+      } else if(!e.shiftKey && (D.activeElement === last || !dialog.contains(D.activeElement))) {
+        e.preventDefault(); first.focus();
+      }
+    });
     dialog.addEventListener('close',()=>{dialog.remove();if(opener?.isConnected)opener.focus();});
     if(typeof dialog.showModal==='function') dialog.showModal(); else {dialog.setAttribute('open','');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');}
     dialog.querySelector('[data-pp-close]').focus();

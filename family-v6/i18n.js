@@ -3,6 +3,8 @@
   'use strict';
  function releaseURL(url){return window.VPReleaseURL ? window.VPReleaseURL(url) : url;}
   const scriptURL = document.currentScript.src;
+  const reviewMode = new URLSearchParams(location.search).get('review')==='1';
+  const numberFormatter = new Intl.NumberFormat('ru-RU');
   const base = new URL('.', scriptURL).pathname;
   const languages = ['ru', 'en', 'hy'];
   const pathname = () => '/' + location.pathname.slice(base.length).replace(/^\//, '');
@@ -43,7 +45,7 @@
   function translatePlain(text, target=language) {
     if(target==='ru') return String(text);
     text=String(text);
-    const formatMoney=value=>value.replace(/(\d[\d ,\u00a0\u202f]*)\s*(AMD|֏)/g,(_,amount,currency)=>new Intl.NumberFormat('ru-RU').format(Number(amount.replace(/[\s,]/g,''))).replace(/ /g,'\u00a0')+'\u00a0֏');
+    const formatMoney=value=>value.replace(/(\d[\d ,\u00a0\u202f]*)\s*(AMD|֏)/g,(_,amount,currency)=>numberFormatter.format(Number(amount.replace(/[\s,]/g,''))).replace(/ /g,'\u00a0')+'\u00a0֏');
     if(!/[А-Яа-яЁё]/.test(text))return formatMoney(text);
     const value = normalized(text);
     if(userValues.has(value)) return String(text);
@@ -66,7 +68,7 @@
     const previous=texts.get(node);
     const source=previous && node.data===previous.last ? previous.source : node.data;
     let next=translatePlain(source);
-    if(new URLSearchParams(location.search).get('review')!=='1' && node.parentElement.closest('h1,h2,h3,.product,.quick-product,.helper,.quantity-label,.quick-important')){
+    if(!reviewMode && node.parentElement.closest('h1,h2,h3,.product,.quick-product,.helper,.quantity-label,.quick-important')){
       next=next.replace(/Tinder/g,{ru:'Выбрать свайпом',hy:'Ընտրել սահեցնելով',en:'Choose by swiping'}[language]);
       next=next.replace(/(^|[^А-Яа-яЁё])учебн(?:ый|ая|ое|ые|ого|ых|ым|ую|ой|ом|ые)\s*/gi,'$1').replace(/ուսումնական\s+/gi,'').replace(/teaching\s+/gi,'');
     }
@@ -104,7 +106,7 @@
       if(path.startsWith('/experience/'))url.searchParams.set('lang',language);
       else if(interactive && /^\/(ru|en|hy)(?=\/|$)/.test(path))url.pathname=base+path.replace(/^\/(ru|en|hy)/,language);
       else if(interactive && (path==='/' || path==='/index.html'))url.pathname=base+language+'/';
-      if(new URLSearchParams(location.search).get('review')==='1')url.searchParams.set('review','1');
+      if(reviewMode)url.searchParams.set('review','1');
       if(a.href!==url.href)a.href=url.href;
     });
   }
@@ -116,7 +118,7 @@
     document.querySelectorAll('dialog').forEach(dialog=>{if(!dialog.querySelector('.locale-dialog-options')){const nav=document.createElement('div');nav.className='locale-options locale-dialog-options';nav.innerHTML=toolbar?.querySelector('.locale-options')?.innerHTML||'';dialog.prepend(nav);}});
     const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
     let node;while((node=walker.nextNode()))translateTextNode(node);
-    root.querySelectorAll('*').forEach(translateElement);
+    root.querySelectorAll('[aria-label],[aria-description],[title],[placeholder],[alt]').forEach(translateElement);
     translateElement(root);
     localizeLinks(root);
     document.documentElement.lang=language;

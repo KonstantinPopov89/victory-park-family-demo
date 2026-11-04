@@ -5,6 +5,7 @@
  const lang=document.documentElement.lang;
  const t={ru:{save:'В список',saved:'В списке',remove:'Убрать из списка',found:'Аттракционов'},en:{save:'Save',saved:'Saved',remove:'Remove from list',found:'Attractions'},hy:{save:'Պահպանել',saved:'Պահպանված է',remove:'Հեռացնել ցանկից',found:'Ատրակցիոններ'}}[lang];
  const rows=[...document.querySelectorAll('[data-catalog]>li')],search=document.querySelector('#catalog-search'),result=document.querySelector('[data-catalog-result]'),empty=document.querySelector('.catalog-empty');
+ const saveButtons=[...document.querySelectorAll('[data-catalog-save]')];
  const norm=s=>s.toLocaleLowerCase().replaceAll('ё','е').trim();
  function renderFilter(){
   const p=new URLSearchParams(location.search),cat=p.get('cat')||(p.get('filter')==='unl'?'unl':''),q=norm(search.value);let count=0;
@@ -13,9 +14,9 @@
  }
  function selection(){
   const selected=C.list();
-  document.querySelectorAll('[data-catalog-save]').forEach(b=>{const active=selected.includes(b.dataset.catalogSave),name=b.closest('[data-catalog-name]').dataset.catalogName;b.setAttribute('aria-pressed',String(active));b.querySelector('span').textContent=active?t.saved:t.save;b.setAttribute('aria-label',(active?t.remove:t.save)+': '+name);});
+  saveButtons.forEach(b=>{const active=selected.includes(b.dataset.catalogSave),name=b.closest('[data-catalog-name]').dataset.catalogName,pressed=String(active),text=active?t.saved:t.save,label=(active?t.remove:t.save)+': '+name,span=b.querySelector('span');if(b.getAttribute('aria-pressed')!==pressed)b.setAttribute('aria-pressed',pressed);if(span.textContent!==text)span.textContent=text;if(b.getAttribute('aria-label')!==label)b.setAttribute('aria-label',label);});
  }
- document.querySelectorAll('[data-catalog-save]').forEach(b=>b.addEventListener('click',()=>{const list=C.list(),slug=b.dataset.catalogSave;C.setList(list.includes(slug)?list.filter(x=>x!==slug):[...list,slug]);selection();}));
+ saveButtons.forEach(b=>b.addEventListener('click',()=>{const list=C.list(),slug=b.dataset.catalogSave;C.setList(list.includes(slug)?list.filter(x=>x!==slug):[...list,slug]);selection();}));
  document.addEventListener('vp:catalog-filter',renderFilter);search.addEventListener('input',renderFilter);
  document.querySelector('[data-catalog-reset]').addEventListener('click',()=>{search.value='';document.querySelector('[data-filter=""]').click();search.focus();});
  const toggle=document.querySelector('.catalog-search-toggle'),field=document.querySelector('.catalog-search');

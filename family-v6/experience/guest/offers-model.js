@@ -120,8 +120,9 @@
     return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value ? parsed : null;
   }
   function addDays(value, count) { var result = date(value); result.setUTCDate(result.getUTCDate() + count); return result.toISOString().slice(0, 10); }
+  var todayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Yerevan', year: 'numeric', month: '2-digit', day: '2-digit' });
   function getToday() {
-    var parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Yerevan', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+    var parts = todayFormatter.formatToParts(new Date());
     var values = {}; parts.forEach(function (part) { values[part.type] = part.value; });
     return values.year + '-' + values.month + '-' + values.day;
   }
