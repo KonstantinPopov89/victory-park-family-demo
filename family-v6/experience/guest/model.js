@@ -327,7 +327,26 @@
         summary: (Array.isArray(j.summary) ? j.summary : []).filter(function (s) { return typeof s === 'string'; }).slice(0, 100).map(function (s) { return s.replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, 500); }),
         cartFingerprint: typeof j.cartFingerprint === 'string' ? j.cartFingerprint : '', partyFingerprint: typeof j.partyFingerprint === 'string' ? j.partyFingerprint : '' };
     }
+    // Only an exact untouched automatic proposal may be replaced by a deliberate
+    // purchase from discovery. Older and changed carts remain explicit drafts.
+    if (raw.homePrefill && raw.homePrefill.version === 1 &&
+        raw.homePrefill.cartFingerprint === JSON.stringify(out.cart.lines) &&
+        out.cart.lines.length === 3 && out.cart.lines.every(function (line) {
+          return line.productId === 'unlimited' && line.quantity === 1 && isDirectLine(line) && !line.autoCompanion;
+        }) && !issues.includes('cart')) {
+      out.homePrefill = { version: 1, cartFingerprint: JSON.stringify(out.cart.lines) };
+    }
     out._issues = unique(issues); return out;
+  }
+  function markHomePrefill(raw) {
+    var state = sanitizeState(raw);
+    state.homePrefill = { version: 1, cartFingerprint: JSON.stringify(state.cart.lines) };
+    return sanitizeState(state);
+  }
+  function withoutHomePrefill(raw) {
+    var state = sanitizeState(raw);
+    if (state.homePrefill) { state.cart.lines = []; delete state.homePrefill; }
+    return state;
   }
   function demoForReal(realId) { return connectedRides.find(function (r) { return r.realRideId === realId; }) || null; }
   function previewRealSelection(raw) {
@@ -851,5 +870,5 @@
     });
     return valid.status === 'partial' ? result.slice(0, valid.issuedCount) : result;
   }
-  return freeze({ ageBands: ageBands, ageBounds: ageBounds, isAdult: isAdult, withAgeBand: withAgeBand, ageLabel: ageLabel, participantLabel: participantLabel, MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, packageSizes: packageSizes, packageProducts: packageProducts, isPackage: isPackage, packageCapacity: packageCapacity, isDirectLine: isDirectLine, newLine: newLine, realRides: realRides, demoRides: demoRides, connectedRides: connectedRides, demoForReal: demoForReal, previewRealSelection: previewRealSelection, products: products, emptyState: emptyState, sanitizeState: sanitizeState, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, quoteCart: quoteCart, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, confirmPayment: confirmPayment, issuedItems: issuedItems });
+  return freeze({ ageBands: ageBands, ageBounds: ageBounds, isAdult: isAdult, withAgeBand: withAgeBand, ageLabel: ageLabel, participantLabel: participantLabel, MAX_QUANTITY: MAX_QUANTITY, MODEL_VERSION: MODEL_VERSION, packageSizes: packageSizes, packageProducts: packageProducts, isPackage: isPackage, packageCapacity: packageCapacity, isDirectLine: isDirectLine, newLine: newLine, realRides: realRides, demoRides: demoRides, connectedRides: connectedRides, demoForReal: demoForReal, previewRealSelection: previewRealSelection, products: products, emptyState: emptyState, sanitizeState: sanitizeState, markHomePrefill: markHomePrefill, withoutHomePrefill: withoutHomePrefill, sampleState: sampleState, ageHint: ageHint, admissionRules: admissionRules, admission: admission, eligible: eligible, reconcileCompanions: reconcileCompanions, quoteCart: quoteCart, recommend: recommend, cartTotal: cartTotal, assessCart: assessCart, snapshotOrder: snapshotOrder, validateOrder: validateOrder, confirmPayment: confirmPayment, issuedItems: issuedItems });
 }));

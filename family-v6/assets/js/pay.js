@@ -25,9 +25,14 @@
   function order() {
     var requested = q.get("order"), current = C.jget(SS(), "vpOrder", null);
     // A link to an older order must not display the latest order in this tab.
-    return requested ? (current && current.id === requested ? current : findOrder(requested)) : current;
+    var id = requested || (current && current.id), saved = findOrder(id);
+    // The shared record may have advanced in another tab while this document
+    // was in the back-forward cache. A tab's draft must not undo that result.
+    var latest = saved || (current && current.id === id ? current : null);
+    if (latest && current && current.id === latest.id) C.jset(SS(), "vpOrder", latest);
+    return latest;
   }
-  function findOrder(id) { if (!id) return null; var all = C.jget(C.LS(), "vpOrders", {}); return all[id] || null; }
+  function findOrder(id) { if (!id) return null; var all = C.jget(C.LS(), "vpOrders", {}); return all && typeof all === 'object' && !Array.isArray(all) && Object.prototype.hasOwnProperty.call(all, id) ? all[id] : null; }
   function saveOrder(o, activate) { var active=C.jget(SS(), "vpOrder", null); if(activate||!active||active.id===o.id)C.jset(SS(), "vpOrder", o); var all = C.jget(C.LS(), "vpOrders", {}); all[o.id] = o; C.jset(C.LS(), "vpOrders", all); }
   function unfinished(o) { return !!o && (["pending","delay"].indexOf(o.resultStatus)>=0 || !o.resultStatus && C.get(SS(),"vpPending")==="1"); }
   function literal(ru,en,hy){return L==='hy'?hy:L==='en'?en:ru;}
@@ -43,7 +48,7 @@
     var qtyOut = f.querySelector("[data-qty-out]");
     var qtyChoices = f.querySelectorAll("[data-qty-set]"), qtyManual = f.querySelector("[data-qty-manual]");
     var qtyField = f.querySelector("[data-qty-field]"), qtyInput = f.querySelector("[data-qty-input]"), qtyError = f.querySelector("[data-qty-error]");
-    var qtyIsValid = true, manualQuantity = false;
+    var qtyIsValid = true, manualQuantity = false, submittedOrderId = null;
     var drafts=C.jget(SS(),"vp.family.v6.purchaseDrafts",{}), saved=drafts[product];
     var amount = 0, qty = product === "unlimited" ? 3 : 1, fails = 0, entered = "", bypass = false, initializing=true;
     if(saved && Number.isInteger(saved.qty) && saved.qty>=1 && saved.qty<=10)qty=saved.qty;
@@ -55,6 +60,25 @@
       if (product === "topup") return amount;
       if (product === "nocard") return amount ? amount + price : 0;
       return qtyIsValid ? qty * price : 0;
+    }
+    function restoreOrderNotice() {
+      var active = order(), previous = submittedOrderId ? findOrder(submittedOrderId) : active;
+      var notice = f.querySelector('[data-pending-order]');
+      if (!validStoredOrder(previous) || (!submittedOrderId && !unfinished(previous))) {
+        if (notice) notice.remove();
+        return;
+      }
+      if (!notice) { notice = D.createElement('p'); notice.dataset.pendingOrder = ''; notice.setAttribute('role', 'status'); f.appendChild(notice); }
+      var waiting = unfinished(previous), started = !previous.resultStatus;
+      notice.textContent = waiting
+        ? (started ? literal('Оплата не завершена. Продолжите этот заказ.', 'Payment is not complete. Continue this order.', 'Վճարումն ավարտված չէ։ Շարունակեք այս պատվերը։') : literal('Операция ещё проверяется. Повторно не оплачивайте.', 'The operation is still being checked. Do not pay again.', 'Գործարքը դեռ ստուգվում է։ Կրկին մի վճարեք։'))
+        : literal('Предыдущий результат сохранён. Можно открыть его или оформить новую покупку.', 'The previous result is saved. Open it or make a new purchase.', 'Նախորդ արդյունքը պահպանված է։ Բացեք այն կամ կատարեք նոր գնում։');
+      var link = D.createElement('a'); link.dataset.paymentContinue = ''; link.dataset.vpCta = waiting ? 'primary' : 'secondary';
+      link.textContent = started ? literal('Продолжить оплату', 'Continue payment', 'Շարունակել վճարումը') : literal('Открыть результат', 'View result', 'Բացել արդյունքը');
+      var target = new URL(R + L + '/pay/' + (started ? 'idram-mock' : 'result') + '/index.html', location.href);
+      target.searchParams.set('order', previous.id); if (q.get('review') === '1') target.searchParams.set('review', '1');
+      link.href = releaseURL(target.href); notice.appendChild(D.createTextNode(' ')); notice.appendChild(link);
+      if (waiting) pay.disabled = true;
     }
     function upd() {
       rememberDraft();
@@ -79,6 +103,7 @@
       pay.disabled = !ok;
       pay.innerHTML = x ? h("pay_x", { x: amd(x) }) : h("pay_x", { x: "" }).replace(/\s+$/, "");
       if (miss) miss.innerHTML = ok ? "" : (!qtyIsValid ? esc(literal("Укажите количество от 1 до 10", "Choose a quantity from 1 to 10", "Նշեք քանակը՝ 1-ից 10")) : card && !cardOk() || (card && !card.value) ? h("card_short") : h("amount_short"));
+      if (!initializing) restoreOrderNotice();
     }
     function cardErr(show) {
       if (!card) return;
@@ -157,15 +182,14 @@
       if (card && !cardOk()) { cardErr(true); card.focus(); return; }
       if (C.opt("vpPayScn") === "offline" && !bypass) { C.setState("offline"); return; }
       bypass = false;
-      var previous=C.jget(SS(),"vpOrder",null);
+      var previous=order();
       if(unfinished(previous)){
-        var notice=f.querySelector('[data-pending-order]');if(!notice){notice=D.createElement('p');notice.setAttribute('data-pending-order','');notice.setAttribute('role','status');f.appendChild(notice);}
-        notice.textContent=literal('Предыдущая операция ещё проверяется. Откройте её результат, не оплачивайте повторно.','The previous operation is still being checked. Open its result; do not pay again.','Նախորդ գործարքը դեռ ստուգվում է։ Բացեք արդյունքը, կրկին մի վճարեք։');
-        var link=D.createElement('a');link.dataset.vpCta='primary';link.textContent=literal('Проверить заказ','Check order','Ստուգել պատվերը');var pendingUrl=new URL(R+L+'/pay/result/index.html',location.href);pendingUrl.searchParams.set('order',previous.id);if(q.get('review')==='1')pendingUrl.searchParams.set('review','1');link.href=pendingUrl.href;notice.appendChild(link);return;
+        restoreOrderNotice(); return;
       }
       var x = total(), id = "VP" + Date.now().toString(36).toUpperCase()+Math.random().toString(36).slice(2,6).toUpperCase();
       var o = { id: id, amount: x, last4: card ? card.value.slice(-4) : "", product: product, qty: qty, lang: L, utm: C.utm(), ts: new Date().toISOString() };
       saveOrder(o,true);
+      submittedOrderId = id;
       C.jset(SS(), "vpDraft", { card: card ? card.value : "", amount: product === "topup" ? x : 0 });
       C.set(SS(), "vpPending", "1");
       pay.disabled = true; pay.innerHTML = h("sending");
@@ -174,6 +198,8 @@
       setTimeout(function () { go(L + "/pay/" + (C.opt("vpPayVar") === "08a" ? "checkout" : "redirect") + "/index.html?order=" + id); }, 250);
     });
     initializing=false;upd();
+    window.addEventListener('pageshow', function (e) { if (e.persisted) upd(); });
+    window.addEventListener('storage', function () { upd(); });
   }
   function unc() { return '<span class="unc">' + ALERT + "<span>" + h("unc") + "</span></span>"; }
 
@@ -248,6 +274,10 @@
     D.querySelector("[data-provider-pay]").addEventListener("click", function () { if (paymentReady()) go(resultUrl(D.body.getAttribute("data-state") === "f0a" ? "success" : scenarioStatus(), sl)); });
     D.querySelector("[data-provider-cancel]").addEventListener("click", function (e) { e.preventDefault(); if (paymentReady()) go(resultUrl("cancel", sl)); });
   }
+  if (["SCR-08a", "SCR-08b", "SCR-08c"].indexOf(SCR) >= 0) {
+    window.addEventListener('pageshow', function (e) { if (e.persisted) paymentReady(); });
+    window.addEventListener('storage', function () { paymentReady(); });
+  }
   if (SCR === "SCR-09") {
     var od = order(), fillingResult = false;
     var resultStates = ["success", "pending", "delay", "fail", "cancel"];
@@ -308,6 +338,11 @@
       o.resultStatus = stt;
       if (!o.resultAt) o.resultAt = o.ts;
       saveOrder(o);
+      var retryRoute = o.product === 'unlimited' ? 'unlimited/' : o.product === 'dino-ticket' ? 'dino-park/' : o.product === 'nocard' ? 'tickets/' : 'pay/';
+      var retryUrl = new URL(R + L + '/' + retryRoute, location.href); retryUrl.searchParams.set('retry', '1');
+      if (o.product === 'nocard') retryUrl.hash = 'no-card';
+      if (q.get('review') === '1') retryUrl.searchParams.set('review', '1');
+      [].forEach.call(D.querySelectorAll('[data-retry-pay]'), function (link) { link.href = releaseURL(retryUrl.href); });
       var active=C.jget(SS(),"vpOrder",null);if(active&&active.id===o.id)C.set(SS(),"vpPending",unfinished(o)?"1":"");
       var set = function (sel, v) { [].forEach.call(D.querySelectorAll(sel), function (e) { e.textContent = v; }); };
       set("[data-r-amount]", amd(o.amount)); set("[data-r-card]", "…" + (o.last4 || "…")); set("[data-r-op]", "OP-" + o.id); set("[data-r-order]", o.id);
@@ -322,6 +357,12 @@
       fillingResult = false;
     }
     fill(st);
+    function refreshResult() {
+      var latest = order(); od = validStoredOrder(latest) ? latest : null;
+      fill(od ? od.resultStatus : 'missing');
+    }
+    window.addEventListener('pageshow', function (e) { if (e.persisted) refreshResult(); });
+    window.addEventListener('storage', function () { refreshResult(); });
     var u = C.utm(), ex = { status: st === "cancel" ? "fail" : st, reason: st === "cancel" ? "cancelled" : "", order_ref: od ? od.id : "" };
     if ((!u || !u.utm_source) && od && od.utm) { C.jset(SS(), "vpUtm", od.utm); }
     C.log("pay_result", ex);

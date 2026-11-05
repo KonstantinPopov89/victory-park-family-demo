@@ -8,6 +8,17 @@
  window.VPHomeDefault=Object.freeze({
   mark:function(state){try{if(state.cart.lines.length===3&&state.cart.lines.every(function(l){return l.productId==='unlimited'&&l.quantity===1&&!l.personId;}))localStorage.setItem(homeDefaultKey,JSON.stringify({version:1,cart:cartIdentity(state)}));}catch{}},
   claim:claimHomeDefault,
+  // Read-only bridge for defaults created by the published r39. A preview must
+  // not remove persisted cart lines before the customer applies a choice.
+  annotate:function(state){
+   try{
+    var marker=VPFamilyStorage.parseStrict(localStorage.getItem(homeDefaultKey)||'null');
+    if(marker?.version!==1||cartIdentity(state)!==marker.cart)return state;
+    var order=VPFamilyStorage.parseStrict(localStorage.getItem(stateKey+'.order')||'null');
+    if(order&&(!['success','declined'].includes(order.status)||order.lines?.some(function(l){return state.cart.lines.some(function(c){return c.id===l.id;});})))return state;
+    return VP3.markHomePrefill(state);
+   }catch{return state;}
+  },
   release:function(){
    try{
     var marker=VPFamilyStorage.parseStrict(localStorage.getItem(homeDefaultKey)||'null');if(marker?.version!==1)return false;

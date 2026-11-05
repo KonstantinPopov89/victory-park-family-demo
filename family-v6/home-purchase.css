@@ -19,11 +19,11 @@
 .home-purchase-manual label{display:block;font-size:13px;margin-bottom:6px}
 .home-purchase-manual input,.home-purchase-manual select{width:100%;max-width:190px;height:46px;border:1px solid #9f9ab3;border-radius:5px;background:#fff;color:#2f2e7d;padding:10px;font:400 16px/1.4 Montserrat,sans-serif;caret-color:#de0085}
 .home-purchase-manual input[aria-invalid=true]{border-color:#a22249}
-.home-purchase-summary{display:flex;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #dedbe7;padding-top:14px;margin-top:4px}
-.home-purchase-total{min-width:0;font-variant-numeric:tabular-nums}
-.home-purchase-total strong{display:block;font-size:23px;line-height:1.2;font-weight:650;letter-spacing:-.02em}
+.home-purchase-summary{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px;border-top:1px solid #dedbe7;padding-top:14px;margin-top:4px}
+.home-purchase-total{flex:0 0 auto;min-width:0;max-width:100%;font-variant-numeric:tabular-nums}
+.home-purchase-total strong{display:block;white-space:nowrap;font-size:23px;line-height:1.2;font-weight:650;letter-spacing:-.02em}
 .home-purchase-total small{display:block;font-size:11px;line-height:1.5;color:#625e76;margin-top:4px}
-.home-purchase .home-purchase-pay{display:inline-flex;align-items:center;justify-content:center;min-height:52px;min-width:148px;padding:14px 22px;border:1px solid #2f2e7d;border-radius:8px;background:#2f2e7d;color:#fff;font:600 14px/1.45 Montserrat,sans-serif;text-decoration:none;cursor:pointer;white-space:normal;text-align:center}
+.home-purchase .home-purchase-pay{display:inline-flex;flex:0 1 auto;align-items:center;justify-content:center;width:auto;max-width:100%;min-height:52px;min-width:148px;padding:14px 22px;border:1px solid #2f2e7d;border-radius:8px;background:#2f2e7d;color:#fff;font:600 14px/1.45 Montserrat,sans-serif;text-decoration:none;cursor:pointer;white-space:normal;text-align:center}
 .home-purchase .home-purchase-pay:hover:not(:disabled){background:#24235f;border-color:#24235f}
 .home-purchase .home-purchase-pay:disabled{opacity:.55;cursor:not-allowed}
 .home-purchase-note{font-size:11px;line-height:1.6;color:#625e76;margin:12px 0 0}
@@ -37,7 +37,7 @@
 .home-purchase-terms ul{padding-left:20px;margin:0 0 12px}
 .home-purchase-terms li{margin:4px 0}
 .home-purchase-resume p{font-size:14px;line-height:1.6;margin:0 0 12px}
-.home-purchase-resume .home-purchase-pay{width:100%}
+.home-purchase .home-purchase-resume h3{font-family:inherit!important;font-size:16px;line-height:1.4;font-weight:600;text-transform:none;letter-spacing:normal;margin:0 0 12px}
 .home-purchase [role=alert]{font-size:13px;line-height:1.5;color:#9b2046;margin:8px 0}
 .home-purchase :focus-visible{outline:3px solid #de0085;outline-offset:3px}
 .home-purchase ::selection{background:#efd5e7;color:#2f2e7d}

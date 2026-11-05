@@ -87,3 +87,17 @@ body[data-page=guest]>.guest-shell {padding-top:28px;padding-bottom:32px}
 .guest-shell .empty button {min-height:44px;border:1px solid #bdb7cf;background:white;border-radius:8px;color:#2f2e7d;padding:10px 16px;font-size:13px}
 html[lang=hy] .guest-shell :is(input,.guest-hours h2) {font-family:'Noto Sans Armenian',sans-serif!important}
 @media(max-width:600px){body[data-page=guest]>.guest-shell{padding-top:24px}.guest-shell h1{font-size:36px}.guest-ride-info{padding-left:0}}
+/* Keep the first status in view on short phones, with all context intact. */
+@media(max-width:600px) and (max-height:700px){
+ body[data-page=guest]>.guest-shell{padding-top:12px}
+ .guest-shell .page-heading{margin-bottom:8px}
+ .guest-shell h1{margin-bottom:6px}
+ .guest-demo-label{margin-bottom:4px}
+ .guest-demo-intro{line-height:1.5;margin-bottom:6px}
+ .guest-shell .date{margin-top:2px}
+ .guest-search{margin-bottom:10px}
+ .guest-filters{flex-wrap:nowrap;overflow-x:auto;max-width:none;padding:6px;margin:-6px -6px 8px;scroll-padding-inline:6px}
+ .guest-filters button{flex:0 0 auto;white-space:nowrap}
+ .guest-overview{margin-bottom:4px}
+ .guest-shell #result-note:empty{padding:0}
+}
