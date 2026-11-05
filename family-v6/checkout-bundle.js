@@ -360,10 +360,14 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
     if (typeof ride === 'string') ride = rideMap[ride];
     if (!ride || !ride.fictional || !ride.ageRange) return { status: 'unknown', text: 'Возрастная рекомендация не подтверждена.' };
     var bounds = ageBounds(person);
-    if (!bounds || (!ride.connectedDemo && isAdult(person))) return { status: 'unknown', text: 'Учебный возрастной ориентир: ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Это не правило допуска.' };
-    var inside = bounds.min >= ride.ageRange[0] && bounds.max <= ride.ageRange[1];
-    var outside = bounds.max < ride.ageRange[0] || bounds.min > ride.ageRange[1];
-    return { status: inside ? 'suggested' : outside ? 'outside' : 'possible', text: (inside ? 'В возрастном ориентире' : outside ? 'Вне возрастного ориентира' : 'Диапазон частично пересекается с ориентиром') + ' ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Возраст не подтверждает допуск.' };
+    var rangeLabel = ride.connectedDemo && ride.ageRange[1] >= 99 ? ride.ageRange[0] + '+' : ride.ageRange[0] + '-' + ride.ageRange[1];
+    if (!bounds || (!ride.connectedDemo && isAdult(person))) return { status: 'unknown', text: 'Учебный возрастной ориентир: ' + rangeLabel + ' лет. Это не правило допуска.' };
+    // Connected catalogue ranges ending at 99 are displayed as open-ended N+.
+    // Use the same meaning for every participant range, including 18+.
+    var upper = ride.connectedDemo && ride.ageRange[1] >= 99 ? Infinity : ride.ageRange[1];
+    var inside = bounds.min >= ride.ageRange[0] && bounds.max <= upper;
+    var outside = bounds.max < ride.ageRange[0] || bounds.min > upper;
+    return { status: inside ? 'suggested' : outside ? 'outside' : 'possible', text: (inside ? 'В возрастном ориентире' : outside ? 'Вне возрастного ориентира' : 'Диапазон частично пересекается с ориентиром') + ' ' + rangeLabel + ' лет. Возраст не подтверждает допуск.' };
   }
   function admission(ride, person, purchaseOptions) {
     if (typeof ride === 'string') ride = rideMap[ride];
@@ -1021,6 +1025,33 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
 }));
 
 ;
+/* /victory-park-family-demo/family-v6/home-default.js */
+/* Provenance for an untouched automatic homepage preview; no existing draft is inferred automatic. */
+(function(){'use strict';
+ // Only a newly generated homepage default carries provenance. Existing drafts
+ // without this marker, changed carts and every attempted payment are explicit.
+ var homeDefaultKey='vp.family.v6.people.v1.homeDefault',stateKey='vp.family.v6.people.v1';
+ function cartIdentity(state){return JSON.stringify((state?.cart?.lines||[]).map(function(l){return [l.id,l.productId,l.rideId||null,l.personId||null,l.recipientKey||null,l.quantity,l.unitPrice,!!l.autoCompanion,l.companionFor||[],l.companionReason||null];}));}
+ function claimHomeDefault(){try{localStorage.removeItem(homeDefaultKey);}catch{}}
+ window.VPHomeDefault=Object.freeze({
+  mark:function(state){try{if(state.cart.lines.length===3&&state.cart.lines.every(function(l){return l.productId==='unlimited'&&l.quantity===1&&!l.personId;}))localStorage.setItem(homeDefaultKey,JSON.stringify({version:1,cart:cartIdentity(state)}));}catch{}},
+  claim:claimHomeDefault,
+  release:function(){
+   try{
+    var marker=VPFamilyStorage.parseStrict(localStorage.getItem(homeDefaultKey)||'null');if(marker?.version!==1)return false;
+    var state=VPFamilyStorage.parseStrict(localStorage.getItem(stateKey)||'null');
+    if(!state||cartIdentity(state)!==marker.cart){claimHomeDefault();return false;}
+    // A payment snapshot always takes priority, even if an older tab left a marker.
+    var order=VPFamilyStorage.parseStrict(localStorage.getItem(stateKey+'.order')||'null');
+    if(order&&(!['success','declined'].includes(order.status)||order.lines?.some(function(l){return state.cart.lines.some(function(c){return c.id===l.id;});})))return false;
+    var next=Object.assign({},state,{cart:{lines:[]}});VPFamilyStorage.writeState(localStorage,next);
+    claimHomeDefault();localStorage.removeItem(stateKey+'.quickDraft');return true;
+   }catch{return false;}
+  }
+ });
+}());
+
+;
 /* /victory-park-family-demo/family-v6/journey-start.js */
 /* Live synchronization of real interests only. Commerce and demo selections stay separate. */
 (function(){'use strict';
@@ -1034,7 +1065,8 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
   return result;
  }
  window.VPJourneySync=run;
- VPFamilyStorage.wait().then(function(ok){if(ok){ready=true;run('entry');}});
+ // Save controls wait for both the profile boundary and the actual initial sync.
+ window.VPJourneyReady=VPFamilyStorage.wait().then(function(ok){if(!ok)return false;ready=true;return run('entry').ok===true;});
  window.addEventListener('storage',function(e){if(!Object.values(VPJourneyBridge.KEYS).includes(e.key)&&e.key!==null)return;if(pending)return;pending=true;setTimeout(function(){pending=false;run('storage');document.dispatchEvent(new CustomEvent('vp:interests',{detail:{reason:'external'}}));},0);});
  window.addEventListener('pageshow',function(){run('pageshow');document.dispatchEvent(new CustomEvent('vp:interests',{detail:{reason:'pageshow'}}));});
  window.addEventListener('pagehide',function(){run('pagehide');});
@@ -4053,6 +4085,12 @@ if(entryQuery.get('recover')==='legacy')try{await navigator.locks.request(LOCK,(
  else{const old=VPC.validateOrder(VPFamilyStorage.parseStrict(localStorage.getItem(VPFamilyStorage.LEGACY.order)||'null'));const paid=pastOrders().find(o=>o.id===old?.id);if(paid&&(!order||['success','declined'].includes(order.status)))order=paid;}
  if(order){entryQuery.set('resume',order.id);entryQuery.delete('recover');history.replaceState(history.state,'',location.pathname+'?'+entryQuery.toString()+location.hash);}
 });}catch{warning='Не удалось проверить ответ. Сохранённый заказ остаётся доступен; повторно не оплачивайте.';}
+// Serialize a specific-card transition with payment in every other tab.
+if(!home&&!entryQuery.has('resume')&&VP3.demoRides.some(r=>r.id===entryQuery.get('ride')))await navigator.locks.request(LOCK,()=>{
+ const active=storedOrder();if(active)order=active;
+ if(window.VPHomeDefault?.release())quickDraftSaved=false;
+ state=VPFamilyStorage.recoverState(localStorage,VP3.sanitizeState).state;
+});
 if(order&&['success','declined'].includes(order.status)&&!entryQuery.has('resume')){completedEntry=order.status==='success'&&state.cart.lines.some(line=>order.lines.some(paid=>paid.id===line.id));settlePaidLines(order);order=null;}
 familyOpen=!state.party.length;
 const rides=()=>state.mode==='real'?VP3.realRides:VP3.demoRides;
@@ -4071,7 +4109,7 @@ const id=()=> 'v3-'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(3
 function announce(text){const el=$('#announce');if(!el)return;const lang=language();el.textContent=window.VPI18n?.translate(text)||(home&&lang!=='ru'?(window.VP_TRANSLATIONS?.[text]?.[lang]||VPHomePurchase.text(lang,/билетов в пакете|Количество|Выбор/.test(text)?'selectionUpdated':'informationUpdated')):text);}
 function save(){try {VPFamilyStorage.writeState(localStorage,state);}catch {storageAvailable=false;warning='Выбор не сохраняется в браузере. При переходе или обновлении он может потеряться.';}}
 function markQuickDraft(){if(quick)try{localStorage.setItem(QUICK_DRAFT,'1');quickDraftSaved=true;}catch{}}
-function startDefaultPurchase(){if(!quick||order||state.cart.lines.length)return;delete state.selectedJourney;activeProduct='unlimited';state.mode='demo';state.cart.lines=Array.from({length:3},()=>({id:id(),productId:'unlimited',rideId:null,personId:null,recipientKey:'direct-pass-'+id(),quantity:1,unitPrice:VP3.products.unlimited.price}));params.set('product','unlimited');try{history.replaceState(history.state,'',location.pathname+'?'+params.toString()+location.hash);}catch{}markQuickDraft();save();}
+function startDefaultPurchase(){if(!quick||order||state.cart.lines.length)return;delete state.selectedJourney;activeProduct='unlimited';state.mode='demo';state.cart.lines=Array.from({length:3},()=>({id:id(),productId:'unlimited',rideId:null,personId:null,recipientKey:'direct-pass-'+id(),quantity:1,unitPrice:VP3.products.unlimited.price}));params.set('product','unlimited');try{history.replaceState(history.state,'',location.pathname+'?'+params.toString()+location.hash);}catch{}markQuickDraft();save();if(home)window.VPHomeDefault?.mark(state);}
 function savePromotion(){try{localStorage.setItem(PROMO,JSON.stringify(promotion));}catch{storageAvailable=false;warning='Предложение сохранено только в этой вкладке.';}}
 function pastOrders(){return VPFamilyStorage.readHistory(localStorage,VPC.validateOrder).rows.filter(order=>order.status==='success').slice(0,20);}
 function saveOrder(){
@@ -4483,7 +4521,7 @@ function render(){const previous=renderPricing,version=++renderFocusVersion;rend
 function renderContents(version){if(home){renderHome(version);return;}const receiptView=window.VPPostPurchase?.captureView();document.body.classList.toggle('has-receipt',!!order);syncCompanions();if(reviewing&&!state.cart.lines.length){reviewing=false;reviewedToken='';requestAnimationFrame(()=>jump(directEntry?'#direct':'#recommendations'));}if(!order)save();if(!person(ticketPersonId)){const selectedPeople=state.riders.map(person).filter(Boolean);ticketPersonId=(selectedPeople.length===1?selectedPeople[0]:state.party.length===1?state.party[0]:null)?.id||'';}const active=document.activeElement,focusTarget=active&&active!==document.body&&active!==document.documentElement?{element:active,id:active.id,data:active.dataset?{...active.dataset}:null}:pendingRenderFocus;const openIds=[...document.querySelectorAll('#app details[open]')].map(d=>d.id).filter(x=>x&&x!=='family');document.body.dataset.mode=state.mode;document.body.classList.toggle('family-editing',document.body.dataset.page==='picker'&&familyOpen);$('#app').innerHTML=VPFamilyStorage.recoveryHTML(localStorage,language())+(warning?note(warning,'error'):'')+(state.tariffNotice&&!order?note(state.tariffNotice,'warning'):'')+(state._issues?.length?note('Сохранённые данные частично повреждены. Проверьте компанию и заказ; при необходимости очистите выбор в описании прототипа.','error'):'')+(document.body.dataset.page==='picker'?renderPicker():renderTickets());for(const did of openIds){const d=document.getElementById(did);if(d)d.open=true;}$('#family')?.addEventListener('toggle',e=>{if(e.target.isConnected){familyOpen=e.target.open;document.body.classList.toggle('family-editing',document.body.dataset.page==='picker'&&familyOpen);}});const count=state.cart.lines.reduce((n,l)=>n+l.quantity,0);if($('#cart-count'))$('#cart-count').textContent=count?' ('+count+')':'';document.querySelectorAll('[data-mobile-cart-count]').forEach(el=>el.textContent=count?' ('+count+')':'');$('#app').setAttribute('aria-busy',String(busy));$('#mobile').innerHTML=busy?'<div class="mobile-bar checkout-dock"><div><strong>Проверяем оплату</strong><small>Учебный ответ</small></div><button class="btn btn-primary" disabled>Подождите</button></div>':order?'':purchasePage?checkoutBar():`<div class="mobile-bar"><div><strong>${selected().length} в списке</strong></div><a class="btn btn-primary" href="#plan">Наш список</a></div>`;if(quick&&needsProductChoice&&!order){$('#mobile').innerHTML='';}else if(purchasePage&&purchaseRouteIssue&&!order){$('#mobile').innerHTML='';}else if(purchasePage&&state.mode==='real'&&!order){$('#mobile').innerHTML='<div class="mobile-bar"><div><strong>Список сохранён</strong><small>Настоящие аттракционы</small></div><a class="btn btn-primary" href="reels.html#plan">К списку</a></div>';}if(companyRepairMode()&&!order)$('#mobile').innerHTML='<div class="mobile-bar checkout-dock">'+companyRepairReturn()+'</div>';window.VPPostPurchase?.restoreView(receiptView);document.dispatchEvent(new Event('vp:catalog-rendered'));restoreRenderFocus(focusTarget,version);}
 function addPerson(){if(state.party.length>=8)return;const p=newParticipant();state.party.push(p);familyOpen=true;agePerson=p.id;update();requestAnimationFrame(()=>$('#person-'+p.id)?.scrollIntoView({block:'nearest',behavior:'smooth'}));}
 function clearIssues(){state._issues=[];formError='';}
-function commitCart(lines,message,reveal=true){undo={kind:'cart',message:'Заказ изменён.',lines:clone(state.cart.lines),company:companyData()};clearCompanyApplication();state.cart={lines};markQuickDraft();clearIssues();update(message);if(reveal&&state.cart.lines.length&&!customTarget)requestAnimationFrame(()=>focusField('cart'));}
+function commitCart(lines,message,reveal=true){window.VPHomeDefault?.claim();undo={kind:'cart',message:'Заказ изменён.',lines:clone(state.cart.lines),company:companyData()};clearCompanyApplication();state.cart={lines};markQuickDraft();clearIssues();update(message);if(reveal&&state.cart.lines.length&&!customTarget)requestAnimationFrame(()=>focusField('cart'));}
 function setQuantity(target,n){
  if(target.startsWith('quick:'))return setQuickQuantity(target,n);
  if(!Number.isInteger(n)||n<1||n>20)return false;
@@ -4495,7 +4533,7 @@ function setQuantity(target,n){
 }
 function directPass(pId){if(!state.riders.includes(pId))state.riders.push(pId);ticketPersonId=pId;const current=state.cart.lines.find(l=>l.productId==='unlimited'&&l.personId===pId);if(current&&isRequiredLine(current))return;if(person(pId)&&!hasKnownAge(person(pId)))agePerson=pId;commitCart(current?state.cart.lines.filter(l=>l.id!==current.id):[...state.cart.lines,{id:id(),productId:'unlimited',rideId:null,personId:pId,recipientKey:null,quantity:1,unitPrice:VP3.products.unlimited.price}],current?'Безлимит удалён.':'Безлимит и необходимое сопровождение добавлены.',false);}
 function purchaseAdd(companion=false){if(state.party.length>=8)return;const p=newParticipant();state.party.push(p);ticketPersonId=p.id;agePerson=p.id;if(companion){update('Участник добавлен. Укажите возраст, чтобы выбрать сопровождение.');jump('#purchase-people');return;}const missing=state.cart.lines.filter(l=>!VP3.isPackage(l)&&!VP3.isDirectLine(l)&&!l.personId);if(missing.length===1)missing[0].personId=p.id;else if(activeProduct==='unlimited'){state.cart.lines.push({id:id(),productId:'unlimited',rideId:null,personId:p.id,recipientKey:null,quantity:1,unitPrice:VP3.products.unlimited.price});if(!state.riders.includes(p.id))state.riders.push(p.id);}update('Получатель добавлен.');jump('#purchase-people');}
-async function pay(){if(busy||order||(!quick&&needsReview()&&!reviewing)||companyContext()?.changed)return;if(!navigator.onLine){formError='Нет связи. Подключитесь к интернету и попробуйте оплатить снова. Платёж не начат.';render();focusField('checkout-errors');return;}const a=calculateCart(state,promotion);if(!a.canCheckout){formError='Проверьте состав и получателей заказа.';render();jump('#checkout-errors');return;}busy=true;render();const run=async()=>{try{const recovered=VPFamilyStorage.legacyOrder(localStorage,VPC.validateOrder,state.cart.lines.map(l=>l.id));if(recovered){order=recovered;if(!saveOrder())throw new Error('Order recovery could not be saved');settlePaidLines(order);orderURL(order.id);busy=false;render();return;}const other=VPC.validateOrder(VPFamilyStorage.parseStrict(localStorage.getItem(ORDER)||'null'));if(other&&(!['success','declined'].includes(other.status)||other.status==='success'&&state.cart.lines.some(line=>other.lines.some(paid=>paid.id===line.id)))){order=other;settlePaidLines(other);orderURL(other.id);busy=false;render();return;}}catch{busy=false;warning='Не удалось проверить ответ. Сохранённый заказ остаётся доступен; повторно не оплачивайте.';render();return;}order=VPC.snapshotOrder(purchaseState(state),promotion,'DEMO-'+id(),'pending',undefined,purchaseOptions);if(!order){busy=false;formError='Не удалось создать образец. Проверьте заказ.';render();return;}if(!saveOrder()){busy=false;render();return;}orderURL(order.id);render();await new Promise(resolve=>setTimeout(resolve,300));const confirmed=VPC.confirmPayment(order,!navigator.onLine||scenario==='offline'?'pending':scenario);if(!confirmed){busy=false;warning='Не удалось проверить ответ оплаты. Повторно не оплачивайте; проверьте сохранённый заказ.';render();return;}order=confirmed;saveOrder();busy=false;render();window.scrollTo({top:0});$('#result-heading')?.focus({preventScroll:true});announce('Статус заказа обновлён.');};try{if(navigator.locks?.request)await navigator.locks.request(LOCK,run);else{busy=false;formError='В этом браузере недоступна защита заказа между вкладками. Откройте прототип в современном браузере.';render();}}catch{busy=false;warning='Не удалось завершить проверку. Если заказ создан, проверяйте его статус.';render();}}
+async function pay(){if(busy||order||(!quick&&needsReview()&&!reviewing)||companyContext()?.changed)return;window.VPHomeDefault?.claim();if(!navigator.onLine){formError='Нет связи. Подключитесь к интернету и попробуйте оплатить снова. Платёж не начат.';render();focusField('checkout-errors');return;}const a=calculateCart(state,promotion);if(!a.canCheckout){formError='Проверьте состав и получателей заказа.';render();jump('#checkout-errors');return;}busy=true;render();const run=async()=>{try{const recovered=VPFamilyStorage.legacyOrder(localStorage,VPC.validateOrder,state.cart.lines.map(l=>l.id));if(recovered){order=recovered;if(!saveOrder())throw new Error('Order recovery could not be saved');settlePaidLines(order);orderURL(order.id);busy=false;render();return;}const other=VPC.validateOrder(VPFamilyStorage.parseStrict(localStorage.getItem(ORDER)||'null'));if(other&&(!['success','declined'].includes(other.status)||other.status==='success'&&state.cart.lines.some(line=>other.lines.some(paid=>paid.id===line.id)))){order=other;settlePaidLines(other);orderURL(other.id);busy=false;render();return;}}catch{busy=false;warning='Не удалось проверить ответ. Сохранённый заказ остаётся доступен; повторно не оплачивайте.';render();return;}order=VPC.snapshotOrder(purchaseState(state),promotion,'DEMO-'+id(),'pending',undefined,purchaseOptions);if(!order){busy=false;formError='Не удалось создать образец. Проверьте заказ.';render();return;}if(!saveOrder()){busy=false;render();return;}orderURL(order.id);render();await new Promise(resolve=>setTimeout(resolve,300));const confirmed=VPC.confirmPayment(order,!navigator.onLine||scenario==='offline'?'pending':scenario);if(!confirmed){busy=false;warning='Не удалось проверить ответ оплаты. Повторно не оплачивайте; проверьте сохранённый заказ.';render();return;}order=confirmed;saveOrder();busy=false;render();window.scrollTo({top:0});$('#result-heading')?.focus({preventScroll:true});announce('Статус заказа обновлён.');};try{if(navigator.locks?.request)await navigator.locks.request(LOCK,run);else{busy=false;formError='В этом браузере недоступна защита заказа между вкладками. Откройте прототип в современном браузере.';render();}}catch{busy=false;warning='Не удалось завершить проверку. Если заказ создан, проверяйте его статус.';render();}}
 async function resolveOrder(){
  if(busy||!order||!['pending','issuance','partial'].includes(order.status))return;
  if(!navigator.onLine){warning='Нет связи. Статус заказа не изменён. Повторите проверку после подключения.';render();return;}

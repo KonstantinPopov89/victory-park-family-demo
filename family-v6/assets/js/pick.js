@@ -152,6 +152,8 @@
     ab.addEventListener("click", function () { if (ab.getAttribute("data-in")) { location.href = releaseURL(url("plan")); } else { add(slug, "attraction"); ab_upd(); } });
     ab_upd();
     D.addEventListener("vp:interests", ab_upd);
+    // Do not accept a tap until the click handler and real-interest store are ready.
+    Promise.resolve(W.VPJourneyReady).then(function(ok){if(!ok)return;ab_upd();ab.disabled=false;ab.removeAttribute("aria-busy");ab.dataset.saveReady="true";});
     var bk = D.querySelector("[data-back]"); if (bk && !catalogueFilter() && D.referrer && D.referrer.indexOf(location.host) >= 0 && history.length > 1) bk.addEventListener("click", function (e) { e.preventDefault(); history.back(); });
   }
 

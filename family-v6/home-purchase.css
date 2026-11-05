@@ -73,3 +73,16 @@ body[data-v5][data-home-purchase] #home-purchase .home-purchase-pay{min-width:14
 .home-purchase-selection{font-size:13px;line-height:1.5;margin:0 0 8px}
 .home-purchase-scenarios select{width:100%;max-width:100%;min-height:44px;font:400 14px/1.4 Montserrat,sans-serif;border:1px solid #9f9ab3;border-radius:5px;padding:8px;color:#2f2e7d;background:#fff}
 @media(max-width:350px){body[data-v5][data-home-purchase] #home-purchase .home-purchase-pay{min-width:126px;padding-inline:12px}}
+
+/* Keep the asynchronous purchase region stable before the saved state arrives.
+   Shorter resume messages retain this frame; expanded controls grow naturally. */
+.home-purchase{min-height:377px}
+@media(min-width:701px) and (max-width:1100px){.home-purchase{min-height:416px}}
+@media(max-width:700px){
+ body[data-home-purchase] .hero-copy{width:100%;min-width:0}
+ /* Reserve three heading lines across the display-font swap. */
+ body[data-home-purchase] .hero h1{min-height:3.06em}
+ html[lang=hy] body[data-home-purchase] .hero h1{min-height:3.54em}
+ .home-purchase{min-height:414px}
+}
+@media(max-width:350px){html[lang=hy] .home-purchase{min-height:464px}}
