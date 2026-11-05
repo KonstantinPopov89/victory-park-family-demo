@@ -199,7 +199,7 @@
     });
     initializing=false;upd();
     window.addEventListener('pageshow', function (e) { if (e.persisted) upd(); });
-    window.addEventListener('storage', function () { upd(); });
+    window.addEventListener('storage', function (e) { if (e.key === 'vpOrders' || e.key === null) upd(); });
   }
   function unc() { return '<span class="unc">' + ALERT + "<span>" + h("unc") + "</span></span>"; }
 
@@ -276,7 +276,7 @@
   }
   if (["SCR-08a", "SCR-08b", "SCR-08c"].indexOf(SCR) >= 0) {
     window.addEventListener('pageshow', function (e) { if (e.persisted) paymentReady(); });
-    window.addEventListener('storage', function () { paymentReady(); });
+    window.addEventListener('storage', function (e) { if (e.key === 'vpOrders' || e.key === null) paymentReady(); });
   }
   if (SCR === "SCR-09") {
     var od = order(), fillingResult = false;
@@ -358,11 +358,16 @@
     }
     fill(st);
     function refreshResult() {
-      var latest = order(); od = validStoredOrder(latest) ? latest : null;
+      var latest = order(); latest = validStoredOrder(latest) ? latest : null;
+      var latestStatus = latest ? (resultStates.indexOf(latest.resultStatus) >= 0 ? latest.resultStatus : 'pending') : 'missing';
+      // An unrelated purchase or a storage availability probe must not replace
+      // the active receipt and interrupt its contact field or selected ticket.
+      if (JSON.stringify(latest) === JSON.stringify(od) && D.body.getAttribute('data-filled') === latestStatus) return;
+      od = latest;
       fill(od ? od.resultStatus : 'missing');
     }
     window.addEventListener('pageshow', function (e) { if (e.persisted) refreshResult(); });
-    window.addEventListener('storage', function () { refreshResult(); });
+    window.addEventListener('storage', function (e) { if (e.key === 'vpOrders' || e.key === null) refreshResult(); });
     var u = C.utm(), ex = { status: st === "cancel" ? "fail" : st, reason: st === "cancel" ? "cancelled" : "", order_ref: od ? od.id : "" };
     if ((!u || !u.utm_source) && od && od.utm) { C.jset(SS(), "vpUtm", od.utm); }
     C.log("pay_result", ex);
