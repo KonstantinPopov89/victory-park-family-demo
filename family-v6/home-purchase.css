@@ -86,3 +86,57 @@ body[data-v5][data-home-purchase] #home-purchase .home-purchase-pay{min-width:14
  .home-purchase{min-height:414px}
 }
 @media(max-width:350px){html[lang=hy] .home-purchase{min-height:464px}}
+
+/* Purchase follows the brief ride introduction; the hero has one direct anchor. */
+body[data-home-purchase] .hero{align-items:center;padding-bottom:32px}
+body[data-home-purchase] .hero-actions a[data-vp-cta=primary]{background:#2f2e7d;color:#fff;border-color:#2f2e7d;min-height:52px}
+body[data-home-purchase] .hero-actions a[data-vp-cta=primary]:hover{background:#454292}
+.home-location-line{font-size:15px;line-height:1.5;margin:0 0 18px;color:#625e76}
+body[data-home-purchase] .gallery{padding-block:36px;background:transparent!important}
+body[data-home-purchase] .gallery .section-head{margin-bottom:20px}
+body[data-home-purchase] .gallery h2{font-size:clamp(32px,3.2vw,44px);line-height:1.1}
+body[data-home-purchase] .gallery h2 br{display:none}
+body[data-home-purchase] .gallery .image-wrap{height:190px;aspect-ratio:auto}
+body[data-home-purchase] .gallery .image-wrap img{height:100%;width:100%;object-fit:cover}
+body[data-home-purchase] .gallery .section-intro{max-width:640px}
+body[data-home-purchase] .gallery-note{margin-top:18px;margin-bottom:0}
+body[data-home-purchase] .buy-section{padding-block:40px}
+.home-purchase-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 64px;align-items:start}
+.home-purchase-intro h2{font-size:clamp(36px,4vw,54px);line-height:1.1;margin:0 0 18px}
+.home-purchase-intro .section-intro{font-size:16px;line-height:1.6;margin:0;max-width:420px}
+.home-purchase-layout .home-purchase{margin:0;max-width:none;scroll-margin-top:24px}
+.home-purchase-layout .home-purchase-alternatives,.home-purchase-layout .buy-links{grid-column:1/-1}
+.home-purchase-alternatives{border-top:1px solid #dedbe7;padding-top:16px}
+.home-purchase-alternatives>summary{cursor:pointer;min-height:44px;align-content:center;font-size:15px;font-weight:600;color:#2f2e7d}
+.home-purchase-alternatives .product-row{margin-top:20px}
+.home-purchase-layout .buy-links{margin-top:0;gap:16px 28px;flex-wrap:wrap}
+#home-purchase:focus-visible{outline:2px solid #d80b8c;outline-offset:8px}
+@media(max-width:800px){
+ .home-purchase-layout{grid-template-columns:minmax(0,1fr);gap:24px}
+ .home-purchase-intro .section-intro{max-width:620px}
+ body[data-home-purchase] .gallery{padding-block:24px}
+ body[data-home-purchase] .gallery .image-wrap{height:150px}
+ body[data-home-purchase] .gallery .section-head{gap:12px;align-items:start}
+ body[data-home-purchase] .gallery .section-intro{font-size:14px;margin-top:12px}
+ body[data-home-purchase] .buy-section{padding-block:28px}
+ .home-purchase-intro h2{font-size:36px;margin-bottom:12px}
+ .home-purchase-intro h2 br{display:none}
+}
+@media(max-width:700px){
+ body[data-home-purchase] .hero{padding-bottom:20px;gap:20px}
+ body[data-home-purchase] .hero h1{min-height:0}
+ html[lang=hy] body[data-home-purchase] .hero h1{min-height:0}
+ .home-location-line{font-size:13px;margin-bottom:14px}
+}
+
+body[data-home-purchase] .gallery .ride-teaser{margin-top:0!important}
+body[data-home-purchase] .gallery .gallery-rail{align-items:start}
+.gallery-conditions{margin-top:16px;font-size:13px;color:#625e76}
+.gallery-conditions>summary{cursor:pointer;min-height:44px;align-content:center}
+.gallery-conditions .gallery-note{margin-top:8px!important}
+@media(max-width:700px){html[lang=hy] body[data-home-purchase] .gallery h2,html[lang=hy] .home-purchase-intro h2{font-size:28px!important;line-height:1.25}}
+body[data-home-purchase] .gallery .ride-teaser:nth-child(n){padding-top:0}
+body[data-home-purchase] .home-explore .home-family{grid-column:1;grid-row:1}
+body[data-home-purchase] .home-explore .home-discovery{grid-column:2;grid-row:1}
+/* Match the fallback heading height so loading the display font cannot move the CTA. */
+@media(max-width:700px){html[lang=ru] body[data-home-purchase] .hero h1{min-height:3.06em}}
