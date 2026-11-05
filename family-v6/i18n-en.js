@@ -21,4 +21,5 @@ Object.assign(window.VP_TRANSLATIONS, {"Пакеты на компанию": {"e
 
 Object.assign(window.VP_TRANSLATIONS,{"Сумма пополнения":{"en":"Top-up amount"}});
 
+Object.assign(window.VP_TRANSLATIONS,{"Пакет на 3 билета":{"en":"3-ride shared package"},"Учебный пакет: 3 билета на любые аттракционы демонстрационного каталога.":{"en":"Demo package: 3 rides on any attraction in the demo catalogue."}});
 Object.assign(window.VP_TRANSLATIONS,{"учебный пример":{"en":"teaching example"}});

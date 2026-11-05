@@ -57,15 +57,15 @@
   // Issued 3.3 purchases retain the original catalog and validity, independently
   // of the eight universal packages introduced for new purchases in 3.4.
   var legacy33Products = products;
-  var packageSizes = [5, 10, 20, 30, 40, 60, 80, 100];
+  var packageSizes = [3, 5, 10, 20, 30, 40, 60, 80, 100];
   var PACKAGE_VALIDITY = '30 дней с покупки, можно использовать в разные дни';
   var universalProducts = copy(products);
   packageSizes.forEach(function (size) {
     var productId = 'package' + size;
-    universalProducts[productId] = { id: productId, name: 'Пакет на ' + size + ' билетов', price: size * 800,
+    universalProducts[productId] = { id: productId, name: 'Пакет на ' + size + (size === 3 ? ' билета' : ' билетов'), price: size * 800,
       includedRideIds: demoRides.map(function (ride) { return ride.id; }), rides: size, personal: false, dateRequired: false, fictional: true,
       validity: PACKAGE_VALIDITY, terms: [
-        'Учебный пакет: ' + size + ' билетов на любые аттракционы демонстрационного каталога.',
+        'Учебный пакет: ' + size + (size === 3 ? ' билета' : ' билетов') + ' на любые аттракционы демонстрационного каталога.',
         'Один билет даёт одно катание одному человеку. Билеты можно делить между участниками компании.',
         'Срок: 30 дней с момента покупки. Можно использовать в разные дни; повторное катание расходует ещё один билет.',
         'Совместное катание ребёнка и взрослого расходует два билета. Условия допуска, сопровождения и работа аттракциона проверяются отдельно.',

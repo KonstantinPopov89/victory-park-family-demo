@@ -9,11 +9,18 @@
   "demo": true,
   "payments": "simulated",
   "prototype": "family-v6",
-  "revision": 38,
+  "revision": 39,
   "default_purchase": {
     "product": "unlimited",
     "quantity": 3,
     "when": "fresh_only"
   },
-  "artifact_id": "victory-impeccable-demo-20261105-r38"
+  "artifact_id": "victory-impeccable-demo-20261105-r39",
+  "home_purchase": {
+    "variant": "a",
+    "unlimited": 3,
+    "package_rides": 3,
+    "package_quantity": 1,
+    "default_when": "fresh_only"
+  }
 }
