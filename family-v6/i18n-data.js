@@ -1,5 +1,5 @@
 (()=>{
- const assetVersions=/* vp-asset-versions:start */{"i18n-en.js":"70b35938f71a226a","i18n-hy.js":"b0afc12cb71b1e8c"}/* vp-asset-versions:end */;
+ const assetVersions=/* vp-asset-versions:start */{"i18n-en.js":"dc5a90b80f05241e","i18n-hy.js":"ec89b42e6eac9be9"}/* vp-asset-versions:end */;
  const base=new URL('.',document.currentScript.src).pathname;
  const allowed=['ru','hy','en'],requested=new URLSearchParams(location.search).get('lang');
  let saved='ru';try{saved=localStorage.getItem('vpLang')||'ru';}catch{}

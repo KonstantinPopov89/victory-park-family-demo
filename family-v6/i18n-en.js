@@ -23,3 +23,5 @@ Object.assign(window.VP_TRANSLATIONS,{"Сумма пополнения":{"en":"T
 
 Object.assign(window.VP_TRANSLATIONS,{"Пакет на 3 билета":{"en":"3-ride shared package"},"Учебный пакет: 3 билета на любые аттракционы демонстрационного каталога.":{"en":"Demo package: 3 rides on any attraction in the demo catalogue."}});
 Object.assign(window.VP_TRANSLATIONS,{"учебный пример":{"en":"teaching example"}});
+
+Object.assign(window.VP_TRANSLATIONS,{"Не удалось сохранить заказ. Оплата не начата. Ваш выбор остался на этой странице. Разрешите сохранение в браузере и попробуйте снова.":{"en":"The order could not be saved. Payment has not started. Your selection is still on this page. Allow browser storage and try again."}});
