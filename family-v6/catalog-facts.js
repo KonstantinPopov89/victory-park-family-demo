@@ -39,17 +39,22 @@
   }
   function refreshActions() {
     const selected = chosenSlugs();
-    const url = new URL(selected.length ? 'experience/guest/company.html' : 'experience/guest/quick.html', root);
+    const detailSlug = document.body.dataset.vpCatalog === 'detail' ? document.querySelector('[data-ride-price]')?.dataset.ridePrice : null;
+    const detailRide = detailSlug && rides.get(detailSlug);
+    const product = detailRide && window.VP3?.demoForReal(detailRide.id);
+    const url = new URL(!product && selected.length ? 'experience/guest/company.html' : 'experience/guest/quick.html', root);
     url.searchParams.set('lang', language);
-    if (selected.length) { url.searchParams.set('source', 'real'); url.searchParams.set('mode', 'exact'); }
+    if (product) { url.searchParams.set('product', 'single'); url.searchParams.set('ride', product.id); url.searchParams.set('quantity', '1'); url.searchParams.set('from', 'real'); }
+    else if (selected.length) { url.searchParams.set('source', 'real'); url.searchParams.set('mode', 'exact'); }
     if (new URLSearchParams(location.search).get('review') === '1') url.searchParams.set('review', '1');
     document.querySelectorAll('[data-catalog-tickets]').forEach(link => {
       const destination = releaseURL(url.pathname + url.search);
       if (link.getAttribute('href') !== destination) link.setAttribute('href', destination);
-      link.setAttribute('aria-label', selected.length ? text.ticketsSelected : text.ticketsEmpty);
+      link.setAttribute('aria-label', product ? text.ticketsEmpty + ': ' + (detailRide.names?.[language] || detailRide.name) : selected.length ? text.ticketsSelected : text.ticketsEmpty);
     });
     document.querySelectorAll('[data-catalog-selected-count]').forEach(node => setText(node, String(selected.length)));
   }
+  function officialParkLinks(lang){const labels={ru:['Аттракционы на сайте парка','Контакты парка'],en:['Official park attractions (Russian)','Park contacts (Russian)'],hy:['Այգու պաշտոնական ատրակցիոնները (ռուսերեն)','Այգու կոնտակտները (ռուսերեն)']}[lang]||{ru:['Аттракционы на сайте парка','Контакты парка'],en:['Official park attractions (Russian)','Park contacts (Russian)'],hy:['Այգու պաշտոնական ատրակցիոնները (ռուսերեն)','Այգու կոնտակտները (ռուսերեն)']}.ru;return `<p class="official-park-links" data-official-park-links data-i18n-skip><a href="https://parkvictory.am/ru/attractions" target="_blank" rel="noopener noreferrer">${labels[0]}</a><a href="https://parkvictory.am/ru/contact" target="_blank" rel="noopener noreferrer">${labels[1]}</a></p>`;}
   function refresh() {
     const statusData = readStatuses();
     const statuses = new Map(statusData.rides.map(ride => [ride.catalogId, ride]));
@@ -81,6 +86,8 @@
     });
     document.querySelectorAll('[data-ride-restrictions]').forEach(node => setText(node, text.restrictions));
     document.querySelectorAll('[data-catalog-facts-warning]').forEach(node => { node.hidden = !statusData.unavailable; setText(node, text.noSource); });
+    const boundary = document.querySelector('.ride-detail-boundary');
+    if (boundary && !document.querySelector('[data-official-park-links]')) boundary.insertAdjacentHTML('afterend', officialParkLinks(language));
     refreshActions();
   }
   function start() {

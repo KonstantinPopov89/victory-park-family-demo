@@ -75,7 +75,7 @@
   products = freeze(universalProducts);
   var packageProducts = packageSizes.map(function (size) { return products['package' + size]; });
   if(typeof window!=='undefined'&&window.VPProductCatalog){products=freeze(window.VPProductCatalog.products);packageProducts=packageSizes.map(function(n){return products['package'+n];});}
-  var MODEL_VERSION = 'family-demo-3.5';
+  var MODEL_VERSION = 'family-demo-3.6';
   // Explicit fictional admission examples. Editorial ageRange is deliberately separate.
   var admissionRules = freeze({
     'demo-calm': { minAge: 3, maxAge: null, soloAge: 8, adultPrice: 900 },
@@ -197,7 +197,9 @@
   packageSizes.forEach(function (size) { connectedProducts['package' + size].includedRideIds = demoRides.map(function (r) { return r.id; }); });
   products = freeze(connectedProducts);
   packageProducts = packageSizes.map(function (size) { return products['package' + size]; });
-  var currentOrderCatalog = freeze({ rides: demoRides.reduce(function (out, r) { out[r.id] = { name: r.name, price: r.price }; return out; }, {}), products: products });
+  var legacy35OrderCatalog = freeze({ rides: demoRides.reduce(function (out, r) { out[r.id] = { name: r.name, price: r.price }; return out; }, {}), products: products });
+  // Receipt identity changes only for new orders. All prior snapshots keep their catalogue.
+  var currentOrderCatalog = freeze({ rides: demoRides.reduce(function (out, r) { out[r.id] = { name: r.name + (r.connectedDemo ? '' : ' (учебный пример)'), price: r.price }; return out; }, {}), products: products });
   var legacyNamedRides = legacyDemoRides.reduce(function (out, ride) { out[ride.id] = { name: ride.name, price: ride.price }; return out; }, {});
   var orderCatalogs = freeze({
     'family-demo-3': legacyOrderCatalog,
@@ -205,7 +207,8 @@
     'family-demo-3.2': { rides: legacyNamedRides, products: legacy32Products },
     'family-demo-3.3': { rides: legacy34OrderCatalog.rides, products: legacy33Products },
     'family-demo-3.4': legacy34OrderCatalog,
-    'family-demo-3.5': currentOrderCatalog
+    'family-demo-3.5': legacy35OrderCatalog,
+    'family-demo-3.6': currentOrderCatalog
   });
   var rideMap = {};
   realRides.concat(demoRides).forEach(function (r) { rideMap[r.id] = r; });
@@ -301,7 +304,7 @@
     out.companionId = id(raw.companionId) || null;
     out.companionAutoSelected = !!out.companionId && raw.companionAutoSelected === true;
     var lines = raw.cart && Array.isArray(raw.cart.lines) ? raw.cart.lines : [], lineIds = new Set();
-    out.tariffNotice = raw.modelVersion === MODEL_VERSION ? (typeof raw.tariffNotice === 'string' ? raw.tariffNotice.slice(0, 800) : null) : lines.some(function (line) { return line && isPackage(line); }) ? 'Для новой демопокупки пакет теперь также покрывает выбранные названия из каталога парка. Количество, сумма и срок 30 дней сохранены. Прежние оплаченные образцы не изменены. Проверьте состав перед оплатой.' : null;
+    out.tariffNotice = [MODEL_VERSION, 'family-demo-3.5'].includes(raw.modelVersion) ? (typeof raw.tariffNotice === 'string' ? raw.tariffNotice.slice(0, 800) : null) : lines.some(function (line) { return line && isPackage(line); }) ? 'Для новой демопокупки пакет теперь также покрывает выбранные названия из каталога парка. Количество, сумма и срок 30 дней сохранены. Прежние оплаченные образцы не изменены. Проверьте состав перед оплатой.' : null;
     if (lines.length > 100) issues.push('cart');
     lines.slice(0, 100).forEach(function (line, i) {
       if (!line || typeof line !== 'object') { issues.push('cart'); return; }
@@ -763,9 +766,9 @@
       var storedLine = copy(line);
       if (person) storedLine.recipientProfile = { age: person.age, ageBand: person.ageBand };
       delete storedLine.autoCompanion; delete storedLine.companionFor; delete storedLine.companionReason;
-      return Object.assign({}, storedLine, { name: line.productId === 'ticket' ? 'Билет: ' + rideMap[line.rideId].name : product.name,
+      return Object.assign({}, storedLine, { name: line.productId === 'ticket' ? 'Билет: ' + currentOrderCatalog.rides[line.rideId].name : product.name,
         recipientLabel: person ? person.label : line.productId === 'unlimited' ? 'Получатель ' + (index + 1) + ': назначить перед использованием' : isPackage(line) ? 'Общий пакет для компании' : 'Получатель определяется перед использованием',
-        includedRideIds: included, includedNames: included.map(function (rideId) { return rideMap[rideId].name; }), terms: copy(product.terms), validity: isPackage(line) ? PACKAGE_VALIDITY : VALIDITY,
+        includedRideIds: included, includedNames: included.map(function (rideId) { return currentOrderCatalog.rides[rideId].name; }), terms: copy(product.terms), validity: isPackage(line) ? PACKAGE_VALIDITY : VALIDITY,
         purchasedAt: purchasedAt, validUntil: isPackage(line) && purchasedAt ? packageExpiry(purchasedAt) : null, timeZone: 'Asia/Yerevan',
         unitsPerItem: isPackage(line) ? product.rides : line.productId === 'ticket' ? 1 : null });
     });
@@ -779,7 +782,7 @@
     if (!order || order.version !== 3 || typeof order.modelVersion !== 'string' || !Object.prototype.hasOwnProperty.call(orderCatalogs, order.modelVersion) || !id(order.id) || !['success', 'declined', 'pending', 'issuance', 'partial'].includes(order.status) || !Array.isArray(order.lines) || !order.lines.length || order.lines.length > 100 || !integer(order.total, 1, 100000000) || typeof order.createdAt !== 'string' || !Number.isFinite(Date.parse(order.createdAt))) return null;
     if (Object.prototype.hasOwnProperty.call(order, 'visitDate')) return null;
     if (order.status !== 'partial' && Object.prototype.hasOwnProperty.call(order, 'issuedCount')) return null;
-    if (['family-demo-3.4', MODEL_VERSION].includes(order.modelVersion)) {
+    if (['family-demo-3.4', 'family-demo-3.5', MODEL_VERSION].includes(order.modelVersion)) {
       var paid = ['success', 'issuance', 'partial'].includes(order.status);
       if (paid ? typeof order.paymentConfirmedAt !== 'string' || !Number.isFinite(Date.parse(order.paymentConfirmedAt)) || Date.parse(order.paymentConfirmedAt) < Date.parse(order.createdAt) : order.paymentConfirmedAt !== null) return null;
     }
@@ -790,7 +793,7 @@
       if (!product || !id(line.id) || ids.has(line.id) || !integer(line.quantity, 1, MAX_QUANTITY) || priceFor(line, catalog) === null || line.unitPrice !== priceFor(line, catalog) || Object.prototype.hasOwnProperty.call(line, 'visitDate')) return null;
       var included = line.productId === 'ticket' ? [line.rideId] : product.includedRideIds;
       var expectedName = line.productId === 'ticket' ? 'Билет: ' + catalog.rides[line.rideId].name : product.name;
-      var modern = ['family-demo-3.4', MODEL_VERSION].includes(order.modelVersion), packaged = isPackage(line);
+      var modern = ['family-demo-3.4', 'family-demo-3.5', MODEL_VERSION].includes(order.modelVersion), packaged = isPackage(line);
       if (line.name !== expectedName || !equal(line.includedRideIds, included) || !equal(line.includedNames, included.map(function (rideId) { return catalog.rides[rideId].name; })) || !equal(line.terms, product.terms) || line.validity !== (modern && packaged ? PACKAGE_VALIDITY : VALIDITY) || line.unitsPerItem !== (packaged ? product.rides || 5 : line.productId === 'ticket' ? 1 : null) || typeof line.recipientLabel !== 'string' || !line.recipientLabel.trim() || line.recipientLabel.length > 150 || /[\u0000-\u001f<>]/.test(line.recipientLabel)) return null;
       if (modern && (line.purchasedAt !== order.paymentConfirmedAt || line.validUntil !== (packaged && order.paymentConfirmedAt ? packageExpiry(order.paymentConfirmedAt) : null) || line.timeZone !== 'Asia/Yerevan' || packaged && order.paymentConfirmedAt && !line.validUntil)) return null;
       if (line.personId !== null && !id(line.personId)) return null;
@@ -815,7 +818,7 @@
       ids.add(line.id); total += line.unitPrice * line.quantity; totalItems += line.quantity;
     }
     if (order.status === 'partial' && (!Object.prototype.hasOwnProperty.call(order, 'issuedCount') || !integer(order.issuedCount, 1, totalItems - 1))) return null;
-    if (order.selectedJourney && (order.modelVersion !== MODEL_VERSION || order.selectedJourney.version !== 1 || !Array.isArray(order.selectedJourney.realRideIds) || order.selectedJourney.realRideIds.some(function (rid) { return !demoForReal(rid); }) || !Array.isArray(order.selectedJourney.summary) || order.selectedJourney.summary.length > 100 || order.selectedJourney.summary.some(function (s) { return typeof s !== 'string' || s.length > 500 || /[\u0000-\u001f<>]/.test(s); }))) return null;
+    if (order.selectedJourney && (!['family-demo-3.5', MODEL_VERSION].includes(order.modelVersion) || order.selectedJourney.version !== 1 || !Array.isArray(order.selectedJourney.realRideIds) || order.selectedJourney.realRideIds.some(function (rid) { return !demoForReal(rid); }) || !Array.isArray(order.selectedJourney.summary) || order.selectedJourney.summary.length > 100 || order.selectedJourney.summary.some(function (s) { return typeof s !== 'string' || s.length > 500 || /[\u0000-\u001f<>]/.test(s); }))) return null;
     return total === order.total && passes <= MAX_QUANTITY ? copy(order) : null;
   }
   // A payment attempt is not a purchase. Start the package lifetime once the
@@ -828,7 +831,7 @@
     next.status = status; delete next.issuedCount;
     var count = next.lines.reduce(function (sum, line) { return sum + line.quantity; }, 0);
     if (next.status === 'partial') { if (count === 1) next.status = 'issuance'; else next.issuedCount = count - 1; }
-    if (['family-demo-3.4', MODEL_VERSION].includes(next.modelVersion) && paidNext && !paidBefore) {
+    if (['family-demo-3.4', 'family-demo-3.5', MODEL_VERSION].includes(next.modelVersion) && paidNext && !paidBefore) {
       var when = confirmedAt === undefined ? new Date().toISOString() : confirmedAt;
       if (typeof when !== 'string' || !Number.isFinite(Date.parse(when)) || Date.parse(when) < Date.parse(next.createdAt)) return null;
       next.paymentConfirmedAt = when;

@@ -20,3 +20,5 @@ Object.assign(window.VP_TRANSLATIONS, {"Сохраните понравивши�
 Object.assign(window.VP_TRANSLATIONS, {"Пакеты на компанию": {"en": "Packages for your group"}, "Выберите количество билетов. Цена указана за весь пакет.": {"en": "Choose the number of tickets. The price is for the whole package."}, "Пакет не всегда дешевле отдельных билетов.": {"en": "A package is not always cheaper than individual tickets."}});
 
 Object.assign(window.VP_TRANSLATIONS,{"Сумма пополнения":{"en":"Top-up amount"}});
+
+Object.assign(window.VP_TRANSLATIONS,{"учебный пример":{"en":"teaching example"}});

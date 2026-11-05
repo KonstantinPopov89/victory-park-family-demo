@@ -33,3 +33,7 @@ body[data-page=company] [data-real-context] .cp-layout{margin-top:16px}
  body[data-page=company] [data-real-context] .cp-question{margin:12px 0 4px;font-size:13px}
  body[data-page=company] [data-real-context] .cp-ride-head h2{font-size:19px!important}
 }
+
+.cp-age-guide{font-size:13px;line-height:1.55;color:#625e76;margin:12px 0}.cp-age-guide p{margin:8px 0}.cp-age-warning{border-left:3px solid #2f2e7d;padding-left:12px;color:#282442}
+
+.official-park-links{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;line-height:1.5;margin:12px 0}.official-park-links a{color:#2f2e7d;text-underline-offset:3px;min-height:32px;display:inline-flex;align-items:center}
