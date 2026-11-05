@@ -10,7 +10,8 @@
   return result;
  }
  window.VPJourneySync=run;
- VPFamilyStorage.wait().then(function(ok){if(ok){ready=true;run('entry');}});
+ // Save controls wait for both the profile boundary and the actual initial sync.
+ window.VPJourneyReady=VPFamilyStorage.wait().then(function(ok){if(!ok)return false;ready=true;return run('entry').ok===true;});
  window.addEventListener('storage',function(e){if(!Object.values(VPJourneyBridge.KEYS).includes(e.key)&&e.key!==null)return;if(pending)return;pending=true;setTimeout(function(){pending=false;run('storage');document.dispatchEvent(new CustomEvent('vp:interests',{detail:{reason:'external'}}));},0);});
  window.addEventListener('pageshow',function(){run('pageshow');document.dispatchEvent(new CustomEvent('vp:interests',{detail:{reason:'pageshow'}}));});
  window.addEventListener('pagehide',function(){run('pagehide');});

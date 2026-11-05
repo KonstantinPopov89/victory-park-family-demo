@@ -35,3 +35,5 @@ body[data-screen="SCR-43"] .ride-detail-status:focus-visible,body[data-screen="S
 @media(prefers-reduced-motion:reduce){body[data-screen="SCR-43"] .ride-detail-actions *{transition:none;scroll-behavior:auto}}
 
 .official-park-links{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;line-height:1.5;margin:12px 0}.official-park-links a{color:#2f2e7d;text-underline-offset:3px;min-height:32px;display:inline-flex;align-items:center}
+
+button[data-save-ready="pending"]{opacity:.6;cursor:wait}

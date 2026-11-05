@@ -24,4 +24,6 @@
  search.addEventListener('keydown',e=>{if(e.key==='Escape'){search.value='';renderFilter();field.classList.remove('is-open');toggle.setAttribute('aria-expanded','false');toggle.focus();}});
  document.addEventListener('vp:interests',selection);window.addEventListener('pageshow',()=>{selection();renderFilter();});window.addEventListener('popstate',renderFilter);
  selection();renderFilter();
+ // HTML keeps these controls disabled until this handler and storage are ready.
+ Promise.resolve(window.VPJourneyReady).then(ok=>{if(!ok)return;selection();saveButtons.forEach(b=>{b.disabled=false;b.removeAttribute('aria-busy');b.dataset.saveReady='true';});});
 })();

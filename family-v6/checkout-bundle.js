@@ -359,10 +359,14 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
     if (typeof ride === 'string') ride = rideMap[ride];
     if (!ride || !ride.fictional || !ride.ageRange) return { status: 'unknown', text: 'Возрастная рекомендация не подтверждена.' };
     var bounds = ageBounds(person);
-    if (!bounds || (!ride.connectedDemo && isAdult(person))) return { status: 'unknown', text: 'Учебный возрастной ориентир: ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Это не правило допуска.' };
-    var inside = bounds.min >= ride.ageRange[0] && bounds.max <= ride.ageRange[1];
-    var outside = bounds.max < ride.ageRange[0] || bounds.min > ride.ageRange[1];
-    return { status: inside ? 'suggested' : outside ? 'outside' : 'possible', text: (inside ? 'В возрастном ориентире' : outside ? 'Вне возрастного ориентира' : 'Диапазон частично пересекается с ориентиром') + ' ' + ride.ageRange[0] + '-' + ride.ageRange[1] + ' лет. Возраст не подтверждает допуск.' };
+    var rangeLabel = ride.connectedDemo && ride.ageRange[1] >= 99 ? ride.ageRange[0] + '+' : ride.ageRange[0] + '-' + ride.ageRange[1];
+    if (!bounds || (!ride.connectedDemo && isAdult(person))) return { status: 'unknown', text: 'Учебный возрастной ориентир: ' + rangeLabel + ' лет. Это не правило допуска.' };
+    // Connected catalogue ranges ending at 99 are displayed as open-ended N+.
+    // Use the same meaning for every participant range, including 18+.
+    var upper = ride.connectedDemo && ride.ageRange[1] >= 99 ? Infinity : ride.ageRange[1];
+    var inside = bounds.min >= ride.ageRange[0] && bounds.max <= upper;
+    var outside = bounds.max < ride.ageRange[0] || bounds.min > upper;
+    return { status: inside ? 'suggested' : outside ? 'outside' : 'possible', text: (inside ? 'В возрастном ориентире' : outside ? 'Вне возрастного ориентира' : 'Диапазон частично пересекается с ориентиром') + ' ' + rangeLabel + ' лет. Возраст не подтверждает допуск.' };
   }
   function admission(ride, person, purchaseOptions) {
     if (typeof ride === 'string') ride = rideMap[ride];
@@ -1033,7 +1037,8 @@ window.VPProductCatalog={"products":{"ticket":{"id":"ticket","name":"Билет 
   return result;
  }
  window.VPJourneySync=run;
- VPFamilyStorage.wait().then(function(ok){if(ok){ready=true;run('entry');}});
+ // Save controls wait for both the profile boundary and the actual initial sync.
+ window.VPJourneyReady=VPFamilyStorage.wait().then(function(ok){if(!ok)return false;ready=true;return run('entry').ok===true;});
  window.addEventListener('storage',function(e){if(!Object.values(VPJourneyBridge.KEYS).includes(e.key)&&e.key!==null)return;if(pending)return;pending=true;setTimeout(function(){pending=false;run('storage');document.dispatchEvent(new CustomEvent('vp:interests',{detail:{reason:'external'}}));},0);});
  window.addEventListener('pageshow',function(){run('pageshow');document.dispatchEvent(new CustomEvent('vp:interests',{detail:{reason:'pageshow'}}));});
  window.addEventListener('pagehide',function(){run('pagehide');});
