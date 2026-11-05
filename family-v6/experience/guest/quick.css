@@ -97,3 +97,5 @@ body[data-history-view] [data-unified-history]:focus{outline:none}
 
 /* Keep loading recovery and damaged-storage guidance usable before checkout is ready. */
 #vp-boot-state{min-height:100svh;padding:24px 0;max-width:760px;margin:auto}#vp-boot-state h1{font:600 clamp(28px,5vw,42px)/1.2 var(--body,Montserrat,Arial,sans-serif)}#vp-boot-state p{max-width:44em}#vp-boot-state .btn-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:24px}.vp-storage-recovery{margin:16px 0;padding:18px;border:1px solid #c9b88c;background:#fff8e8;color:#51401c}.vp-storage-recovery p{margin:0 0 12px}.vp-storage-recovery button{min-height:44px}
+
+.official-park-links{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:12px;line-height:1.5;margin:12px 0}.official-park-links a{color:#2f2e7d;text-underline-offset:3px;min-height:32px;display:inline-flex;align-items:center}

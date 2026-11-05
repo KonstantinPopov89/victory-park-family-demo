@@ -90,7 +90,7 @@
   function baseOrder(order) {
     var result = {};
     BASE_KEYS.forEach(function (key) { result[key] = order[key]; });
-    if (['family-demo-3.4','family-demo-3.5'].includes(order.modelVersion)) result.paymentConfirmedAt = order.paymentConfirmedAt;
+    if (['family-demo-3.4','family-demo-3.5','family-demo-3.6'].includes(order.modelVersion)) result.paymentConfirmedAt = order.paymentConfirmedAt;
     if (has(order, 'selectedJourney')) result.selectedJourney = order.selectedJourney;
     if (order.status === 'partial') result.issuedCount = order.issuedCount;
     if (has(order, 'pricingVersion')) result.total = order.subtotal;
@@ -98,7 +98,7 @@
   }
   function validateOrder(order) {
     if (!object(order) || !Array.isArray(order.lines) || !order.lines.every(function (line) {
-      var keys = ['family-demo-3.4','family-demo-3.5'].includes(order.modelVersion) ? LINE_KEYS.concat(['purchasedAt', 'validUntil', 'timeZone']) : LINE_KEYS;
+      var keys = ['family-demo-3.4','family-demo-3.5','family-demo-3.6'].includes(order.modelVersion) ? LINE_KEYS.concat(['purchasedAt', 'validUntil', 'timeZone']) : LINE_KEYS;
       // New receipts may retain an age range. Older receipts have no profile;
       // the base validator owns its exact shape and age/range consistency.
       if (object(line) && has(line, 'recipientProfile')) keys = keys.concat(['recipientProfile']);
@@ -106,7 +106,7 @@
     })) return null;
     var enriched = has(order, 'pricingVersion');
     var keys = order.status === 'partial' ? BASE_KEYS.concat(['issuedCount']) : BASE_KEYS;
-    if (['family-demo-3.4','family-demo-3.5'].includes(order.modelVersion)) keys = keys.concat(['paymentConfirmedAt']);
+    if (['family-demo-3.4','family-demo-3.5','family-demo-3.6'].includes(order.modelVersion)) keys = keys.concat(['paymentConfirmedAt']);
     if (has(order, 'selectedJourney')) keys = keys.concat(['selectedJourney']);
     if (!exactKeys(order, enriched ? keys.concat(EXTRA_KEYS) : keys)) return null;
     var validated = base.validateOrder(baseOrder(order));
