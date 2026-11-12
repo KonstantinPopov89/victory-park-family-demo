@@ -7,6 +7,8 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '17 */6 * * *'
+    # 17:43 Yerevan / 16:43 Moscow, after CBA publishes the business-day rates.
+    - cron: '43 13 * * *'
 permissions:
   contents: read
 concurrency:
@@ -17,10 +19,20 @@ jobs:
     name: Security gate
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    outputs:
+      currency_sha256: ${{ steps.currency.outputs.sha256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Test daily currency updates and failure recovery
+        run: python3 -m unittest discover -s .github/currency -p 'test_*.py' -v
+      - name: Refresh daily CBA currency snapshot
+        id: currency
+        if: github.ref == 'refs/heads/codex/prototype' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && github.event.schedule == '43 13 * * *'))
+        run: |
+          python3 .github/currency/update_currency_rates.py --target family-v6/data/exchange-rates.json --report "$RUNNER_TEMP/currency-report.json"
+          echo "sha256=$(sha256sum family-v6/data/exchange-rates.json | cut -d ' ' -f 1)" >> "$GITHUB_OUTPUT"
       - name: Verify positive and negative controls
         run: python3 .github/security/security_gate.py self-test
       - name: Verify and package the exact public payload
@@ -33,7 +45,7 @@ jobs:
           retention-days: 30
           if-no-files-found: error
       - name: Upload verified Pages payload
-        if: github.ref == 'refs/heads/codex/prototype' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        if: github.ref == 'refs/heads/codex/prototype' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && github.event.schedule == '43 13 * * *'))
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: github-pages
@@ -43,7 +55,7 @@ jobs:
           compression-level: 0
   deploy:
     name: Publish verified payload
-    if: github.ref == 'refs/heads/codex/prototype' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    if: github.ref == 'refs/heads/codex/prototype' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'schedule' && github.event.schedule == '43 13 * * *'))
     needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -59,7 +71,7 @@ jobs:
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
   published:
     name: Public readback
-    needs: deploy
+    needs: [verify, deploy]
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -73,9 +85,11 @@ jobs:
             sleep 15
           done
           exit 1
+      - name: Verify the exact published currency snapshot
+        run: python3 .github/currency/update_currency_rates.py --verify-public '${{ needs.verify.outputs.currency_sha256 }}'
   availability:
     name: Scheduled availability
-    if: github.event_name == 'schedule'
+    if: github.event_name == 'schedule' && github.event.schedule == '17 */6 * * *'
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
