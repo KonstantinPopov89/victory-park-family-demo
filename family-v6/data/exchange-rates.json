@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "source": "CBA",
+  "source_url": "https://www.cba.am/en/",
+  "quote": "AMD per 1 currency unit",
+  "date": "2026-11-12",
+  "retrieved_at": "2026-11-12T16:22:31+00:00",
+  "USD": 360.51,
+  "RUB": 4.3552
+}
