@@ -1,0 +1,8 @@
+/* The AMD price keeps its existing size, weight and role. */
+.vp-currency-price{display:inline-flex;flex-direction:column;align-items:flex-start;vertical-align:top;max-width:100%;line-height:inherit}
+.vp-currency-price>.vp-currency-amd{font:inherit;color:inherit;line-height:inherit}
+.vp-currency-price>.vp-currency-hint{display:block;font-family:Montserrat,"Noto Sans Armenian",sans-serif;font-size:11px;font-weight:400;line-height:1.45;letter-spacing:0;text-transform:none;white-space:nowrap;color:inherit;margin:2px 0 0}
+.vp-currency-note{font-family:Montserrat,"Noto Sans Armenian",sans-serif;font-size:11px;font-weight:400;line-height:1.5;letter-spacing:0;text-transform:none;max-width:1100px;margin:16px auto;padding:0 20px;color:inherit}
+.vp-currency-note a{text-decoration:underline;color:inherit}
+.home-purchase-total .vp-currency-price{align-items:inherit}
+@media print{.vp-currency-hint{color:#333}}
