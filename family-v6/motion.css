@@ -1,0 +1,40 @@
+/* A shared rhythm, with stable control geometry and no delayed input. */
+:root {
+  --vp-motion-fast: 120ms;
+  --vp-motion-settle: 200ms;
+  --vp-motion-ease: cubic-bezier(.2,.8,.2,1);
+}
+:root body :is(button,summary,[role="button"],[data-vp-cta],a.button,a.btn) {
+  transition-property: background-color, border-color, color, box-shadow;
+  transition-duration: var(--vp-motion-fast);
+  transition-timing-function: var(--vp-motion-ease);
+}
+/* Override the older whole-button hover/active scale: the hit area never moves. */
+:root body :is(button,[role="button"],[data-vp-cta],a.button,a.btn):is(:hover,:active,[data-vp-pressed]) { transform: none !important; }
+:root body :is(button,summary,[role="button"],[data-vp-cta],a.button,a.btn)[data-vp-pressed] {
+  box-shadow: inset 0 0 0 100vmax rgb(47 46 125 / .14);
+  transition-duration: 0ms;
+}
+:root body [data-vp-cta="primary"][data-vp-pressed] { box-shadow: inset 0 0 0 100vmax rgb(255 255 255 / .18); }
+:root body :is(button,summary,[role="button"],[data-vp-cta],a.button,a.btn):focus-visible {
+  outline: 3px solid #d80b8c;
+  outline-offset: 3px;
+}
+:root body :is([data-catalog-save],.r-save) > svg { transition: transform var(--vp-motion-fast) var(--vp-motion-ease); }
+:root body :is([data-catalog-save],.r-save)[data-vp-pressed] > svg { transform: scale(.88); }
+.vp-motion-confirm > svg { animation: vp-confirm 260ms var(--vp-motion-ease); }
+.vp-motion-total { animation: vp-total 300ms ease-out; }
+details.vp-motion-disclosure[open] > :not(summary) { animation: vp-disclose 180ms var(--vp-motion-ease); }
+dialog[open] { animation: vp-dialog 180ms var(--vp-motion-ease); }
+dialog[open]::backdrop { animation: vp-dialog 180ms var(--vp-motion-ease); }
+@keyframes vp-confirm { 0% { transform: scale(.9); } 45% { transform: scale(1.16); } 100% { transform: scale(1); } }
+@keyframes vp-total { from { background-color: rgb(216 11 140 / .12); } to { background-color: transparent; } }
+@keyframes vp-disclose { from { opacity: .55; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@keyframes vp-dialog { from { opacity: .6; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  :root body :is(button,summary,[role="button"],[data-vp-cta],a.button,a.btn),
+  :root body :is([data-catalog-save],.r-save) > svg { transition: none; }
+  :root body :is([data-catalog-save],.r-save)[data-vp-pressed] > svg { transform: none; }
+  .vp-motion-confirm > svg,.vp-motion-total,details.vp-motion-disclosure[open] > :not(summary) { animation: none; }
+  dialog[open],dialog[open]::backdrop { animation: none; }
+}

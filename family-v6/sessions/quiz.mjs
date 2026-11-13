@@ -5,6 +5,7 @@ import {EVENTS, SESSIONS, SEATS, SCENARIOS, defaultState, availability, total, r
 import {translate} from './i18n.mjs?vpv=e639e1ea8ee01408';
 import {quizCopy} from './quiz-copy.mjs?vpv=85466ff9fa18dd2e';
 import {issuedSnapshot, startsNewBooking, mapSnapshotFor} from './journey.mjs?vpv=5ce1c050300f40de';
+import {captureRenderContext,restoreRenderContext} from './render-context.mjs?vpv=891cdaf7121a8baf';
 
 
 const root=document.querySelector('#app');
@@ -109,7 +110,7 @@ function previousTicket(){return lastIssued&&state.phase!=='issued'?`<details cl
 function result(){const p=state.phase;const key={processing:'processing',unknown:'unknown',declined:'declined',security:'security',pending:'pending',issued:'issued',expired:'expired'}[p];const icon={processing:'…',unknown:'?',declined:'!',security:'!',pending:'✓',issued:'✓',expired:'◷'}[p];let action='';if(p==='unknown')action=btn(t('checkPayment'),'check','','yellow');if(p==='pending')action=btn(t('checkTicket'),'issue','','yellow');if(p==='declined')action=btn(t('retry'),'retry','','yellow');if(p==='expired')action=btn(t('renew'),'renew','','yellow');if(p==='security')action=btn(t('help'),'help','','secondary');if(p==='issued')action=btn(t('saveTicket'),'download','','yellow')+btn(t('printTicket'),'print','','secondary');return `${journey(['issued','pending'].includes(p)?2:1)}<div class="result"><div class="result-icon ${['issued','pending'].includes(p)?'ok':''}" aria-hidden="true">${icon}</div><h1 tabindex="-1">${t(key+'Title')}</h1><p class="lead" ${p==='processing'?'role="status"':''}>${t(p==='expired'?'expiredMessage':key+'Text')}</p>${state.orderId?`<p class="small muted">${t('order')} <span class="order-code">${esc(state.orderId)}</span></p>`:''}${p!=='issued'&&event()&&session()?`<p class="status-context">${esc(t(event().titleKey))}<br>${dateText(session())} · ${t('guests')}: ${state.qty}<br>${money(total(state))}${state.seats.length?' · '+esc(seatText(state.seats)):''}</p>`:''}${p==='issued'?ticket():''}<div class="action-row">${action}${['unknown','pending','declined'].includes(p)?link(t('help'),'help'):''}${p==='issued'?link(t('newBooking'),'catalog'):''}</div>${p==='issued'?(window.VPSocialLinks?.render(state.lang,{saveAction:'session'})||''):''}${help()}</div>`;}
 function reviewPanel(){return !review?'':`<details class="review-panel" open><summary>${t('review')}</summary><p class="small muted">${t('reviewNote')}</p><div class="review-controls"><label>${t('scenario')}<select id="scenario">${SCENARIOS.map(v=>`<option value="${v}" ${v===state.scenario?'selected':''}>${t(v)}</option>`).join('')}</select></label>${btn(t('applyScenario'),'scenario','','secondary small-btn')}${btn(t('expire'),'expire','','secondary small-btn',!['payment','declined'].includes(state.phase)?'disabled':'')}${btn(t('reset'),'reset','','secondary small-btn')}</div><pre>${esc(JSON.stringify({phase:state.phase,orderId:state.orderId,attempts:state.attempts,actions:state.log.slice(-8)},null,2))}</pre></details>`;}
 function render(focus=false){if(mutating){needsRender=true;renderFocus=renderFocus||focus;return;}
- const active=document.activeElement,focusId=active?.id,focusAction=active?.dataset.action,focusValue=active?.dataset.value;
+ const context=captureRenderContext(root);
  document.documentElement.lang=state.lang;document.title='Victory Park · '+t('booking');
  let content,shownView=ui.view;
  if(!['select','payment'].includes(state.phase))content=result();
@@ -120,9 +121,8 @@ function render(focus=false){if(mutating){needsRender=true;renderFocus=renderFoc
  else if(ui.view==='map')content=mapView();
  else content=checkout();
  root.innerHTML=header()+`<main id="main" class="wrap quiz-wrap" data-view="${esc(shownView)}" data-phase="${esc(state.phase)}">${readOnly?`<p class="notice archive-note" role="status">${label(state.lang,resumeMissing?'missing':'archive')}</p>`:''}${resumeMissing?'':content+previousTicket()+reviewPanel()}</main>`+siteFooter(state);decorate(root,readOnly);
+ restoreRenderContext(root,context,{focus:!focus});
  if(focus){document.querySelector('h1')?.focus({preventScroll:true});window.scrollTo({top:0});}
- else if(focusId){document.getElementById(focusId)?.focus({preventScroll:true});}
- else if(focusAction){document.querySelector(`[data-action="${CSS.escape(focusAction)}"][data-value="${CSS.escape(focusValue||'')}"]`)?.focus({preventScroll:true});}
  mobileActions.mount();updateClock();
 }
 function updateClock(){if(!state.holdUntil)return;const seconds=Math.max(0,Math.ceil((state.holdUntil-Date.now())/1000));const time=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;document.querySelectorAll('[data-hold]').forEach(el=>el.textContent=t('hold',{time}));}

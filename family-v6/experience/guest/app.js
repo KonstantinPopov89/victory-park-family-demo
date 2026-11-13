@@ -407,6 +407,9 @@ function renderHome(version){
   continueURL:homeContinueURL(),resume:!product||Boolean(order),scenario
  });
  mount.setAttribute('aria-busy',String(busy));
+ const total=String(order?.total??assessment.payable);
+ if(mount.dataset.motionTotal!==undefined&&mount.dataset.motionTotal!==total)window.VPMotion?.changed(mount.querySelector('[data-home-total]'),'total');
+ mount.dataset.motionTotal=total;
  for(const did of openIds){const el=document.getElementById(did);if(el)el.open=true;}
  restoreRenderFocus(focusTarget,version);
  if(homePayStarted&&order&&!busy&&!homeRedirecting){
