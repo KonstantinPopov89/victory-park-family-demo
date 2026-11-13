@@ -32,7 +32,7 @@
 .home-purchase-terms summary{display:flex;align-items:center;min-height:44px;width:fit-content;color:#2f2e7d;font-weight:600;cursor:pointer;gap:8px;list-style:none}
 .home-purchase-terms summary::-webkit-details-marker{display:none}
 .home-purchase-terms summary::after{content:'+';font-size:19px;font-weight:400}
-.home-purchase-terms[open] summary::after{content:'−'}
+.home-purchase-terms[open]>summary::after,.home-purchase-terms details[open]>summary::after{content:'−'}
 .home-purchase-terms p{margin:0 0 10px;font-size:inherit;line-height:inherit}
 .home-purchase-terms ul{padding-left:20px;margin:0 0 12px}
 .home-purchase-terms li{margin:4px 0}
