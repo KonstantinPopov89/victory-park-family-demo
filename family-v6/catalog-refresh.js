@@ -16,7 +16,7 @@
   const selected=C.list();
   saveButtons.forEach(b=>{const active=selected.includes(b.dataset.catalogSave),name=b.closest('[data-catalog-name]').dataset.catalogName,pressed=String(active),text=active?t.saved:t.save,label=(active?t.remove:t.save)+': '+name,span=b.querySelector('span');if(b.getAttribute('aria-pressed')!==pressed)b.setAttribute('aria-pressed',pressed);if(span.textContent!==text)span.textContent=text;if(b.getAttribute('aria-label')!==label)b.setAttribute('aria-label',label);});
  }
- saveButtons.forEach(b=>b.addEventListener('click',()=>{const list=C.list(),slug=b.dataset.catalogSave;C.setList(list.includes(slug)?list.filter(x=>x!==slug):[...list,slug]);selection();}));
+ saveButtons.forEach(b=>b.addEventListener('click',()=>{const list=C.list(),slug=b.dataset.catalogSave,wasSelected=list.includes(slug);C.setList(wasSelected?list.filter(x=>x!==slug):[...list,slug]);selection();if(C.list().includes(slug)!==wasSelected)window.VPMotion?.changed(b);}));
  document.addEventListener('vp:catalog-filter',renderFilter);search.addEventListener('input',renderFilter);
  document.querySelector('[data-catalog-reset]').addEventListener('click',()=>{search.value='';document.querySelector('[data-filter=""]').click();search.focus();});
  const toggle=document.querySelector('.catalog-search-toggle'),field=document.querySelector('.catalog-search');

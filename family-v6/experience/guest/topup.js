@@ -5,7 +5,7 @@
   const money = value => `${Number(value).toLocaleString('ru-RU')} AMD`;
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   const scenarios = { success: 'Успешная оплата и зачисление', declined: 'Окончательный отказ оплаты', pending: 'Оплата ещё обрабатывается', lost_connection: 'Связь потеряна, исход оплаты неизвестен', credit_pending: 'Оплата получена, зачисление задерживается', credit_failed: 'Оплата получена, ошибка зачисления' };
-  let engine, state, displayedId = null, busy = false, scenario = 'success';
+  let engine, state, displayedId = null, renderedOperationId = null, busy = false, scenario = 'success';
   let verifiedCardId = '', cardInput = '', editingCard = false, autoTimer = null;
   const AUTO_CHECK_LIMIT = 3, autoErrors = new Set();
   let amountSave = Promise.resolve();
@@ -62,13 +62,35 @@
     const unfinished = state.activeId && state.activeId !== op.id ? `<div class="tu-state"><p>Есть другое незавершённое пополнение. Его нужно проверить перед новой оплатой.</p><button class="btn btn-outline tu-wide" data-vp-cta="secondary" data-operation="${escape(state.activeId)}">Открыть незавершённую операцию</button></div>` : '';
     return `<section class="tu-panel" aria-labelledby="tu-step-title">${unfinished}<h2 id="tu-step-title" tabindex="-1">${title}</h2><div class="tu-state ${tone}"><p>${body}</p></div><dl class="tu-meta"><div><dt>Тестовая карта</dt><dd>${escape(op.cardId)}</dd></div><div><dt>Сумма демо-оплаты</dt><dd>${money(op.amount)}</dd></div><div><dt>Комиссия</dt><dd>0 AMD</dd></div><div class="tu-op-id"><dt>Номер операции</dt><dd>${escape(op.id)}</dd></div></dl>${actions}${tone==='success'?(window.VPSocialLinks?.render(undefined,{kind:'receipt',saveAction:'topup',operationId:op.id})||''):''}<p class="tu-note">${op.credit === 'credited' ? 'Карта пополнена только в демонстрации. Это не билет и не разрешение на посещение.' : 'Операция сохранена в этом браузере. Можно вернуться к ней после обновления страницы.'}</p></section>`;
   }
+  function captureOperationView() {
+    const active = document.activeElement, details = ['.tu-history', '.tu-support'];
+    const summary = details.find(selector => app.querySelector(selector)?.querySelector('summary') === active);
+    const attributes = active && app.contains(active) ? ['id', 'data-operation', 'data-check', 'data-save', 'data-save-status', 'data-new-draft', 'data-social-channel', 'href'].filter(name => active.hasAttribute(name)).map(name => [name, active.getAttribute(name)]) : [];
+    return { summary, attributes, tag: active?.tagName, scope: details.find(selector => active?.closest(selector)), details: details.flatMap(selector => {
+      const detail = app.querySelector(selector); return detail ? [{ selector, open: detail.open }] : [];
+    }) };
+  }
+  function restoreOperationView(view) {
+    for (const saved of view.details) { const detail = app.querySelector(saved.selector); if (detail) detail.open = saved.open; }
+    const candidates = view.summary ? [app.querySelector(view.summary)?.querySelector('summary')].filter(Boolean) : view.attributes.length ? [...app.querySelectorAll('button,a,[tabindex]')].filter(el => el.tagName === view.tag && view.attributes.every(([name, value]) => el.getAttribute(name) === value)) : [];
+    const ordered = view.scope ? [...candidates.filter(el => el.closest(view.scope)), ...candidates.filter(el => !el.closest(view.scope))] : candidates;
+    const target = ordered.find(el => {
+      if (el.disabled || el.closest('[hidden],[inert]') || !el.getClientRects().length) return false;
+      const closed = el.closest('details:not([open])'), visibility = getComputedStyle(el).visibility;
+      return (!closed || closed.querySelector('summary')?.contains(el)) && !['hidden', 'collapse'].includes(visibility);
+    });
+    target?.focus({ preventScroll: true });
+  }
   function render(target) {
     if (!state) return;
     const op = getOp(displayedId);
+    const context = !target && op && renderedOperationId === op.id ? captureOperationView() : null;
     document.body.classList.toggle('tu-has-progress', !!op || !!verifiedCardId);
     app.innerHTML = `<div class="tu-layout">${op ? operationView(op) : cardView()}${historyView()}</div>`;
+    renderedOperationId = op?.id || null;
     if (!op && verifiedCardId) refreshAmount();
     if (target) focus(target);
+    else if (context) restoreOperationView(context);
     scheduleAutoCheck();
   }
   function scheduleAutoCheck() {
@@ -103,7 +125,8 @@
     let valid; try { valid = VPTopup.amount(input.value); } catch (_) { valid = null; }
     document.getElementById('tu-credit-total').textContent = valid ? money(valid) : 'Укажите сумму';
     document.getElementById('tu-pay-total').textContent = valid ? money(valid) : 'Укажите сумму';
-    document.getElementById('tu-pay-button').textContent = valid ? `Оплатить · ${money(valid)}` : 'Укажите сумму пополнения';
+    const payButton = document.getElementById('tu-pay-button');
+    if (!payButton.hasAttribute('data-tu-waiting')) payButton.textContent = valid ? `Оплатить · ${money(valid)}` : 'Укажите сумму пополнения';
     app.querySelectorAll('[data-amount]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.amount === input.value)));
   }
   function fieldError(fieldId, errorId, message) {
@@ -111,9 +134,23 @@
     if (input) { input.setAttribute('aria-invalid', 'true'); input.focus(); }
     if (error) error.textContent = message;
   }
-  async function run(action) {
+  function waitOn(button) {
+    if (!button?.isConnected) return () => {};
+    const children = [...button.childNodes], disabled = button.disabled, ariaBusy = button.getAttribute('aria-busy'), hadFocus = document.activeElement === button;
+    button.disabled = true; button.setAttribute('aria-busy', 'true'); button.setAttribute('data-tu-waiting', '');
+    button.textContent = window.VPI18n?.translate('Подождите') || 'Подождите';
+    return () => {
+      if (!button.isConnected) return;
+      button.replaceChildren(...children); button.disabled = disabled; button.removeAttribute('data-tu-waiting');
+      if (ariaBusy === null) button.removeAttribute('aria-busy'); else button.setAttribute('aria-busy', ariaBusy);
+      if (button.id === 'tu-pay-button') refreshAmount();
+      if (hadFocus && !button.disabled && [document.body, document.documentElement].includes(document.activeElement)) button.focus({ preventScroll: true });
+    };
+  }
+  async function run(action, initiator) {
     if (busy) return;
     busy = true; app.setAttribute('aria-busy', 'true');
+    const finishWaiting = waitOn(initiator);
     try { await action(); }
     catch (error) {
       if (error.code === 'STALE_DRAFT') {
@@ -124,7 +161,7 @@
         if (!note) { note = document.createElement('p'); note.id = 'tu-action-error'; note.className = 'tu-error'; note.setAttribute('role', 'alert'); app.prepend(note); }
         note.textContent = error.message || 'Не удалось сохранить состояние. Проверьте операцию, не запускайте оплату заново.';
       }
-    } finally { busy = false; app.removeAttribute('aria-busy'); scheduleAutoCheck(); }
+    } finally { busy = false; app.removeAttribute('aria-busy'); finishWaiting(); scheduleAutoCheck(); }
   }
   async function verifyCard(value) {
     await amountSave;
@@ -145,7 +182,7 @@
       await amountSave;
       const result = await engine.start(snapshot); state = result.state; displayedId = result.operation.id;
       operationHash(displayedId); render('tu-step-title'); say(status(result.operation));
-    });
+    }, event.submitter || app.querySelector(verifiedCardId ? '#tu-pay-button' : '[data-verify-card]'));
   });
   app.addEventListener('input', event => {
     if (event.target.id === 'tu-card-number') {
@@ -161,8 +198,8 @@
   app.addEventListener('change', event => { if (event.target.name === 'scenario') scenario = event.target.value; });
   app.addEventListener('click', event => {
     const button = event.target.closest('button'); if (!button) return;
-    if (button.dataset.demoCard) run(() => verifyCard(button.dataset.demoCard));
-    else if (button.hasAttribute('data-verify-card')) run(() => verifyCard(document.getElementById('tu-card-number').value));
+    if (button.dataset.demoCard) run(() => verifyCard(button.dataset.demoCard), button);
+    else if (button.hasAttribute('data-verify-card')) run(() => verifyCard(document.getElementById('tu-card-number').value), button);
     else if (button.hasAttribute('data-change-card')) { verifiedCardId = ''; editingCard = true; render('tu-step-title'); }
     else if (button.dataset.amount) {
       const input = document.getElementById('tu-amount'); input.value = button.dataset.amount;
@@ -172,17 +209,17 @@
       clearTimeout(autoTimer);
       const result = await engine.check(button.dataset.check); state = result.state; displayedId = result.operation.id;
       render('tu-step-title'); say(status(result.operation));
-    });
+    }, button);
     else if (button.dataset.operation) {
       displayedId = button.dataset.operation; operationHash(displayedId); render('tu-step-title');
     }
     else if (button.hasAttribute('data-new-draft')) run(async () => {
       const result = await engine.newDraft(); state = result.state; displayedId = result.blockedBy || null; scenario = 'success';
       verifiedCardId = state.draft.cardId; cardInput = verifiedCardId; editingCard = false; operationHash(displayedId); render('tu-step-title');
-    });
+    }, button);
     else if (button.dataset.save) run(async () => {
       download(await engine.receipt(button.dataset.save), `Victory-Park-${button.dataset.save}.txt`); say('Подтверждение сохранено как текстовый файл.');
-    });
+    }, button);
     else if (button.dataset.saveStatus) {
       const op = getOp(button.dataset.saveStatus);
       download(`УЧЕБНОЕ ОБРАЩЕНИЕ, НЕ ОТПРАВЛЕНО\n${status(op)}\nОперация: ${op.id}\nКарта: ${op.cardId}\nСумма: ${money(op.amount)}\nРеальная оплата не подключена.\n`, `Victory-Park-status-${op.id}.txt`);
