@@ -61,3 +61,28 @@ html[lang=hy] .r-catalog-list button {font-family:'Noto Sans Armenian',sans-seri
   }
   body[data-vp-discovery=feed] .r-card {background:#14122d}
 }
+
+@media (orientation:portrait) and (max-height:510px) {
+  body[data-vp-discovery=feed] .r-app .r-photo {height:calc(100% - 150px)}
+}
+
+/* A short, wide screen can keep the image and its decisions in adjacent columns. */
+@media (orientation:landscape) and (max-height:500px) {
+  body[data-vp-discovery=feed] .r-layout {height:100dvh;max-width:none;padding:0;gap:0}
+  body[data-vp-discovery=feed] .r-intro {display:none}
+  body[data-vp-discovery=feed] .r-app {
+    --feed-photo-width:54%;
+    width:100%;max-width:none;height:100%;border-radius:0;box-shadow:none;
+  }
+  body[data-vp-discovery=feed] .r-card {background:#211f55}
+  body[data-vp-discovery=feed] .r-app .r-photo {width:var(--feed-photo-width);height:100%}
+  body[data-vp-discovery=feed] .r-app .r-content {
+    left:var(--feed-photo-width);right:0;bottom:calc(var(--discovery-dock) + env(safe-area-inset-bottom));
+    padding:0 14px;max-height:calc(100% - var(--discovery-dock) - 56px);
+  }
+  body[data-vp-discovery=feed] .r-dock {left:var(--feed-photo-width);right:0;padding-inline:10px}
+  body[data-vp-discovery=feed] .r-dock .r-navigation {grid-template-columns:36px 36px minmax(0,1fr) 36px 36px}
+  body[data-vp-discovery=feed] .r-dock .r-navigation .r-icon {width:36px;min-width:36px;padding:7px}
+  body[data-vp-discovery=feed] .r-reaction {left:calc(var(--feed-photo-width) - 66px);right:auto;top:50%}
+  body[data-vp-discovery=feed] .r-app>.r-unified-nav {right:calc(100% - var(--feed-photo-width) + 12px)}
+}

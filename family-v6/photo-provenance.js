@@ -250,10 +250,17 @@
       if (caption) {
         const text = caption.querySelector('h2') || caption;
         const start = text.getBoundingClientRect();
-        x = Math.max(inset, start.left - box.left);
-        // On short portrait screens the left edge of this band still cuts into faces.
-        if (box.height < 620 && box.width < 500) x = Math.max(inset, box.width - group.offsetWidth - 16);
-        y = Math.max(inset, Math.min(box.height, start.top - box.top) - group.offsetHeight - 5);
+        // On short landscape screens the caption is beside the picture, not over it.
+        if (start.left < box.right) {
+          x = Math.max(inset, start.left - box.left);
+          y = Math.max(inset, Math.min(box.height, start.top - box.top) - group.offsetHeight - 5);
+          if (box.height < 620 && box.width < 500) x = Math.max(inset, box.width - group.offsetWidth - 16);
+        }
+        const favorite = card.closest('.r-app')?.querySelector('.r-reaction button')?.getBoundingClientRect();
+        if (favorite && box.top + y < favorite.bottom && box.top + y + group.offsetHeight > favorite.top &&
+            box.left + x < favorite.right && box.left + x + group.offsetWidth > favorite.left) {
+          x = inset;
+        }
       }
       group.style.left = Math.round(box.left - parent.left - host.clientLeft + host.scrollLeft + x) + 'px';
       group.style.top = Math.round(box.top - parent.top - host.clientTop + host.scrollTop + y) + 'px';
