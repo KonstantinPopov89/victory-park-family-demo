@@ -205,7 +205,8 @@ function renderHome() {
 function render() {
   if (panel) {
     renderProgramme();
-    panel.hidden = false;
+    panel.dataset.ready = '';
+    panel.querySelector('details').inert = false;
   }
   if (homeCards.length) renderHome();
 }
@@ -221,7 +222,10 @@ if (panel) {
   panel.addEventListener('click', event => {
     const button = event.target.closest('button');
     if (!button) return;
-    if (button.hasAttribute('data-wish')) wish = button.dataset.wish;
+    if (button.hasAttribute('data-wish')) {
+      event.preventDefault();
+      wish = button.dataset.wish;
+    }
     else if (button.hasAttribute('data-see-both')) wish = 'both';
     else if (button.hasAttribute('data-reset-filters')) {
       filter('under6').checked = false;

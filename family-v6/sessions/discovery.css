@@ -57,6 +57,19 @@ body[data-v5] .discovery-panel h2#discovery-question {
   color: white;
   box-shadow: inset 0 0 0 1px #2f2e7d;
 }
+.discovery-progressive { display: grid; }
+.discovery-progressive > * { grid-area: 1 / 1; }
+.discovery-panel:not([data-ready]) .discovery-filters { visibility: hidden; }
+.discovery-panel[data-ready] .discovery-static-schedule { display: none; }
+.discovery-static-schedule {
+  align-self: center;
+  justify-self: start;
+  margin-block-start: 10px;
+  padding-block: 11px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vp-action-ink, #2f2e7d);
+}
 .discovery-filters { margin-block-start: 10px; }
 .discovery-filters summary {
   display: list-item;
