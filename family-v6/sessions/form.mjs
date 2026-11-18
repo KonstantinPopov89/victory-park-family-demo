@@ -1,10 +1,11 @@
+import {discoveryRequest, discoveryDraft, deferredDiscovery, retainDiscovery, discoveryNotice} from './discovery-booking.mjs?vpv=35ba496281190b05';
 import {additionalView, originalOrder} from './additional-view.mjs?vpv=087041478edd8d80';
 import {bookingQuery, additionalDraft, additionalLink, existingAdditionalView} from './journey.mjs?vpv=330db0bbd3ebdcd3';
 import {upcomingSessions, resolveSession} from './schedule.mjs?vpv=64dfbdf9e92c38b1';
 import {ticketDetails, renderTicket, downloadTicketText, helpButton, orderHelp, copyOrderNumber} from './ticket.mjs?vpv=78d617533a482eb1';
 import {createMobileActions,mobileCopy} from './mobile-actions.mjs?vpv=dd56988a22bce250';
 import {STORAGE,transact,read,captureOrder,selectResume,attachInventory,storedState,BUSY} from './store.mjs?vpv=d98d64a94388964b';
-import {header as siteHeader,footer as siteFooter,decorate,label} from './chrome.mjs?vpv=ec7447b7015510f5';
+import {header as siteHeader,footer as siteFooter,decorate,label} from './chrome.mjs?vpv=4910abcb048f2207';
 import {EVENTS, SEATS, SCENARIOS, defaultState, availability, total, reduce, restore, tick, canHold, isClosed} from './engine.mjs?vpv=b14dea083c7a7f8f';
 import {translate} from './i18n.mjs?vpv=29a37bd8fa20a0c9';
 import {issuedSnapshot, startsNewBooking, sessionChoice, chooseFormSession, payForm} from './form-journey.mjs?vpv=75cfdd081bb804a4';
@@ -13,6 +14,7 @@ import {captureRenderContext,restoreRenderContext} from './render-context.mjs?vp
 
 const root=document.querySelector('#app');
 const params=new URLSearchParams(location.search);
+let pendingChoice=deferredDiscovery(params), invalidDiscovery=false;
 const review=params.get('review')==='1';
 const singleSessionDemo=params.get('single')==='1';
 const sessionsFor=id=>{const list=upcomingSessions().filter(s=>s.eventId===id);return singleSessionDemo?list.slice(0,1):list;};
@@ -42,13 +44,23 @@ function extraDetails(){return additionalView(record,state,seatText);}
 function selectionSignature(){return JSON.stringify([state.eventId,state.sessionId,state.qty,state.seats,state.orderId,state.orderSeq]);}
 function save(){if(state.phase==='issued')lastIssued=issuedSnapshot(state);}
 function url(push=false){
+ if(invalidDiscovery)return;
  // A displayed ticket belongs to this page, even when another tab starts an order.
  if(state.phase==='issued')resumeId=state.orderId;
- const q=new URLSearchParams();q.set('lang',state.lang);if(state.eventId)q.set('event',state.eventId);if(state.sessionId&&!sessionPicker)q.set('session',state.sessionId);if(qtyKnown)q.set('qty',state.qty);if(resumeId)q.set('resume',resumeId);if(review)q.set('review','1');if(singleSessionDemo)q.set('single','1');history[push?'pushState':'replaceState']({phase:state.phase},'',location.pathname+'?'+q);
+ const q=new URLSearchParams();q.set('lang',state.lang);if(state.eventId)q.set('event',state.eventId);if(state.sessionId&&!sessionPicker)q.set('session',state.sessionId);if(qtyKnown)q.set('qty',state.qty);if(resumeId)q.set('resume',resumeId);if(review)q.set('review','1');if(singleSessionDemo)q.set('single','1');retainDiscovery(q,pendingChoice);history[push?'pushState':'replaceState']({phase:state.phase},'',location.pathname+'?'+q);
 }
 function dispatch(action,{push=false,focus=false}={}){state=reduce(state,action);save();url(push);render(focus);}
 function chooseSession(value){const changed=value!==state.sessionId;state=chooseFormSession(state,value,qtyKnown);if(changed)mapOpen=false;}
 function applyLocation(input=new URLSearchParams(location.search)){const q=bookingQuery(input);if(['ru','hy','en'].includes(q.get('lang')))state=reduce(state,{type:'LANG',value:q.get('lang')});
+ const choice=discoveryRequest(q);
+ if(choice){
+  if(choice.invalid){invalidDiscovery=true;return;}
+  if(BUSY.includes(state.phase)){pendingChoice=choice;resumeId=state.orderId;return;}
+  lastIssued=issuedSnapshot(state)||lastIssued;
+  state=discoveryDraft(state,record,choice);
+  qtyKnown=choice.qty!==null;mapOpen=false;sessionPicker=false;
+  chooseSession(choice.session.id);save();return;
+ }
  const existing=existingAdditionalView(record,state,q);
  if(existing){if(existing==='archive'){resumeId=q.get('additional');loadRecord(record);}return;}
  const extra=additionalDraft(record,state,q);
@@ -64,7 +76,7 @@ function applyLocation(input=new URLSearchParams(location.search)){const q=booki
 const mobileActions=createMobileActions(root,()=>{
  const extra=extraDetails(),e=event(),stock=availability(state),active=['select','payment'].includes(state.phase),valid=canHold({...state,phase:'select'});
  return {kind:'form',lang:state.lang,t,phase:state.phase,readOnly,error:state.error,
- visible:!resumeMissing&&!storageFailed&&Boolean(e&&session())&&(!readOnly||state.phase==='issued')&&(!active||!sessionPicker),
+ visible:!invalidDiscovery&&!resumeMissing&&!storageFailed&&Boolean(e&&session())&&(!readOnly||state.phase==='issued')&&(!active||!sessionPicker),
  signature:JSON.stringify([state.eventId,state.sessionId,state.qty,state.seats,state.scenario,state.seatMode]),
  seated:e?.mode==='seated',qty:state.qty,seats:state.seats.length,seatText:seatText(state.seats),amount:money(record?.orders.find(order=>order.id===state.orderId)?.amount??total(state)),
  complete:valid,map:active&&mapOpen,unavailable:active&&(isClosed(state)||stock.remaining<state.qty),alternate:e&&sessionsFor(e.id).length>1,
@@ -98,7 +110,7 @@ function reviewPanel(){return !review?'':`<details class="review-panel" open><su
 function render(focus=false){if(mutating){needsRender=true;renderFocus=renderFocus||focus;return;}const context=captureRenderContext(root);
  document.documentElement.lang=state.lang;document.title='Victory Park · '+t('booking');
  const content=!['select','payment'].includes(state.phase)?result():!state.eventId?catalog():!state.sessionId||sessionPicker?sessionList():selection();
- root.innerHTML=header()+`<main id="main" class="wrap" data-phase="${state.phase}">${readOnly?`<p class="notice archive-note" role="status">${label(state.lang,resumeMissing?'missing':'archive')}</p>`:''}${resumeMissing?'':content+previousTicket()+reviewPanel()}</main>`+siteFooter(state);decorate(root,readOnly);
+ root.innerHTML=header()+`<main id="main" class="wrap" data-phase="${state.phase}">${readOnly?`<p class="notice archive-note" role="status">${label(state.lang,resumeMissing?'missing':'archive')}</p>`:''}${invalidDiscovery?discoveryNotice({invalid:true},state.lang):resumeMissing?'':discoveryNotice(pendingChoice,state.lang,BUSY.includes(state.phase),t,dateText)+content+previousTicket()+reviewPanel()}</main>`+siteFooter(state);decorate(root,readOnly);
  restoreRenderContext(root,context,{focus:!focus});
  if(focus){document.querySelector('h1')?.focus({preventScroll:true});window.scrollTo({top:0});}
  mobileActions.mount();updateClock();
@@ -149,6 +161,7 @@ function loadRecord(saved){
  qtyKnown=saved.qtyKnown===true;mapOpen=saved.formUi?.mapOpen??(state.seatMode==='manual'&&state.seats.length>0);sessionPicker=saved.formUi?.sessionPicker??false;
 }
 function exportRecord(){
+ if(invalidDiscovery)return record;
  if(readOnly){record.state.lang=state.lang;return record;}
  // Editing the active order can release its ID. Keep following the editable
  // draft instead of reopening its previous snapshot as a read-only archive.
