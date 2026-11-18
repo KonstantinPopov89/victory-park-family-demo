@@ -22,6 +22,8 @@ function dateLabel(session) {
 const when = session => dateLabel(session) + ', ' + session.at.slice(11, 16);
 
 function updateCard(article, sessions) {
+  // The enhanced home list also accounts for tickets already issued on this device.
+  if (article.hasAttribute('data-discovery-home-ready')) return;
   const next = sessions.find(item => item.eventId === article.dataset.sessionCard);
   if (!next) return;
   const date = article.querySelector('[data-next-date]');
