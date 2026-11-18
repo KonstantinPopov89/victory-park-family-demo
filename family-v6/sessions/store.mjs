@@ -1,13 +1,14 @@
-import {translate} from './i18n.mjs?vpv=e639e1ea8ee01408';
-import {EVENTS,SESSIONS,defaultState,restore,total} from './engine.mjs?vpv=a2d6096778ec3035';
+import {resolveSession} from './schedule.mjs?vpv=64dfbdf9e92c38b1';
+import {translate} from './i18n.mjs?vpv=29a37bd8fa20a0c9';
+import {EVENTS,defaultState,restore,total} from './engine.mjs?vpv=b14dea083c7a7f8f';
 export const STORAGE='vp.family.v6.sessions.v1';
 export const BUSY=['processing','unknown','pending','security'];
 export function emptyRecord(){return {version:1,revision:0,state:defaultState(),qtyKnown:false,ui:{view:'events'},mapSnapshot:null,orders:[],orderSeq:0};}
 function bounded(value,depth=0,budget={n:100000}){if(--budget.n<0||depth>16)return false;if(value===null||typeof value==='boolean')return true;if(typeof value==='number')return Number.isFinite(value);if(typeof value==='string')return value.length<=8192;if(typeof value!=='object')return false;const keys=Object.keys(value);return keys.length<=2000&&keys.every(k=>k.length<=128&&!['__proto__','prototype','constructor'].includes(k)&&bounded(value[k],depth+1,budget));}
 export function validJournalOrder(o){
  if(!o||typeof o!=='object'||typeof o.id!=='string'||!/^demo-[1-9]\d{0,12}$/.test(o.id)||!['form','quiz'].includes(o.variant))return false;
- const s=o.snapshot,event=EVENTS.find(e=>e.id===o.eventId),session=SESSIONS.find(x=>x.id===o.sessionId&&x.eventId===o.eventId);
- if(!s||!event||!session||!Number.isSafeInteger(o.qty)||o.qty<1||o.qty>8||!Number.isSafeInteger(o.amount)||o.amount<=0||o.amount>100000000)return false;
+ const s=o.snapshot,event=EVENTS.find(e=>e.id===o.eventId),session=resolveSession(o.sessionId);
+ if(!s||!event||session?.eventId!==o.eventId||!Number.isSafeInteger(o.qty)||o.qty<1||o.qty>8||!Number.isSafeInteger(o.amount)||o.amount<=0||o.amount>100000000)return false;
  if(!Number.isFinite(o.createdAt)||!Number.isFinite(o.updatedAt)||o.createdAt<=0||o.updatedAt<o.createdAt||!Number.isFinite(new Date(o.updatedAt).getTime()))return false;
  if(!['select','payment','processing','declined','security','unknown','pending','issued','expired'].includes(o.phase)||s.orderId!==o.id||s.eventId!==o.eventId||s.sessionId!==o.sessionId||s.qty!==o.qty||s.phase!==o.phase||restore(s).orderId!==o.id)return false;
  if(!Array.isArray(o.seats)||!Array.isArray(s.seats)||o.seats.length!==s.seats.length||o.seats.some((seat,i)=>typeof seat!=='string'||!/^([A-F][1-8])$/.test(seat)||seat!==s.seats[i])||new Set(o.seats).size!==o.seats.length)return false;
@@ -38,14 +39,32 @@ export function normalizedRecord(raw,{recover=false}={}){
  r.state.orderSeq=r.orderSeq;r.revision=Number.isSafeInteger(r.revision)?r.revision:0;
  r.ui={view:['events','sessions','group','checkout','map'].includes(r.ui?.view)?r.ui.view:(!checked.eventId?'events':!checked.sessionId?'sessions':r.qtyKnown?'checkout':'group'),qtyKnown:r.qtyKnown};r.formUi={mapOpen:r.formUi?.mapOpen===true,sessionPicker:r.formUi?.sessionPicker===true};return r;
 }
+// Inventory is derived, not duplicated in each saved ticket or editable draft.
+export function storedState(state) {
+ const {issuedInventory, ...snapshot} = state;
+ return structuredClone(snapshot);
+}
+export function attachInventory(state, orders) {
+ const inventory = {};
+ for (const order of orders) {
+   if (order.phase !== 'issued') continue;
+   const key = order.eventId + '/' + Date.parse(order.sessionAt);
+   const entry = inventory[key] ||= {qty:0,seats:[],near:[]};
+   entry.qty += order.qty;
+   entry.seats.push(...order.seats);
+   if (state.additionalTo === order.id) entry.near = order.seats;
+ }
+ state.issuedInventory = inventory;
+ return state;
+}
 export function captureOrder(record,state,variant,now=Date.now()){
  record.orderSeq=Math.max(record.orderSeq||0,state.orderSeq||0);state.orderSeq=record.orderSeq;
  if(!state.orderId)return;
  const old=record.orders.find(o=>o.id===state.orderId);
  if(old?.phase==='issued')return; // completed snapshots are immutable
- const event=EVENTS.find(e=>e.id===state.eventId),session=SESSIONS.find(s=>s.id===state.sessionId);
- const facts=old?{sessionAt:old.sessionAt,eventTitle:old.eventTitle,unitPrice:old.unitPrice,currency:old.currency}:{sessionAt:session.at,eventTitle:Object.fromEntries(['ru','en','hy'].map(l=>[l,translate(l,event.titleKey)])),unitPrice:event.price,currency:'AMD'};
- const order={...facts,id:state.orderId,variant:old?.variant||variant,createdAt:old?.createdAt||now,updatedAt:now,snapshot:structuredClone(state),eventId:state.eventId,sessionId:state.sessionId,qty:state.qty,seats:[...state.seats],amount:old?.amount??total(state),phase:state.phase,contact:state.email};
+ const event=EVENTS.find(e=>e.id===state.eventId),session=resolveSession(state.sessionId);
+ const facts=old?{sessionAt:old.sessionAt,eventTitle:old.eventTitle,unitPrice:old.unitPrice,currency:old.currency,...(old.visitPolicyVersion ? {visitPolicyVersion:old.visitPolicyVersion} : {})}:{visitPolicyVersion:1,sessionAt:session.at,eventTitle:Object.fromEntries(['ru','en','hy'].map(l=>[l,translate(l,event.titleKey)])),unitPrice:event.price,currency:'AMD'};
+ const order={...facts,id:state.orderId,variant:old?.variant||variant,createdAt:old?.createdAt||now,updatedAt:now,snapshot:storedState(state),eventId:state.eventId,sessionId:state.sessionId,qty:state.qty,seats:[...state.seats],amount:old?.amount??total(state),phase:state.phase,contact:state.email};
  record.orders=record.orders.filter(o=>o.id!==state.orderId).concat(order);
 }
 export function selectResume(record,id){

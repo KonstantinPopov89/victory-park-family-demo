@@ -91,3 +91,11 @@ body[data-vp-home] .home-services{grid-column:1/-1}
 .home-session [data-vp-cta]{font-size:13px;min-height:48px;white-space:normal}
 html[lang=hy] .home-session h3{font-family:"Noto Sans Armenian",sans-serif!important}
 @media(max-width:720px){.home-session-grid{grid-template-columns:1fr;gap:14px}.home-session{padding:16px}.home-session h3{font-size:17px!important}.home-session [data-vp-cta]{font-size:12px;padding-inline:8px}}
+
+.home-events-link{display:inline-flex;align-items:center;min-height:40px;font-size:14px;font-weight:600;text-underline-offset:3px}
+#park-events{scroll-margin-top:20px}
+.home-session-actions{display:flex;align-items:center;gap:10px 18px;flex-wrap:wrap}
+.home-services .home-session-actions [data-vp-cta]{width:auto}
+.home-session-actions .home-session-details{margin-top:0}
+.home-services .home-session-meta{color:#2f2e7d;margin-bottom:6px}
+.home-session-date:has(time:empty){display:none}

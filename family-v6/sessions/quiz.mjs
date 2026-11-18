@@ -1,10 +1,13 @@
+import {additionalView, originalOrder} from './additional-view.mjs?vpv=087041478edd8d80';
+import {upcomingSessions, resolveSession} from './schedule.mjs?vpv=64dfbdf9e92c38b1';
+import {ticketDetails, renderTicket, downloadTicketText, helpButton, orderHelp, copyOrderNumber} from './ticket.mjs?vpv=78d617533a482eb1';
 import {createMobileActions,mobileCopy} from './mobile-actions.mjs?vpv=dd56988a22bce250';
-import {STORAGE,transact,read,captureOrder,selectResume,BUSY} from './store.mjs?vpv=bd95a8bc415ff785';
+import {STORAGE,transact,read,captureOrder,selectResume,attachInventory,storedState,BUSY} from './store.mjs?vpv=d98d64a94388964b';
 import {header as siteHeader,footer as siteFooter,decorate,label} from './chrome.mjs?vpv=ec7447b7015510f5';
-import {EVENTS, SESSIONS, SEATS, SCENARIOS, defaultState, availability, total, reduce, restore, tick, canHold, isClosed} from './engine.mjs?vpv=a2d6096778ec3035';
-import {translate} from './i18n.mjs?vpv=e639e1ea8ee01408';
-import {quizCopy} from './quiz-copy.mjs?vpv=85466ff9fa18dd2e';
-import {issuedSnapshot, startsNewBooking, mapSnapshotFor} from './journey.mjs?vpv=df664d649c663a5c';
+import {EVENTS, SEATS, SCENARIOS, defaultState, availability, total, reduce, restore, tick, canHold, isClosed} from './engine.mjs?vpv=b14dea083c7a7f8f';
+import {translate} from './i18n.mjs?vpv=29a37bd8fa20a0c9';
+import {quizCopy} from './quiz-copy.mjs?vpv=359608f5d139c0b8';
+import {issuedSnapshot, startsNewBooking, mapSnapshotFor, bookingQuery, additionalDraft, additionalLink, existingAdditionalView} from './journey.mjs?vpv=330db0bbd3ebdcd3';
 import {captureRenderContext,restoreRenderContext} from './render-context.mjs?vpv=891cdaf7121a8baf';
 
 
@@ -12,7 +15,7 @@ const root=document.querySelector('#app');
 const initialQuery=new URLSearchParams(location.search);
 const review=initialQuery.get('review')==='1';
 const singleSessionDemo=initialQuery.get('single')==='1';
-const sessionsFor=id=>{const list=SESSIONS.filter(s=>s.eventId===id);return singleSessionDemo?list.slice(0,1):list;};
+const sessionsFor=id=>{const list=upcomingSessions().filter(s=>s.eventId===id);return singleSessionDemo?list.slice(0,1):list;};
 let state=defaultState(), ui={view:'events',qtyKnown:false}, mapOpen=false, mapZoom=1, helpOpen=false, copied=false, mapSnapshot=null, lastIssued=null, responseTimer=null;
 
 const locked=()=>readOnly||['processing','unknown','pending','issued','security'].includes(state.phase);
@@ -29,7 +32,7 @@ const dateText=(session,withTime=true)=>{
  return new Intl.DateTimeFormat(state.lang==='ru'?'ru-RU':'en-GB',{timeZone:'Asia/Yerevan',day:'numeric',month:'long',year:'numeric',...(withTime?{hour:'2-digit',minute:'2-digit'}:{weekday:'long'})}).format(d);
 };
 const event=()=>EVENTS.find(e=>e.id===state.eventId);
-const session=()=>SESSIONS.find(s=>s.id===state.sessionId);
+const session=()=>resolveSession(state.sessionId);
 const seatText=seats=>'ABCDEF'.split('').map(row=>{const group=seats.filter(id=>id[0]===row).map(id=>Number(id.slice(1))).sort((a,b)=>a-b);return group.length>1?t('seatsShort',{row,seats:group.join(', ')}):group.length?t('seat',{row,seat:group[0]}):'';}).filter(Boolean).join(' · ');
 const contiguous=seats=>{const cols=seats.map(s=>+s.slice(1)).sort((a,b)=>a-b);return seats.length>0&&seats.every(s=>s[0]===seats[0][0])&&cols.every((n,i)=>i===0||n===cols[i-1]+1);};
 const btn=(label,action,value='',cls='',extra='')=>`<button type="button" class="btn ${cls}" data-action="${action}" data-value="${esc(value)}" ${extra}>${esc(label)}</button>`;
@@ -37,7 +40,8 @@ const link=(label,action,value='')=>`<button type="button" class="link-button" d
 
 const q=(key,vars={})=>{let value=quizCopy[state.lang]?.[key]??quizCopy.ru[key]??key;for(const [k,v] of Object.entries(vars))value=value.replaceAll('{'+k+'}',String(v));return value;};
 const guestCount=n=>n+' '+q(n===1?'guestOne':state.lang==='ru'&&n>=2&&n<=4?'guestFew':'guestMany');
-function selectionSignature(){return JSON.stringify([state.eventId,state.sessionId,state.qty,state.seats,state.orderId]);}
+function extraDetails(){return additionalView(record,state,seatText);}
+function selectionSignature(){return JSON.stringify([state.eventId,state.sessionId,state.qty,state.seats,state.orderId,state.orderSeq]);}
 function save(){if(state.phase==='issued')lastIssued=issuedSnapshot(state);}
 function url(push=false){
  // A displayed ticket belongs to this page, even when another tab starts an order.
@@ -55,18 +59,23 @@ function update(action){state=reduce(state,action);}
 function finish({push=false,focus=true}={}){save();url(push);render(focus);}
 function release(){if(['payment','declined'].includes(state.phase))update({type:'BACK'});}
 function prepare(){if(ui.qtyKnown&&state.sessionId&&['select','payment'].includes(state.phase))update({type:'HOLD'});}
-function applyLocation(query,{fresh=false}={}){
+function applyLocation(input,{fresh=false}={}){
+ const query=bookingQuery(input);
  if(['ru','hy','en'].includes(query.get('lang')))update({type:'LANG',value:query.get('lang')});
- if(startsNewBooking(state,query,singleSessionDemo?SESSIONS.filter(item=>item.id.endsWith('-1')):SESSIONS)){lastIssued=issuedSnapshot(state);update({type:'NEW'});ui={view:'events',qtyKnown:false};mapSnapshot=null;}
+ const existing=existingAdditionalView(record,state,query);
+ if(existing){if(existing==='archive'){resumeId=query.get('additional');loadRecord(record);}return;}
+ const extra=additionalDraft(record,state,query);
+ if(extra){state=extra;lastIssued=issuedSnapshot(originalOrder(record,extra)?.snapshot);ui={view:'checkout',qtyKnown:true};mapSnapshot=null;}
+ else if(startsNewBooking(state,query)){lastIssued=issuedSnapshot(state);update({type:'NEW'});ui={view:'events',qtyKnown:false};mapSnapshot=null;}
  if(locked())return;
  const quantity=query.get('qty');
  if(quantity&&/^[1-8]$/.test(quantity)){update({type:'QTY',value:Number(quantity)});ui.qtyKnown=true;}
  
- const requested=SESSIONS.find(s=>s.id===query.get('session'));
+ const requested=resolveSession(query.get('session'));
  const e=EVENTS.find(e=>e.id===(requested?.eventId||query.get('event')));
  if(!e){if(state.eventId&&state.sessionId){ui.view=ui.qtyKnown?'checkout':'group';prepare();return;}ui={view:'events',qtyKnown:ui.qtyKnown};return;}
  if(e.id!==state.eventId){release();update({type:'EVENT',value:e.id});}
- const choices=sessionsFor(e.id), s=choices.find(x=>x.id===requested?.id)||(choices.length===1?choices[0]:null);
+ const choices=sessionsFor(e.id), s=requested&&(!singleSessionDemo||requested.id===choices[0]?.id)?requested:!query.has('session')&&choices.length===1?choices[0]:null;
  if(s&&s.id!==state.sessionId){release();update({type:'SESSION',value:s.id});}
  ui.view=!s?'sessions':query.get('view')==='group'?'group':query.get('view')==='map'&&ui.qtyKnown?'map':ui.qtyKnown?'checkout':'group';
  if(['group','sessions','map'].includes(ui.view))release(); else prepare();
@@ -74,13 +83,13 @@ function applyLocation(query,{fresh=false}={}){
 
 
 const mobileActions=createMobileActions(root,()=>{
- const e=event(),stock=availability(state),active=['select','payment'].includes(state.phase),valid=canHold({...state,phase:'select'});
+ const extra=extraDetails(),e=event(),stock=availability(state),active=['select','payment'].includes(state.phase),valid=canHold({...state,phase:'select'});
  return {kind:'quiz',lang:state.lang,t,phase:state.phase,readOnly,error:state.error,
  visible:!resumeMissing&&!storageFailed&&Boolean(e&&session())&&(!readOnly||state.phase==='issued')&&(!active||!['events','sessions','group'].includes(ui.view)),
  signature:JSON.stringify([state.eventId,state.sessionId,state.qty,state.seats,state.scenario,state.seatMode]),
  seated:e?.mode==='seated',qty:state.qty,seats:state.seats.length,seatText:seatText(state.seats),amount:money(record?.orders.find(order=>order.id===state.orderId)?.amount??total(state)),
  complete:valid,map:active&&ui.view==='map',unavailable:active&&(isClosed(state)||stock.remaining<state.qty),alternate:e&&sessionsFor(e.id).length>1,
- form:'#payment-form',context:state.phase==='processing'?mobileCopy(state.lang,'noCharge'):null};
+ form:'#payment-form',context:state.phase==='processing'?mobileCopy(state.lang,'noCharge'):extra&&active?extra.count+': '+state.qty+(state.seats.length?' · '+seatText(state.seats):'')+' · '+money(total(state)):null};
 });
 function header(){return siteHeader(state,'quiz',ui.qtyKnown,resumeId);}
 function journey(){return '';}
@@ -89,7 +98,7 @@ function catalog(){return `<div class="intro-head"><p class="eyebrow">VICTORY PA
 function timeAnswers(choices){return `<div class="time-answers">${choices.map(s=>{const a=availability({...state,sessionId:s.id}),closed=isClosed({...state,sessionId:s.id});const ok=!closed&&a.remaining>=(ui.qtyKnown?state.qty:1);return `<button type="button" class="time-answer" data-action="session" data-value="${s.id}" ${!ok?'disabled':''}><span><strong>${dateText(s,false)}</strong><small>${closed?t('closedMessage'):a.remaining===0?t('soldOut'):!ok?t('notEnoughForGroup',{n:state.qty}):ui.qtyKnown?q('qtyChosen',{n:state.qty}):t('available')}</small></span><b>${new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Asia/Yerevan'}).format(new Date(s.at))}</b><i aria-hidden="true">→</i></button>`;}).join('')}</div>`;}
 function sessionList(){return `${link('← '+t('backEvents'),'catalog')}${context({edit:false})}<div class="intro-head"><h1 tabindex="-1">${t('sessionTitle')}</h1><p class="lead">${q('chooseTimeHint')}</p></div>${timeAnswers(sessionsFor(state.eventId))}`;}
 function unavailable(){const choices=sessionsFor(state.eventId).filter(item=>item.id!==state.sessionId);return `${context({edit:false})}<div class="question-heading"><h1 tabindex="-1">${isClosed(state)?t('closedMessage'):t('soldOut')}</h1><p class="lead">${q('unavailableBeforeGroup')}</p>${ui.qtyKnown?`<p class="group-note">${q('qtyChosen',{n:state.qty})}</p>`:''}</div>${choices.length?timeAnswers(choices):''}<div class="action-row">${btn(t('backEvents'),'catalog','','secondary')}</div>`;}
-function group(){const e=event();return `${context()}<div class="question-heading"><p class="eyebrow">${q('forCompany')}</p><h1 tabindex="-1">${q('groupTitle')}</h1><p class="lead">${q('groupHint')}</p><p class="group-note" id="group-rules">${q('groupRules')}</p><p class="group-price">${money(e.price)} ${t('perGuest')}</p></div><div class="group-answers" role="group" aria-label="${q('groupTitle')}" aria-describedby="group-rules">${Array.from({length:8},(_,i)=>i+1).map(n=>`<button type="button" class="group-answer" data-action="group" data-value="${n}" aria-label="${esc(guestCount(n))}, ${esc(money(n*e.price))}" aria-pressed="${ui.qtyKnown&&n===state.qty}"><strong>${n}</strong></button>`).join('')}</div>`;}
+function group(){const e=event(),extra=extraDetails();return `${context()}<div class="question-heading"><p class="eyebrow">${extra?.title||q('forCompany')}</p><h1 tabindex="-1">${extra?.question||q('groupTitle')}</h1><p class="lead">${extra?.help||q('groupHint')}</p><p class="group-note" id="group-rules">${extra?esc(extra.original):q('groupRules')}</p><p class="group-price">${money(e.price)} ${t('perGuest')}</p></div><div class="group-answers" role="group" aria-label="${extra?.question||q('groupTitle')}" aria-describedby="group-rules">${Array.from({length:8},(_,i)=>i+1).map(n=>`<button type="button" class="group-answer" data-action="group" data-value="${n}" aria-label="${esc(guestCount(n))}, ${esc(money(n*e.price))}" aria-pressed="${ui.qtyKnown&&n===state.qty}"><strong>${n}</strong></button>`).join('')}</div>`;}
 function blocked(){
  const a=availability(state),closed=isClosed(state),needsSeats=!closed&&a.remaining>=state.qty&&event().mode==='seated';
  if(needsSeats&&a.adjacent.length){return `<div class="notice seat-choice"><strong>${q('newSeatsTitle')}</strong><p>${q('newSeatsText')}</p><p class="seat-summary">${esc(seatText(a.adjacent))}</p><div class="action-row">${btn(q('acceptSuggested'),'auto','','yellow')}${btn(t('manual'),'manual','','secondary')}</div></div>`;}
@@ -97,17 +106,25 @@ function blocked(){
  return `<div class="notice"><strong>${title}</strong><p>${a.remaining<state.qty?t('remaining',{n:a.remaining}):!closed&&a.adjacent.length===0?t('noAdjacentText'):''}</p><div class="action-row">${sessionsFor(state.eventId).length>1?btn(q('sessionFallback'),'sessions','','yellow'):btn(t('backEvents'),'catalog','','yellow')}${needsSeats?btn(t('manual'),'manual','','secondary'):''}</div></div>`;
 }
 function checkout(){
- const e=event(),available=canHold({...state,phase:'select'})||state.phase==='payment';
+ const extra=extraDetails(),e=event(),available=canHold({...state,phase:'select'})||state.phase==='payment';
  const needsSeats=!available&&!isClosed(state)&&availability(state).remaining>=state.qty&&e.mode==='seated';
  const split=e.mode==='seated'&&state.seats.length===state.qty&&!contiguous(state.seats);
- return `${context()}<div class="checkout-heading"><h1 tabindex="-1">${available?q('readyTitle'):needsSeats?q('chooseSeatsTitle'):q('unavailableTitle')}</h1></div><div class="chosen-group" id="booking-seats-review" tabindex="-1"><div><strong>${guestCount(state.qty)}</strong><span>${e.mode==='seated'&&state.seats.length?esc(seatText(state.seats)):e.mode==='capacity'?t('capacity'):t('emptySelection')}</span></div>${link(q('editGroup'),'editGroup')}</div>${!available?blocked():`<div class="placement-line"><span class="status-dot">${e.mode==='seated'&&!split?t('together'):q('availableTogether')}</span>${e.mode==='seated'?link(t('manual'),'manual'):''}</div>${split?`<p class="notice">${t('splitWarning')}</p>`:''}<div class="quiz-total" id="booking-order-review" tabindex="-1"><div><span>${q('amountForAll')}</span><small>${state.qty} × ${money(e.price)}</small></div><strong>${money(total(state))}</strong></div><p class="fees-note">${q('noAddedFees')}</p><div class="purchase-terms"><p>${q('exampleRules')} ${q('briefRules')}</p><details><summary>${q('termsLink')}</summary><p>${t('conditionsBody')}</p></details></div><form id="payment-form" class="quiz-payment" novalidate><label for="email">${t('emailLabel')}</label><input id="email" name="email" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="254" placeholder="name@example.com / +374 00 00 00 00" value="${esc(state.email)}" aria-describedby="email-help field-error" ${state.error==='emailError'?'aria-invalid="true"':''}><p id="email-help" class="small muted">${t('emailHelp')}</p><p id="field-error" class="error-line" role="alert">${state.error?t(state.error):''}</p><button type="submit" class="btn yellow full" data-action="pay">${t('pay')} · ${money(total(state))}<span aria-hidden="true">→</span></button><p class="payment-note">${q('demoShort')}</p></form><div class="hold-note" data-hold></div>`}`;
+ return `${context()}<div class="checkout-heading"><h1 tabindex="-1">${available?(extra?.title||q('readyTitle')):needsSeats?q('chooseSeatsTitle'):q('unavailableTitle')}</h1>${extra?`<p class="group-note">${esc(extra.original)}</p>`:''}</div><div class="chosen-group" id="booking-seats-review" tabindex="-1"><div><strong>${extra?extra.count+': '+state.qty:guestCount(state.qty)}</strong><span>${e.mode==='seated'&&state.seats.length?esc(seatText(state.seats)):e.mode==='capacity'?t('capacity'):t('emptySelection')}</span></div>${link(extra?.edit||q('editGroup'),'editGroup')}</div>${!available?blocked():`<div class="placement-line"><span class="status-dot">${extra?(extra.placement||t('capacity')):e.mode==='seated'&&!split?t('together'):q('availableTogether')}</span>${e.mode==='seated'?link(t('manual'),'manual'):''}</div>${split?`<p class="notice">${t('splitWarning')}</p>`:''}<div class="quiz-total" id="booking-order-review" tabindex="-1"><div><span>${extra?.total||q('amountForAll')}</span><small>${state.qty} × ${money(e.price)}</small></div><strong>${money(total(state))}</strong></div><p class="fees-note">${q('noAddedFees')}</p><div class="purchase-terms"><p>${q('exampleRules')} ${q('briefRules')}</p><details><summary>${q('termsLink')}</summary><p>${t('conditionsBody')}</p></details></div><form id="payment-form" class="quiz-payment" novalidate><label for="email">${t('emailLabel')}</label><input id="email" name="email" type="text" inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="254" placeholder="name@example.com / +374 00 00 00 00" value="${esc(state.email)}" aria-describedby="email-help field-error" ${state.error==='emailError'?'aria-invalid="true"':''}><p id="email-help" class="small muted">${t('emailHelp')}</p><p id="field-error" class="error-line" role="alert">${state.error?t(state.error):''}</p><button type="submit" class="btn yellow full" data-action="pay">${t('pay')} · ${money(total(state))}<span aria-hidden="true">→</span></button><p class="payment-note">${q('demoShort')}</p></form><div class="hold-note" data-hold></div>`}`;
 }
 function seatMap(){const stock=availability(state);return `<div class="seat-map"><div class="map-toolbar"><span class="small muted">${t('seatHelp',{n:state.qty})}</span><div><button data-action="zoomout" type="button" aria-label="${t('zoomOut')}" ${mapZoom===1?'disabled':''}>−</button> <button data-action="zoomin" type="button" aria-label="${t('zoomIn')}" ${mapZoom>=1.5?'disabled':''}>+</button></div></div><div class="map-scroll" tabindex="0" role="group" aria-label="${t('seatMapLabel')}"><div class="map-inner" style="--map-zoom:${mapZoom}"><div class="stage">${t('stage')}</div>${'ABCDEF'.split('').map(row=>`<div class="seat-row"><span class="row-label">${row}</span>${SEATS.filter(id=>id.startsWith(row)).map(id=>`<button type="button" class="seat ${stock.sold.includes(id)?'sold':''}" style="${mapZoom>1?'width:46px;height:48px':''}" data-action="seat" data-value="${id}" aria-label="${esc(t('seat',{row,seat:id.slice(1)}))}${stock.sold.includes(id)?', '+t('occupied'):''}" aria-pressed="${state.seats.includes(id)}" ${stock.sold.includes(id)?'disabled':''}>${stock.sold.includes(id)?'×':id.slice(1)}</button>`).join('')}<span class="row-label">${row}</span></div>`).join('')}</div></div><div class="map-legend"><span><i class="swatch"></i>${t('free')}</span><span><i class="swatch picked"></i>${t('selected')}</span><span><i class="swatch busy"></i>${t('occupied')}</span></div><p class="selection-count" role="status">${t('selectedCount',{selected:state.seats.length,qty:state.qty})}</p>${state.seats.length?`<p class="seat-summary">${esc(seatText(state.seats))}</p>`:''}${state.seats.length===state.qty&&!contiguous(state.seats)?`<p class="notice" style="margin-top:14px">${t('splitWarning')}</p>`:''}</div>`;}
-function mapView(){return `${link('← '+q('mapCancel'),'mapCancel')}${context({edit:false})}<div class="question-heading"><h1 tabindex="-1">${t('yourSeats')}</h1><p class="lead">${guestCount(state.qty)} · ${money(total(state))}</p></div>${seatMap()}<div class="map-done">${btn(q('mapDone'),'mapDone','','yellow full',!canHold(state)?'disabled':'')}${btn(t('auto'),'auto','','secondary full')}</div>`;}
-function help(){return helpOpen?`<div class="help-box"><p>${t('helpText')}</p><p class="order-code" style="margin-top:12px">${esc(state.orderId)}</p>${btn(copied?t('copied'):t('copyOrder'),'copy','','secondary small-btn')}</div>`:'';}
-function ticket(ticketState=state){const frozen=record?.orders.find(o=>o.id===ticketState.orderId);const ticketEvent=EVENTS.find(item=>item.id===ticketState.eventId),ticketSession=SESSIONS.find(item=>item.id===ticketState.sessionId);return `<article class="ticket"><div class="ticket-top"><p class="small">VICTORY PARK · ${t('demoOnly')}</p><h2>${esc(frozen?.eventTitle?.[state.lang]||t(ticketEvent.titleKey))}</h2></div><div class="ticket-body"><dl><dt>${t('date')}</dt><dd>${dateText(frozen?.sessionAt?{at:frozen.sessionAt}:ticketSession)}<br><span class="small">${t('yerevanTime')}</span></dd><dt>${t('guests')}</dt><dd>${ticketState.qty}</dd>${ticketEvent.mode==='seated'?`<dt>${t('yourSeats')}</dt><dd>${esc(seatText(ticketState.seats))}</dd>`:''}<dt>${t('amount')}</dt><dd>${money(frozen?.amount??total(ticketState))}</dd><dt>${t('order')}</dt><dd class="order-code">${esc(ticketState.orderId)}</dd>${ticketState.email.trim()?`<dt>${t('emailReceipt')}</dt><dd>${esc(ticketState.email)}</dd>`:''}</dl><p class="no-email">${t('noEmailSent')}</p></div><div class="invalid">${t('invalidTicket')}</div></article>`;}
-function previousTicket(){return lastIssued&&state.phase!=='issued'?`<details class="previous-ticket"><summary>${q('previousTicket')}</summary>${ticket(lastIssued)}</details>`:'';}
-function result(){const p=state.phase;const key={processing:'processing',unknown:'unknown',declined:'declined',security:'security',pending:'pending',issued:'issued',expired:'expired'}[p];const icon={processing:'…',unknown:'?',declined:'!',security:'!',pending:'✓',issued:'✓',expired:'◷'}[p];let action='';if(p==='unknown')action=btn(t('checkPayment'),'check','','yellow');if(p==='pending')action=btn(t('checkTicket'),'issue','','yellow');if(p==='declined')action=btn(t('retry'),'retry','','yellow');if(p==='expired')action=btn(t('renew'),'renew','','yellow');if(p==='security')action=btn(t('help'),'help','','secondary');if(p==='issued')action=btn(t('saveTicket'),'download','','yellow')+btn(t('printTicket'),'print','','secondary');return `${journey(['issued','pending'].includes(p)?2:1)}<div class="result"><div class="result-icon ${['issued','pending'].includes(p)?'ok':''}" aria-hidden="true">${icon}</div><h1 tabindex="-1">${t(key+'Title')}</h1><p class="lead" ${p==='processing'?'role="status"':''}>${t(p==='expired'?'expiredMessage':key+'Text')}</p>${state.orderId?`<p class="small muted">${t('order')} <span class="order-code">${esc(state.orderId)}</span></p>`:''}${p!=='issued'&&event()&&session()?`<p class="status-context">${esc(t(event().titleKey))}<br>${dateText(session())} · ${t('guests')}: ${state.qty}<br>${money(total(state))}${state.seats.length?' · '+esc(seatText(state.seats)):''}</p>`:''}${p==='issued'?ticket():''}<div class="action-row">${action}${['unknown','pending','declined'].includes(p)?link(t('help'),'help'):''}${p==='issued'?link(t('newBooking'),'catalog'):''}</div>${p==='issued'?(window.VPSocialLinks?.render(state.lang,{saveAction:'session'})||''):''}${help()}</div>`;}
+function mapView(){const extra=extraDetails();return `${link('← '+q('mapCancel'),'mapCancel')}${context({edit:false})}<div class="question-heading"><h1 tabindex="-1">${extra?.seats||t('yourSeats')}</h1>${extra?`<p class="group-note">${esc(extra.original)}</p>`:''}<p class="lead">${extra?extra.count+': '+state.qty:guestCount(state.qty)} · ${money(total(state))}</p></div>${seatMap()}${extra?.placement?`<p class="group-note">${esc(extra.placement)}</p>`:''}<div class="map-done">${btn(q('mapDone'),'mapDone','','yellow full',!canHold(state)?'disabled':'')}${btn(t('auto'),'auto','','secondary full')}</div>`;}
+function help(){return orderHelp({lang:state.lang, orderId:state.orderId, opened:helpOpen, copied, t});}
+function ticketInfo(ticketState=state) {
+ const order=record?.orders.find(item=>item.id===ticketState.orderId);
+ return ticketDetails(ticketState,order,{
+  lang:state.lang,t,dateText,seatText,money,
+  event:EVENTS.find(item=>item.id===ticketState.eventId),
+  session:resolveSession(ticketState.sessionId)
+ });
+}
+function ticket(ticketState=state){return renderTicket(ticketInfo(ticketState),t);}
+function previousTicket(){const previous=originalOrder(record,state)?.snapshot||lastIssued;const extra=extraDetails();return previous&&state.phase!=='issued'?`<details class="previous-ticket"><summary>${extra?.previousLabel||q('previousTicket')}</summary>${ticket(previous)}</details>`:'';}
+function result(){const p=state.phase;const key={processing:'processing',unknown:'unknown',declined:'declined',security:'security',pending:'pending',issued:'issued',expired:'expired'}[p];const icon={processing:'…',unknown:'?',declined:'!',security:'!',pending:'✓',issued:'✓',expired:'◷'}[p];let action='';if(p==='unknown')action=btn(t('checkPayment'),'check','','yellow');if(p==='pending')action=btn(t('checkTicket'),'issue','','yellow');if(p==='declined')action=btn(t('retry'),'retry','','yellow');if(p==='expired')action=btn(t('renew'),'renew','','yellow');if(p==='security')action=helpButton(state.lang,helpOpen,true);if(p==='issued')action=btn(t('saveTicket'),'download','','yellow')+btn(t('printTicket'),'print','','secondary');return `${journey(['issued','pending'].includes(p)?2:1)}<div class="result"><div class="result-icon ${['issued','pending'].includes(p)?'ok':''}" aria-hidden="true">${icon}</div><h1 tabindex="-1">${t(key+'Title')}</h1><p class="lead" ${p==='processing'?'role="status"':''}>${t(p==='expired'?'expiredMessage':key+'Text')}</p>${state.orderId?`<p class="small muted">${t('order')} <span class="order-code">${esc(state.orderId)}</span></p>`:''}${p!=='issued'&&event()&&session()?`<p class="status-context">${esc(t(event().titleKey))}<br>${dateText(session())} · ${t('guests')}: ${state.qty}<br>${money(total(state))}${state.seats.length?' · '+esc(seatText(state.seats)):''}</p>`:''}${p==='issued'?ticket():''}<div class="action-row">${action}${['unknown','pending','declined','issued'].includes(p)?helpButton(state.lang,helpOpen):''}${additionalLink(record,state)}${p==='issued'?link(t('newBooking'),'catalog'):''}</div>${state.orderId?help():''}${p==='issued'?(window.VPSocialLinks?.render(state.lang,{saveAction:'session'})||''):''}</div>`;}
 function reviewPanel(){return !review?'':`<details class="review-panel" open><summary>${t('review')}</summary><p class="small muted">${t('reviewNote')}</p><div class="review-controls"><label>${t('scenario')}<select id="scenario">${SCENARIOS.map(v=>`<option value="${v}" ${v===state.scenario?'selected':''}>${t(v)}</option>`).join('')}</select></label>${btn(t('applyScenario'),'scenario','','secondary small-btn')}${btn(t('expire'),'expire','','secondary small-btn',!['payment','declined'].includes(state.phase)?'disabled':'')}${btn(t('reset'),'reset','','secondary small-btn')}</div><pre>${esc(JSON.stringify({phase:state.phase,orderId:state.orderId,attempts:state.attempts,actions:state.log.slice(-8)},null,2))}</pre></details>`;}
 function render(focus=false){if(mutating){needsRender=true;renderFocus=renderFocus||focus;return;}
  const context=captureRenderContext(root);
@@ -126,7 +143,7 @@ function render(focus=false){if(mutating){needsRender=true;renderFocus=renderFoc
  mobileActions.mount();updateClock();
 }
 function updateClock(){if(!state.holdUntil)return;const seconds=Math.max(0,Math.ceil((state.holdUntil-Date.now())/1000));const time=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;document.querySelectorAll('[data-hold]').forEach(el=>el.textContent=t('hold',{time}));}
-function downloadTicket(){const frozen=record?.orders.find(o=>o.id===state.orderId);const rows=[t('invalidTicket'),'VICTORY PARK',frozen?.eventTitle?.[state.lang]||t(event().titleKey),dateText(frozen?.sessionAt?{at:frozen.sessionAt}:session())+' · '+t('yerevanTime'),`${t('guests')}: ${state.qty}`,state.seats.length?seatText(state.seats):t('capacity'),`${t('total')}: ${money(frozen?.amount??total(state))}`,`${t('order')}: ${state.orderId}`,t('ticketBody'),t('noEmailSent')];const blob=new Blob(['\uFEFF'+rows.join('\n\n')],{type:'text/plain;charset=utf-8'});const href=URL.createObjectURL(blob);const a=document.createElement('a');a.href=href;a.download=state.orderId+'-DEMO.txt';a.click();setTimeout(()=>URL.revokeObjectURL(href),1000);}
+function downloadTicket(){downloadTicketText(ticketInfo(),t);}
 function pay(){
  if(!['select','payment','declined'].includes(state.phase))return;
  if(state.phase==='declined')update({type:'RETRY'});
@@ -146,7 +163,7 @@ root.addEventListener('click',e=>{
  const button=e.target.closest('[data-action]');if(!button||button.disabled)return;
  const action=button.dataset.action,value=button.dataset.value;
  if(action==='pay')return;
- e.preventDefault();const scenarioValue=document.querySelector('#scenario')?.value;if(action==='copy'){navigator.clipboard.writeText(state.orderId).then(()=>{copied=true;render();}).catch(()=>{});return;}run(()=>{if(readOnly&&!['lang','help','download','print'].includes(action))return;
+ e.preventDefault();const scenarioValue=document.querySelector('#scenario')?.value;if(action==='copy'){const id=state.orderId;copyOrderNumber(id).then(result=>{if(state.orderId===id){copied=result;render();}});return;}run(()=>{if(readOnly&&!['lang','help','download','print'].includes(action))return;
  switch(action){
  case 'lang':update({type:'LANG',value});finish({focus:false});break;
  case 'catalog':if(locked()&&state.phase!=='issued')break;resumeId=null;const keepQuantity=ui.qtyKnown&&state.phase!=='issued';release();update({type:'NEW'});ui={view:'events',qtyKnown:keepQuantity};mapSnapshot=null;helpOpen=false;finish({push:true});break;
@@ -166,13 +183,13 @@ root.addEventListener('click',e=>{
  case 'issue':update({type:'ISSUE'});finish();break;
  case 'retry':pay();break;
  case 'renew':update({type:'RENEW'});ui.view='checkout';prepare();finish();break;
- case 'help':helpOpen=!helpOpen;render();break;
+ case 'help':helpOpen=!helpOpen;copied=false;render();break;
  
  case 'download':downloadTicket();break;
  case 'print':window.print();break;
- case 'scenario':if(review&&!BUSY.includes(state.phase)){const scenario=scenarioValue;const {lang,eventId,qty,email}=state,quantityKnown=ui.qtyKnown;const orderSeq=state.orderSeq;state=defaultState();state.orderSeq=orderSeq;state.lang=lang;state.qty=qty;state.email=email;update({type:'EVENT',value:eventId||'show'});update({type:'SESSION',value:(eventId||'show')+'-1'});update({type:'SCENARIO',value:scenario});ui={view:quantityKnown?'checkout':'group',qtyKnown:quantityKnown};mapOpen=false;mapSnapshot=null;helpOpen=false;prepare();finish({push:true});}break;
+ case 'scenario':if(review&&!BUSY.includes(state.phase)){const scenario=scenarioValue;const {lang,eventId,qty,email}=state,quantityKnown=ui.qtyKnown;const orderSeq=state.orderSeq;state=attachInventory(defaultState(),record.orders);state.orderSeq=orderSeq;state.lang=lang;state.qty=qty;state.email=email;update({type:'EVENT',value:eventId||'show'});update({type:'SESSION',value:upcomingSessions().find(s=>s.eventId===(eventId||'show')&&s.slot===1).id});update({type:'SCENARIO',value:scenario});ui={view:quantityKnown?'checkout':'group',qtyKnown:quantityKnown};mapOpen=false;mapSnapshot=null;helpOpen=false;prepare();finish({push:true});}break;
  case 'expire':if(review){update({type:'EXPIRE'});finish();}break;
- case 'reset':if(review&&!BUSY.includes(state.phase)){clearTimeout(responseTimer);state={...defaultState(),lang:state.lang,orderSeq:state.orderSeq};resumeId=null;readOnly=false;ui={view:'events',qtyKnown:false};applyLocation(initialQuery,{fresh:true});mapOpen=false;mapSnapshot=null;lastIssued=null;helpOpen=false;finish();}break;
+ case 'reset':if(review&&!BUSY.includes(state.phase)){clearTimeout(responseTimer);state=attachInventory({...defaultState(),lang:state.lang,orderSeq:state.orderSeq},record.orders);resumeId=null;readOnly=false;ui={view:'events',qtyKnown:false};applyLocation(initialQuery,{fresh:true});mapOpen=false;mapSnapshot=null;lastIssued=null;helpOpen=false;finish();}break;
  }
 });});
 window.addEventListener('popstate',()=>run(()=>{
@@ -193,8 +210,8 @@ window.addEventListener('popstate',()=>run(()=>{
 
 let record=null,readOnly=false,resumeMissing=false,resumeId=new URLSearchParams(location.search).get('resume'),mutating=false,needsRender=false,renderFocus=false,queue=Promise.resolve(),storageFailed=false;
 function loadRecord(saved){
- record=saved;const view=selectResume(saved,resumeId);state=structuredClone(view.state);readOnly=view.readonly;resumeMissing=view.missing;if(readOnly){const lang=new URLSearchParams(location.search).get('lang');if(['ru','hy','en'].includes(lang))state.lang=lang;}
- lastIssued=issuedSnapshot([...saved.orders].reverse().find(o=>o.phase==='issued')?.snapshot);
+ record=saved;const view=selectResume(saved,resumeId);state=attachInventory(structuredClone(view.state),saved.orders);readOnly=view.readonly;resumeMissing=view.missing;if(readOnly){const lang=new URLSearchParams(location.search).get('lang');if(['ru','hy','en'].includes(lang))state.lang=lang;}
+ lastIssued=issuedSnapshot((originalOrder(saved,state)||[...saved.orders].reverse().find(o=>o.phase==='issued'))?.snapshot);
  ui={view:saved.ui?.view||(!state.eventId?'events':!state.sessionId?'sessions':saved.qtyKnown?'checkout':'group'),qtyKnown:saved.qtyKnown===true};mapSnapshot=mapSnapshotFor(saved.mapSnapshot,state);
 }
 function exportRecord(){
@@ -202,7 +219,7 @@ function exportRecord(){
  // Editing the active order can release its ID. Keep following the editable
  // draft instead of reopening its previous snapshot as a read-only archive.
  if(resumeId&&resumeId!==state.orderId){resumeId=null;url();}
- state.orderSeq=Math.max(state.orderSeq,record.orderSeq||0);captureOrder(record,state,'quiz');record.state=structuredClone(state);record.qtyKnown=ui.qtyKnown;record.ui={...ui};record.mapSnapshot=mapSnapshot;
+ state.orderSeq=Math.max(state.orderSeq,record.orderSeq||0);captureOrder(record,state,'quiz');record.state=storedState(state);record.qtyKnown=ui.qtyKnown;record.ui={...ui};record.mapSnapshot=mapSnapshot ? storedState(mapSnapshot) : null;
  return record;
 }
 function fatal(error){storageFailed=true;root.innerHTML=siteHeader(state,'quiz',ui.qtyKnown,resumeId)+`<main id="main" class="wrap"><p class="notice error" role="alert">${label(state.lang,'storage')}</p></main>`+siteFooter(state);mobileActions.mount();console.error('Session persistence failed',error?.name||'Error');}

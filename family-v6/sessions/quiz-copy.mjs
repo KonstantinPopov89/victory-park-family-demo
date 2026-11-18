@@ -2,7 +2,7 @@
 export const quizCopy = {
   ru: {
     previousTicket: 'Предыдущий демобилет',
-    groupRules: 'Считайте детей и взрослых. Пример условий: от 6 лет; детям нужен взрослый с отдельным билетом.',
+    groupRules: 'Пример для гостей от 6 лет. Учитывайте детей и сопровождающих. Все входят вместе по одному билету.',
     unavailableBeforeGroup: 'Выберите другое время или событие.',
     chooseSeatsTitle: 'Выберите места на этом сеансе',
     newSeatsTitle: 'Есть места рядом для всей компании',
@@ -21,7 +21,7 @@ export const quizCopy = {
     chooseEventHint: 'Выберите событие. Дальше только время и билеты.',
     chooseTimeHint: 'Выберите удобный сеанс. Время по Еревану.',
     checkoutHint: 'Места и полная сумма уже перед вами. Осталось указать почту.',
-    briefRules: 'От 6 лет. Детям нужен взрослый с отдельным билетом. Приходите за 15 минут.',
+    briefRules: 'От 6 лет, дети со взрослым. Входите вместе по одному демобилету. Приходите за 15 минут.',
     termsLink: 'Условия отмены и переноса',
     demoShort: 'Демо. Деньги не списываются, письма и SMS не отправляются.',
     mapDone: 'Эти места подходят',
@@ -48,7 +48,7 @@ export const quizCopy = {
   },
   hy: {
     previousTicket: 'Նախորդ փորձնական տոմսը',
-    groupRules: 'Հաշվեք երեխաներին և մեծահասակներին։ Պայմանների օրինակ՝ 6 տարեկանից, երեխաներին պետք է ուղեկցի մեծահասակ՝ առանձին տոմսով։',
+    groupRules: 'Օրինակ 6 տարեկանից այցելուների համար։ Հաշվեք երեխաներին և ուղեկցողներին։ Բոլորը ներս են մտնում միասին՝ մեկ տոմսով։',
     unavailableBeforeGroup: 'Ընտրեք այլ ժամ կամ միջոցառում։',
     chooseSeatsTitle: 'Ընտրեք այս սեանսի տեղերը',
     newSeatsTitle: 'Ամբողջ խմբի համար կան հարակից տեղեր',
@@ -67,7 +67,7 @@ export const quizCopy = {
     chooseEventHint: 'Ընտրեք միջոցառումը։ Հետո մնում են ժամը և տոմսերը։',
     chooseTimeHint: 'Ընտրեք հարմար սեանսը։ Ժամերը Երևանի ժամանակով են։',
     checkoutHint: 'Տեղերն ու ընդհանուր գումարն արդեն տեսնում եք։ Մնում է նշել էլեկտրոնային հասցեն։',
-    briefRules: '6 տարեկանից։ Երեխաներին պետք է ուղեկցի մեծահասակ՝ առանձին տոմսով։ Եկեք 15 րոպե շուտ։',
+    briefRules: '6 տարեկանից, երեխաները՝ մեծահասակի հետ։ Ներս մտեք միասին՝ մեկ ցուցադրական տոմսով։ Եկեք 15 րոպե շուտ։',
     termsLink: 'Չեղարկման և տեղափոխման պայմանները',
     demoShort: 'Փորձնական տարբերակ։ Գումար չի գանձվում, նամակներ և SMS չեն ուղարկվում։',
     mapDone: 'Այս տեղերը հարմար են',
@@ -94,7 +94,7 @@ export const quizCopy = {
   },
   en: {
     previousTicket: 'Previous demo ticket',
-    groupRules: 'Count children and adults. Example conditions: ages 6 and up; children need an accompanying adult with a separate ticket.',
+    groupRules: 'Demo for ages 6 and up. Count children and accompanying adults. The group enters together on one ticket.',
     unavailableBeforeGroup: 'Choose another time or event.',
     chooseSeatsTitle: 'Choose seats for this session',
     newSeatsTitle: 'There are adjacent seats for your whole group',
@@ -113,7 +113,7 @@ export const quizCopy = {
     chooseEventHint: 'Choose an event. Then just the time and tickets.',
     chooseTimeHint: 'Choose a session that suits you. All times are Yerevan time.',
     checkoutHint: 'Your places and full total are shown. Just add your email.',
-    briefRules: 'Ages 6 and up. Children need an adult with a separate ticket. Arrive 15 minutes early.',
+    briefRules: 'Ages 6 and up, children with an adult. Enter together on one demo ticket. Arrive 15 minutes early.',
     termsLink: 'Cancellation and rescheduling',
     demoShort: 'Demo. No payment is taken. No emails or SMS are sent.',
     mapDone: 'These seats work for us',

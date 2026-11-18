@@ -47,14 +47,22 @@
   return new Intl.DateTimeFormat(lang==='en'?'en-GB':'ru-RU',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Yerevan'}).format(date);
  }
  function validB(o){return !!o&&typeof o.id==='string'&&/^VP[A-Z0-9]{1,40}$/.test(o.id)&&Number.isSafeInteger(o.amount)&&o.amount>0&&o.amount<=100000000&&['topup','nocard','unlimited','dino-ticket'].includes(o.product)&&Number.isInteger(o.qty)&&o.qty>=1&&o.qty<=10&&typeof o.ts==='string'&&Number.isFinite(Date.parse(o.ts))&&typeof o.last4==='string'&&/^(?:\d{4})?$/.test(o.last4);}
+ function matchesSavedSession(order){
+  const legacy={show:['show-1','show-2','show-3'],garden:['garden-1','garden-2']};
+  if(!Object.hasOwn(legacy,order.eventId))return false;
+  if(legacy[order.eventId].includes(order.sessionId))return true;
+  // Dated IDs describe the frozen occurrence even after it has left the programme.
+  const stamp=/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2}):00\+04:00$/.exec(order.sessionAt);
+  return Boolean(stamp && order.sessionId===order.eventId+'-'+stamp[1]+'-'+stamp[2]+stamp[3]);
+ }
  function validSession(o){
   if(!o||typeof o!=='object'||typeof o.id!=='string'||!/^demo-[1-9]\d{0,12}$/.test(o.id)||!['form','quiz'].includes(o.variant))return false;
-  const s=o.snapshot,allowed={show:['show-1','show-2','show-3'],garden:['garden-1','garden-2']};
-  if(!s||typeof s!=='object'||!Object.hasOwn(allowed,o.eventId)||!allowed[o.eventId].includes(o.sessionId)||!Number.isSafeInteger(o.qty)||o.qty<1||o.qty>8||!Number.isSafeInteger(o.amount)||o.amount<=0||o.amount>100000000)return false;
+  const s=o.snapshot;
+  if(!s||typeof s!=='object'||!matchesSavedSession(o)||!Number.isSafeInteger(o.qty)||o.qty<1||o.qty>8||!Number.isSafeInteger(o.amount)||o.amount<=0||o.amount>100000000)return false;
   if(!Number.isFinite(o.createdAt)||!Number.isFinite(o.updatedAt)||o.createdAt<=0||o.updatedAt<o.createdAt||!Number.isFinite(new Date(o.updatedAt).getTime()))return false;
   if(!['select','payment','processing','declined','security','unknown','pending','issued','expired'].includes(o.phase)||s.orderId!==o.id||s.eventId!==o.eventId||s.sessionId!==o.sessionId||s.qty!==o.qty||s.phase!==o.phase)return false;
   if(!Array.isArray(o.seats)||!Array.isArray(s.seats)||o.seats.length!==s.seats.length||o.seats.some((seat,i)=>typeof seat!=='string'||!/^([A-F][1-8])$/.test(seat)||seat!==s.seats[i])||new Set(o.seats).size!==o.seats.length)return false;
-  if(o.eventId==='garden'&&o.seats.length!==0||o.eventId==='show'&&o.seats.length!==o.qty)return false;
+  if(o.eventId==='garden'&&o.seats.length!==0||o.eventId==='show'&&o.phase!=='expired'&&o.seats.length!==o.qty)return false;
   if(typeof o.sessionAt!=='string'||!Number.isFinite(Date.parse(o.sessionAt))||!o.eventTitle||typeof o.eventTitle!=='object'||!['ru','hy','en'].every(lang=>typeof o.eventTitle[lang]==='string'&&o.eventTitle[lang].length>0&&o.eventTitle[lang].length<=200))return false;
   return o.currency==='AMD'&&Number.isSafeInteger(o.unitPrice)&&o.unitPrice>0&&o.unitPrice*o.qty===o.amount;
  }

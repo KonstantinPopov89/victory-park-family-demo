@@ -1,15 +1,10 @@
+import {upcomingSessions, resolveSession} from './schedule.mjs?vpv=64dfbdf9e92c38b1';
 // Local demonstration only. This engine does not reserve inventory or charge money.
 export const EVENTS = Object.freeze([
   Object.freeze({ id: 'show', mode: 'seated', titleKey: 'showTitle', descriptionKey: 'showDesc', duration: 50, price: 3500, image: 'events-780.webp?vpimg=49' }),
   Object.freeze({ id: 'garden', mode: 'capacity', titleKey: 'gardenTitle', descriptionKey: 'gardenDesc', duration: 60, price: 2500, image: 'koleso-780.webp?vpimg=49' }),
 ]);
-export const SESSIONS = Object.freeze([
-  Object.freeze({ id: 'show-1', eventId: 'show', at: '2026-10-24T17:00:00+04:00', capacity: 48 }),
-  Object.freeze({ id: 'show-2', eventId: 'show', at: '2026-10-24T19:00:00+04:00', capacity: 48 }),
-  Object.freeze({ id: 'show-3', eventId: 'show', at: '2026-10-25T17:00:00+04:00', capacity: 48 }),
-  Object.freeze({ id: 'garden-1', eventId: 'garden', at: '2026-10-24T12:00:00+04:00', capacity: 24 }),
-  Object.freeze({ id: 'garden-2', eventId: 'garden', at: '2026-10-25T12:00:00+04:00', capacity: 24 }),
-]);
+export const SESSIONS = Object.freeze(upcomingSessions());
 export const SEATS = Object.freeze('ABCDEF'.split('').flatMap(row => Array.from({ length: 8 }, (_, i) => `${row}${i + 1}`)));
 export const HOLD_MS = 8 * 60 * 1000;
 export const SCENARIOS = Object.freeze(['normal', 'soldout', 'shortage', 'separated', 'closed', 'declined', 'security', 'unknown', 'pending']);
@@ -21,11 +16,14 @@ const ACTIONS = ['LANG', ...EDIT_ACTIONS, 'SCENARIO', 'RESOLVE', 'CHECK', 'ISSUE
 const errorKeys = ['needSession', 'notEnough', 'needSeats', 'emailError', 'closedMessage', 'expiredMessage', 'lockedOrder'];
 
 export function defaultState() {
-  return { version: 1, lang: 'ru', eventId: null, sessionId: null, qty: 2, seats: [], seatMode: 'auto', phase: 'select', scenario: 'normal', email: '', holdUntil: null, orderId: null, attempts: 0, error: null, log: [], orderSeq: 0 };
+  return { version: 1, lang: 'ru', eventId: null, sessionId: null, qty: 2, seats: [], seatMode: 'auto', phase: 'select', scenario: 'normal', email: '', holdUntil: null, orderId: null, attempts: 0, error: null, log: [], orderSeq: 0, additionalTo: null };
 }
 const eventOf = state => EVENTS.find(event => event.id === state.eventId);
-const sessionOf = state => SESSIONS.find(session => session.id === state.sessionId && session.eventId === state.eventId);
-const inventoryScenario = state => state.sessionId === `${state.eventId}-1` ? state.scenario : 'normal';
+const sessionOf = state => {
+  const session = resolveSession(state.sessionId);
+  return session?.eventId === state.eventId ? session : null;
+};
+const inventoryScenario = state => sessionOf(state)?.slot === 1 ? state.scenario : 'normal';
 const copy = state => ({ ...state, seats: [...state.seats], log: state.log.map(entry => ({ ...entry })) });
 const validEmail = value => typeof value === 'string' && value.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 // Keep the historical email predicate so saved tickets remain readable. Phone
@@ -33,7 +31,13 @@ const validEmail = value => typeof value === 'string' && value.length <= 254 && 
 const validContact = value => typeof value === 'string' && value.length <= 254 &&
   (!value.trim() || validEmail(value) || /^\+[1-9]\d{6,14}$/.test(value.trim().replace(/[\s()\-]/g, '')));
 
-export function isClosed(state) { return Boolean(sessionOf(state)) && inventoryScenario(state) === 'closed'; }
+export function isClosed(state, now = Date.now()) {
+  const session = sessionOf(state);
+  if (!session) return false;
+  if (inventoryScenario(state) === 'closed') return true;
+  // A receipt can always be restored; a new sale must belong to the current programme.
+  return Number.isFinite(now) && !upcomingSessions(now).some(item => item.eventId === session.eventId && item.at === session.at);
+}
 
 export function availability(state) {
   const session = sessionOf(state);
@@ -48,15 +52,30 @@ export function availability(state) {
     sold = SEATS.filter(seat => Number(seat.slice(1)) % 2 === 0);
     remaining = SEATS.length - sold.length;
   }
-  const adjacent = [];
+  // Issued orders are projected from this browser's immutable journal inside the
+  // same IndexedDB transaction as the purchase. Other dates keep independent stock.
+  const issued = state.issuedInventory?.[session.eventId + '/' + Date.parse(session.at)];
+  if (issued) {
+    sold = [...new Set([...sold, ...issued.seats])];
+    remaining = seated ? SEATS.length - sold.length : Math.max(0, remaining - issued.qty);
+  }
+  let adjacent = [];
   if (seated) {
-    const occupied = new Set(sold);
+    const occupied = new Set(sold), near = state.additionalTo && issued?.near || [];
+    let bestDistance = Infinity;
     for (const row of 'ABCDEF') {
       for (let column = 1; column <= 9 - state.qty; column++) {
-        const group = Array.from({ length: state.qty }, (_, offset) => `${row}${column + offset}`);
-        if (group.every(seat => !occupied.has(seat))) { adjacent.push(...group); break; }
+        const group = Array.from({ length: state.qty }, (_, i) => row + (column + i));
+        if (group.some(seat => occupied.has(seat))) continue;
+        // Within a row prefer the nearest block, then favour neighbouring rows.
+        const distance = near.length ? Math.min(...near.map(seat =>
+          8 * Math.abs(seat.charCodeAt(0) - row.charCodeAt(0)) +
+          Math.max(column - Number(seat[1]), Number(seat[1]) - (column + state.qty - 1), 0)
+        )) : 0;
+        if (distance < bestDistance) { adjacent = group; bestDistance = distance; }
+        if (!near.length) break;
       }
-      if (adjacent.length) break;
+      if (bestDistance === 0) break;
     }
   }
   return { remaining, sold, adjacent };
@@ -64,9 +83,9 @@ export function availability(state) {
 
 export function total(state) { return (eventOf(state)?.price ?? 0) * state.qty; }
 
-function selectionError(state, checkContact = true) {
+function selectionError(state, checkContact = true, now = Date.now()) {
   if (!sessionOf(state)) return 'needSession';
-  if (isClosed(state)) return 'closedMessage';
+  if (isClosed(state, now)) return 'closedMessage';
   const stock = availability(state);
   if (stock.remaining < state.qty) return 'notEnough';
   if (eventOf(state)?.mode === 'seated' && (state.seats.length !== state.qty || new Set(state.seats).size !== state.qty || state.seats.some(seat => !SEATS.includes(seat) || stock.sold.includes(seat)))) return 'needSeats';
@@ -74,10 +93,10 @@ function selectionError(state, checkContact = true) {
   return null;
 }
 
-export function canContinue(state) { return state.phase === 'select' && selectionError(state) === null; }
+export function canContinue(state, now = Date.now()) { return state.phase === 'select' && selectionError(state, true, now) === null; }
 // A quiz answer may reserve the complete group before a contact is entered.
 // PAY still rejects a nonempty invalid contact before counting an attempt.
-export function canHold(state) { return state.phase === 'select' && selectionError(state, false) === null; }
+export function canHold(state, now = Date.now()) { return state.phase === 'select' && selectionError(state, false, now) === null; }
 
 function chooseSeats(state) {
   const stock = availability(state);
@@ -112,11 +131,13 @@ export function reduce(state, action, now = Date.now()) {
     case 'EVENT':
       if (!EVENTS.some(event => event.id === action.value)) break;
       if (next.eventId === action.value) break;
+      if (next.eventId) next.additionalTo = null;
       release(next); next.eventId = action.value; next.sessionId = null; next.seats = []; next.seatMode = 'auto';
       break;
     case 'SESSION': {
-      const session = SESSIONS.find(item => item.id === action.value && item.eventId === next.eventId);
-      if (!session || next.sessionId === session.id) break;
+      const session = resolveSession(action.value);
+      if (!session || session.eventId !== next.eventId || next.sessionId === session.id) break;
+      if (next.sessionId) next.additionalTo = null;
       release(next); next.sessionId = session.id; next.seats = []; chooseSeats(next);
       break;
     }
@@ -151,14 +172,14 @@ export function reduce(state, action, now = Date.now()) {
     case 'HOLD':
     case 'CONTINUE':
       if (next.phase !== 'select') break;
-      next.error = selectionError(next, action.type === 'CONTINUE');
+      next.error = selectionError(next, action.type === 'CONTINUE', now);
       if (next.error) break;
       if (!next.orderId) { next.orderSeq += 1; next.orderId = `demo-${next.orderSeq}`; }
       next.phase = 'payment'; next.holdUntil = now + HOLD_MS;
       break;
     case 'PAY':
       if (!['payment', 'declined'].includes(next.phase)) break;
-      next.error = selectionError(next);
+      next.error = selectionError(next, true, now);
       if (next.error) break;
       next.phase = 'processing'; next.attempts += 1; next.error = null;
       break;
@@ -189,7 +210,7 @@ export function reduce(state, action, now = Date.now()) {
       break;
     case 'NEW':
       if (['processing', 'unknown', 'pending', 'security'].includes(next.phase)) { next.error = 'lockedOrder'; break; }
-      next = { ...defaultState(), lang: next.lang, email: next.email, qty: next.qty, orderSeq: next.orderSeq, log: next.log };
+      next = { ...defaultState(), lang: next.lang, email: next.email, qty: next.qty, orderSeq: next.orderSeq, log: next.log, ...(next.issuedInventory ? {issuedInventory:next.issuedInventory} : {}) };
       break;
     case 'RESET':
       next = { ...defaultState(), lang: next.lang };
@@ -214,11 +235,12 @@ export function restore(raw, now = Date.now()) {
   if (!(value.orderId === null || /^demo-[1-9]\d*$/.test(value.orderId) && Number(value.orderId.slice(5)) <= value.orderSeq)) return defaultState();
   // A hold can exist before contact entry. Expiry must preserve this unfinished
   // entry too; attempted/charged orders accept an empty contact or valid email/phone.
-  if (value.phase !== 'select' && (!value.orderId || selectionError(value, !['payment', 'expired'].includes(value.phase)))) return defaultState();
+  if (value.phase !== 'select' && (!value.orderId || selectionError({...value, issuedInventory: undefined}, !['payment', 'expired'].includes(value.phase), -Infinity))) return defaultState();
   if (['payment', 'processing', 'declined', 'unknown', 'security', 'pending', 'issued'].includes(value.phase) && !Number.isFinite(value.holdUntil)) return defaultState();
   if (['processing', 'declined', 'unknown', 'security', 'pending', 'issued'].includes(value.phase) && value.attempts < 1) return defaultState();
   if (value.phase === 'select' && value.holdUntil !== null) return defaultState();
   const next = Object.fromEntries(Object.keys(defaultState()).map(key => [key, value[key]]));
+  next.additionalTo = typeof value.additionalTo === 'string' && /^demo-[1-9]\d{0,12}$/.test(value.additionalTo) ? value.additionalTo : null;
   next.error = errorKeys.includes(value.error) ? value.error : null;
   next.log = Array.isArray(value.log) ? value.log.filter(entry => entry && typeof entry === 'object' && (ACTIONS.includes(entry.action) || ['EXPIRED', 'RESTORE_UNKNOWN'].includes(entry.action)) && Number.isFinite(entry.at)).slice(-80).map(entry => ({ action: entry.action, at: entry.at })) : [];
   // Reload loses the asynchronous response. Reconcile the existing order instead of
