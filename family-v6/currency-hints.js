@@ -115,8 +115,10 @@ function start() {
  link.href = 'https://www.cba.am/en/';
  link.textContent = copy.source;
  note.append(link);
- const footer = document.querySelector('footer');
- (footer || document.body).append(note);
+ // The fullscreen feed puts prices inside the ride detail dialog. Its bottom toolbar is navigation.
+ const feedDetails = document.querySelector('body[data-vp-discovery="feed"] #r-dialog');
+ const noteHost = feedDetails || document.querySelector('footer') || document.body;
+ noteHost.append(note);
  const pending = new Set();
  let scheduled = false;
  const observer = new MutationObserver(records => {
