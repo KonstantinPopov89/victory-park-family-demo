@@ -10,7 +10,8 @@ const quick=home||document.body.dataset.checkout==='quick';
 // Quick checkout buys the selected rights; missing profile data is checked before riding.
 const purchaseOptions=quick?Object.freeze({deferUnknownProfile:true}):undefined;
 const KEY='vp.family.v6.people.v1', ORDER='vp.family.v6.people.v1.order', LOCK='vp.family.v5.payment', HISTORY='vp.family.v6.people.v1.orders', QUICK_DRAFT='vp.family.v6.people.v1.quickDraft';
-let quickDraftSaved=false,completedEntry=false;try{quickDraftSaved=localStorage.getItem(QUICK_DRAFT)==='1';}catch{}
+function quickDraftMarker(){try{return localStorage.getItem(QUICK_DRAFT);}catch{return null;}}
+let quickDraftSaved=['1','empty'].includes(quickDraftMarker()),completedEntry=false;
 const $=s=>document.querySelector(s), esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const numberFormatter=new Intl.NumberFormat('ru-RU');
 const clone=v=>JSON.parse(JSON.stringify(v)), money=n=>numberFormatter.format(n||0)+'\u00a0֏';
@@ -39,7 +40,12 @@ if(!home&&!entryQuery.has('resume')&&VP3.demoRides.some(r=>r.id===entryQuery.get
  if(window.VPHomeDefault?.release())quickDraftSaved=false;
  state=VPFamilyStorage.recoverState(localStorage,VP3.sanitizeState).state;
 });
-if(order&&['success','declined'].includes(order.status)&&!entryQuery.has('resume')){completedEntry=order.status==='success'&&state.cart.lines.some(line=>order.lines.some(paid=>paid.id===line.id));settlePaidLines(order);order=null;}
+if(order&&['success','declined'].includes(order.status)&&!entryQuery.has('resume')){
+ // Older receipts may already have removed every paid line while leaving the draft marker.
+ completedEntry=order.status==='success'&&quickDraftMarker()!=='empty'&&
+  (!state.cart.lines.length||state.cart.lines.some(line=>order.lines.some(paid=>paid.id===line.id)));
+ settlePaidLines(order);order=null;
+}
 familyOpen=!state.party.length;
 const rides=()=>state.mode==='real'?VP3.realRides:VP3.demoRides;
 const ride=id=>[...VP3.realRides,...VP3.demoRides].find(r=>r.id===id);
@@ -56,7 +62,11 @@ const pickerReturn=()=>returnMode==='real'||state?.selectedJourney||order?.selec
 const id=()=> 'v3-'+(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2,8));
 function announce(text){const el=$('#announce');if(!el)return;const lang=language();el.textContent=window.VPI18n?.translate(text)||(home&&lang!=='ru'?(window.VP_TRANSLATIONS?.[text]?.[lang]||VPHomePurchase.text(lang,/билетов в пакете|Количество|Выбор/.test(text)?'selectionUpdated':'informationUpdated')):text);}
 function save(){try {VPFamilyStorage.writeState(localStorage,state);}catch {storageAvailable=false;warning='Выбор не сохраняется в браузере. При переходе или обновлении он может потеряться.';}}
-function markQuickDraft(){if(quick)try{localStorage.setItem(QUICK_DRAFT,'1');quickDraftSaved=true;}catch{}}
+function markQuickDraft(){
+ if(!quick)return;
+ quickDraftSaved=true;
+ try{localStorage.setItem(QUICK_DRAFT,state.cart.lines.length?'1':'empty');}catch{}
+}
 function startDefaultPurchase(){if(!quick||order||state.cart.lines.length)return;delete state.selectedJourney;activeProduct='unlimited';state.mode='demo';state.cart.lines=Array.from({length:3},()=>({id:id(),productId:'unlimited',rideId:null,personId:null,recipientKey:'direct-pass-'+id(),quantity:1,unitPrice:VP3.products.unlimited.price}));if(home)state=VP3.markHomePrefill(state);params.set('product','unlimited');try{history.replaceState(history.state,'',location.pathname+'?'+params.toString()+location.hash);}catch{}markQuickDraft();save();if(home)window.VPHomeDefault?.mark(state);}
 function savePromotion(){try{localStorage.setItem(PROMO,JSON.stringify(promotion));}catch{storageAvailable=false;warning='Предложение сохранено только в этой вкладке.';}}
 function pastOrders(){return VPFamilyStorage.readHistory(localStorage,VPC.validateOrder).rows.filter(order=>order.status==='success').slice(0,20);}
@@ -511,6 +521,14 @@ function saveAccess(){
  const html=`<!doctype html><html lang="ru"><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'none'; object-src 'none'; base-uri 'none'; connect-src 'none'; form-action 'none'; img-src data:; style-src 'unsafe-inline'"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Доступ к учебному заказу</title><body><h1>Учебный заказ ${esc(order.id)}</h1><p>Сумма: ${money(order.total)}</p><p>Это сохранённые данные, а не актуальная проверка платежа. Реальных списаний не было.</p><p><a href="${esc(url)}">Проверить заказ в исходном браузере</a></p><p>Ссылка работает только в браузере, где сохранён заказ. На другом устройстве этот файл не восстанавливает покупку.</p><ul>${order.lines.map(l=>`<li>${esc(l.name)} × ${l.quantity}: ${esc(l.recipientLabel)}</li>`).join('')}</ul></body></html>`;
  const objectUrl=URL.createObjectURL(new Blob([window.VPI18n ? VPI18n.translateHTML(html) : html],{type:'text/html;charset=utf-8'}));const a=document.createElement('a');a.href=objectUrl;a.download=order.id+'-access.html';a.click();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);announce('Данные заказа подготовлены для сохранения.');
 }
+// A fresh click can also recover an empty draft from older versions without a receipt.
+document.addEventListener('click',event=>{
+ if(!home||!event.target.closest('[data-home-buy-link]')||quickDraftMarker()==='empty'||params.has('resume')||location.hash==='#purchase-history')return;
+ if(!busy&&!order&&!state.cart.lines.length&&homeSimpleProduct()==='unlimited'){
+  startDefaultPurchase();
+  render();
+ }
+});
 document.addEventListener('click',e=>{const homePackageEntry=home&&e.target.closest('[data-home-package-entry]');if(homePackageEntry&&homeEditable()){e.preventDefault();setHomeProduct('package',homePackageEntry.dataset.homePackageEntry);requestAnimationFrame(()=>{$('#home-purchase')?.scrollIntoView({block:'center',behavior:'auto'});$('[data-action="home-package"][data-product="package3"]')?.focus({preventScroll:true});});return;}if(home&&!e.target.closest('#home-purchase'))return;if(busy){e.preventDefault();e.stopImmediatePropagation();return;}const switcher=e.target.closest('[data-checkout-switch]');if(switcher){try{const raw=JSON.stringify(state);localStorage.setItem(KEY,raw);if(localStorage.getItem(KEY)!==raw)throw new Error('storage');}catch{e.preventDefault();warning='Не удалось сохранить выбор. Оставайтесь на этой странице, чтобы завершить покупку.';render();}return;}const detail=e.target.closest('[data-open-details]');if(detail){e.preventDefault();const d=$('#details-'+detail.dataset.openDetails);if(d){d.open=true;jump('#details-'+detail.dataset.openDetails);}return;}const b=e.target.closest('[data-action]');if(!b)return;const act=b.dataset.action;if(busy)return;
 if(home&&act.startsWith('home-')){handleHomeAction(act,b,e);return;}
 if(act==='recalculate-company'){location.href=releaseURL(companyRoute());return;}
