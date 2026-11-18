@@ -49,3 +49,15 @@ body[data-vp-discovery=feed] .r-dock .r-tickets {min-height:52px;flex:none;box-s
 .r-catalog-list span {flex:1}
 .r-catalog-list svg {width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;flex:none}
 html[lang=hy] .r-catalog-list button {font-family:'Noto Sans Armenian',sans-serif}
+
+/* Keep expressions above the reaction row and the caption on short phones. */
+@media (max-width:500px) and (max-height:620px) {
+  body[data-vp-discovery=feed] .r-app .r-photo {
+    height:calc(100% - 100px);
+    background:none;
+  }
+  body[data-vp-discovery=feed] .r-app .r-photo::after {
+    background:linear-gradient(180deg,#14122d77 0%,transparent 30%,transparent 50%,#14122d99 80%,#14122d 100%);
+  }
+  body[data-vp-discovery=feed] .r-card {background:#14122d}
+}
