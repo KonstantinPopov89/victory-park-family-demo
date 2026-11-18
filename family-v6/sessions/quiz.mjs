@@ -1,10 +1,12 @@
+import {upcomingSessions, resolveSession} from './schedule.mjs?vpv=4dfe2511c10be51a';
+import {ticketDetails, renderTicket, downloadTicketText, helpButton, orderHelp, copyOrderNumber} from './ticket.mjs?vpv=a804235c30fa354c';
 import {createMobileActions,mobileCopy} from './mobile-actions.mjs?vpv=dd56988a22bce250';
-import {STORAGE,transact,read,captureOrder,selectResume,BUSY} from './store.mjs?vpv=bd95a8bc415ff785';
+import {STORAGE,transact,read,captureOrder,selectResume,attachInventory,storedState,BUSY} from './store.mjs?vpv=f412d5f2c8f90026';
 import {header as siteHeader,footer as siteFooter,decorate,label} from './chrome.mjs?vpv=ec7447b7015510f5';
-import {EVENTS, SESSIONS, SEATS, SCENARIOS, defaultState, availability, total, reduce, restore, tick, canHold, isClosed} from './engine.mjs?vpv=a2d6096778ec3035';
-import {translate} from './i18n.mjs?vpv=e639e1ea8ee01408';
-import {quizCopy} from './quiz-copy.mjs?vpv=85466ff9fa18dd2e';
-import {issuedSnapshot, startsNewBooking, mapSnapshotFor} from './journey.mjs?vpv=df664d649c663a5c';
+import {EVENTS, SEATS, SCENARIOS, defaultState, availability, total, reduce, restore, tick, canHold, isClosed} from './engine.mjs?vpv=d11e87ba56ace9f9';
+import {translate} from './i18n.mjs?vpv=bbd43e0b14fa486d';
+import {quizCopy} from './quiz-copy.mjs?vpv=359608f5d139c0b8';
+import {issuedSnapshot, startsNewBooking, mapSnapshotFor, bookingQuery, additionalDraft, additionalLink, existingAdditionalView} from './journey.mjs?vpv=2cfc2f0a85bf8e96';
 import {captureRenderContext,restoreRenderContext} from './render-context.mjs?vpv=891cdaf7121a8baf';
 
 
@@ -12,7 +14,7 @@ const root=document.querySelector('#app');
 const initialQuery=new URLSearchParams(location.search);
 const review=initialQuery.get('review')==='1';
 const singleSessionDemo=initialQuery.get('single')==='1';
-const sessionsFor=id=>{const list=SESSIONS.filter(s=>s.eventId===id);return singleSessionDemo?list.slice(0,1):list;};
+const sessionsFor=id=>{const list=upcomingSessions().filter(s=>s.eventId===id);return singleSessionDemo?list.slice(0,1):list;};
 let state=defaultState(), ui={view:'events',qtyKnown:false}, mapOpen=false, mapZoom=1, helpOpen=false, copied=false, mapSnapshot=null, lastIssued=null, responseTimer=null;
 
 const locked=()=>readOnly||['processing','unknown','pending','issued','security'].includes(state.phase);
@@ -29,7 +31,7 @@ const dateText=(session,withTime=true)=>{
  return new Intl.DateTimeFormat(state.lang==='ru'?'ru-RU':'en-GB',{timeZone:'Asia/Yerevan',day:'numeric',month:'long',year:'numeric',...(withTime?{hour:'2-digit',minute:'2-digit'}:{weekday:'long'})}).format(d);
 };
 const event=()=>EVENTS.find(e=>e.id===state.eventId);
-const session=()=>SESSIONS.find(s=>s.id===state.sessionId);
+const session=()=>resolveSession(state.sessionId);
 const seatText=seats=>'ABCDEF'.split('').map(row=>{const group=seats.filter(id=>id[0]===row).map(id=>Number(id.slice(1))).sort((a,b)=>a-b);return group.length>1?t('seatsShort',{row,seats:group.join(', ')}):group.length?t('seat',{row,seat:group[0]}):'';}).filter(Boolean).join(' · ');
 const contiguous=seats=>{const cols=seats.map(s=>+s.slice(1)).sort((a,b)=>a-b);return seats.length>0&&seats.every(s=>s[0]===seats[0][0])&&cols.every((n,i)=>i===0||n===cols[i-1]+1);};
 const btn=(label,action,value='',cls='',extra='')=>`<button type="button" class="btn ${cls}" data-action="${action}" data-value="${esc(value)}" ${extra}>${esc(label)}</button>`;
@@ -37,7 +39,7 @@ const link=(label,action,value='')=>`<button type="button" class="link-button" d
 
 const q=(key,vars={})=>{let value=quizCopy[state.lang]?.[key]??quizCopy.ru[key]??key;for(const [k,v] of Object.entries(vars))value=value.replaceAll('{'+k+'}',String(v));return value;};
 const guestCount=n=>n+' '+q(n===1?'guestOne':state.lang==='ru'&&n>=2&&n<=4?'guestFew':'guestMany');
-function selectionSignature(){return JSON.stringify([state.eventId,state.sessionId,state.qty,state.seats,state.orderId]);}
+function selectionSignature(){return JSON.stringify([state.eventId,state.sessionId,state.qty,state.seats,state.orderId,state.orderSeq]);}
 function save(){if(state.phase==='issued')lastIssued=issuedSnapshot(state);}
 function url(push=false){
  // A displayed ticket belongs to this page, even when another tab starts an order.
@@ -55,18 +57,23 @@ function update(action){state=reduce(state,action);}
 function finish({push=false,focus=true}={}){save();url(push);render(focus);}
 function release(){if(['payment','declined'].includes(state.phase))update({type:'BACK'});}
 function prepare(){if(ui.qtyKnown&&state.sessionId&&['select','payment'].includes(state.phase))update({type:'HOLD'});}
-function applyLocation(query,{fresh=false}={}){
+function applyLocation(input,{fresh=false}={}){
+ const query=bookingQuery(input);
  if(['ru','hy','en'].includes(query.get('lang')))update({type:'LANG',value:query.get('lang')});
- if(startsNewBooking(state,query,singleSessionDemo?SESSIONS.filter(item=>item.id.endsWith('-1')):SESSIONS)){lastIssued=issuedSnapshot(state);update({type:'NEW'});ui={view:'events',qtyKnown:false};mapSnapshot=null;}
+ const existing=existingAdditionalView(record,state,query);
+ if(existing){if(existing==='archive'){resumeId=query.get('additional');loadRecord(record);}return;}
+ const extra=additionalDraft(record,state,query);
+ if(extra){lastIssued=issuedSnapshot(state);state=extra;ui={view:'checkout',qtyKnown:true};mapSnapshot=null;}
+ else if(startsNewBooking(state,query)){lastIssued=issuedSnapshot(state);update({type:'NEW'});ui={view:'events',qtyKnown:false};mapSnapshot=null;}
  if(locked())return;
  const quantity=query.get('qty');
  if(quantity&&/^[1-8]$/.test(quantity)){update({type:'QTY',value:Number(quantity)});ui.qtyKnown=true;}
  
- const requested=SESSIONS.find(s=>s.id===query.get('session'));
+ const requested=resolveSession(query.get('session'));
  const e=EVENTS.find(e=>e.id===(requested?.eventId||query.get('event')));
  if(!e){if(state.eventId&&state.sessionId){ui.view=ui.qtyKnown?'checkout':'group';prepare();return;}ui={view:'events',qtyKnown:ui.qtyKnown};return;}
  if(e.id!==state.eventId){release();update({type:'EVENT',value:e.id});}
- const choices=sessionsFor(e.id), s=choices.find(x=>x.id===requested?.id)||(choices.length===1?choices[0]:null);
+ const choices=sessionsFor(e.id), s=requested&&(!singleSessionDemo||requested.id===choices[0]?.id)?requested:!query.has('session')&&choices.length===1?choices[0]:null;
  if(s&&s.id!==state.sessionId){release();update({type:'SESSION',value:s.id});}
  ui.view=!s?'sessions':query.get('view')==='group'?'group':query.get('view')==='map'&&ui.qtyKnown?'map':ui.qtyKnown?'checkout':'group';
  if(['group','sessions','map'].includes(ui.view))release(); else prepare();
@@ -104,10 +111,18 @@ function checkout(){
 }
 function seatMap(){const stock=availability(state);return `<div class="seat-map"><div class="map-toolbar"><span class="small muted">${t('seatHelp',{n:state.qty})}</span><div><button data-action="zoomout" type="button" aria-label="${t('zoomOut')}" ${mapZoom===1?'disabled':''}>−</button> <button data-action="zoomin" type="button" aria-label="${t('zoomIn')}" ${mapZoom>=1.5?'disabled':''}>+</button></div></div><div class="map-scroll" tabindex="0" role="group" aria-label="${t('seatMapLabel')}"><div class="map-inner" style="--map-zoom:${mapZoom}"><div class="stage">${t('stage')}</div>${'ABCDEF'.split('').map(row=>`<div class="seat-row"><span class="row-label">${row}</span>${SEATS.filter(id=>id.startsWith(row)).map(id=>`<button type="button" class="seat ${stock.sold.includes(id)?'sold':''}" style="${mapZoom>1?'width:46px;height:48px':''}" data-action="seat" data-value="${id}" aria-label="${esc(t('seat',{row,seat:id.slice(1)}))}${stock.sold.includes(id)?', '+t('occupied'):''}" aria-pressed="${state.seats.includes(id)}" ${stock.sold.includes(id)?'disabled':''}>${stock.sold.includes(id)?'×':id.slice(1)}</button>`).join('')}<span class="row-label">${row}</span></div>`).join('')}</div></div><div class="map-legend"><span><i class="swatch"></i>${t('free')}</span><span><i class="swatch picked"></i>${t('selected')}</span><span><i class="swatch busy"></i>${t('occupied')}</span></div><p class="selection-count" role="status">${t('selectedCount',{selected:state.seats.length,qty:state.qty})}</p>${state.seats.length?`<p class="seat-summary">${esc(seatText(state.seats))}</p>`:''}${state.seats.length===state.qty&&!contiguous(state.seats)?`<p class="notice" style="margin-top:14px">${t('splitWarning')}</p>`:''}</div>`;}
 function mapView(){return `${link('← '+q('mapCancel'),'mapCancel')}${context({edit:false})}<div class="question-heading"><h1 tabindex="-1">${t('yourSeats')}</h1><p class="lead">${guestCount(state.qty)} · ${money(total(state))}</p></div>${seatMap()}<div class="map-done">${btn(q('mapDone'),'mapDone','','yellow full',!canHold(state)?'disabled':'')}${btn(t('auto'),'auto','','secondary full')}</div>`;}
-function help(){return helpOpen?`<div class="help-box"><p>${t('helpText')}</p><p class="order-code" style="margin-top:12px">${esc(state.orderId)}</p>${btn(copied?t('copied'):t('copyOrder'),'copy','','secondary small-btn')}</div>`:'';}
-function ticket(ticketState=state){const frozen=record?.orders.find(o=>o.id===ticketState.orderId);const ticketEvent=EVENTS.find(item=>item.id===ticketState.eventId),ticketSession=SESSIONS.find(item=>item.id===ticketState.sessionId);return `<article class="ticket"><div class="ticket-top"><p class="small">VICTORY PARK · ${t('demoOnly')}</p><h2>${esc(frozen?.eventTitle?.[state.lang]||t(ticketEvent.titleKey))}</h2></div><div class="ticket-body"><dl><dt>${t('date')}</dt><dd>${dateText(frozen?.sessionAt?{at:frozen.sessionAt}:ticketSession)}<br><span class="small">${t('yerevanTime')}</span></dd><dt>${t('guests')}</dt><dd>${ticketState.qty}</dd>${ticketEvent.mode==='seated'?`<dt>${t('yourSeats')}</dt><dd>${esc(seatText(ticketState.seats))}</dd>`:''}<dt>${t('amount')}</dt><dd>${money(frozen?.amount??total(ticketState))}</dd><dt>${t('order')}</dt><dd class="order-code">${esc(ticketState.orderId)}</dd>${ticketState.email.trim()?`<dt>${t('emailReceipt')}</dt><dd>${esc(ticketState.email)}</dd>`:''}</dl><p class="no-email">${t('noEmailSent')}</p></div><div class="invalid">${t('invalidTicket')}</div></article>`;}
+function help(){return orderHelp({lang:state.lang, orderId:state.orderId, opened:helpOpen, copied, t});}
+function ticketInfo(ticketState=state) {
+ const order=record?.orders.find(item=>item.id===ticketState.orderId);
+ return ticketDetails(ticketState,order,{
+  lang:state.lang,t,dateText,seatText,money,
+  event:EVENTS.find(item=>item.id===ticketState.eventId),
+  session:resolveSession(ticketState.sessionId)
+ });
+}
+function ticket(ticketState=state){return renderTicket(ticketInfo(ticketState),t);}
 function previousTicket(){return lastIssued&&state.phase!=='issued'?`<details class="previous-ticket"><summary>${q('previousTicket')}</summary>${ticket(lastIssued)}</details>`:'';}
-function result(){const p=state.phase;const key={processing:'processing',unknown:'unknown',declined:'declined',security:'security',pending:'pending',issued:'issued',expired:'expired'}[p];const icon={processing:'…',unknown:'?',declined:'!',security:'!',pending:'✓',issued:'✓',expired:'◷'}[p];let action='';if(p==='unknown')action=btn(t('checkPayment'),'check','','yellow');if(p==='pending')action=btn(t('checkTicket'),'issue','','yellow');if(p==='declined')action=btn(t('retry'),'retry','','yellow');if(p==='expired')action=btn(t('renew'),'renew','','yellow');if(p==='security')action=btn(t('help'),'help','','secondary');if(p==='issued')action=btn(t('saveTicket'),'download','','yellow')+btn(t('printTicket'),'print','','secondary');return `${journey(['issued','pending'].includes(p)?2:1)}<div class="result"><div class="result-icon ${['issued','pending'].includes(p)?'ok':''}" aria-hidden="true">${icon}</div><h1 tabindex="-1">${t(key+'Title')}</h1><p class="lead" ${p==='processing'?'role="status"':''}>${t(p==='expired'?'expiredMessage':key+'Text')}</p>${state.orderId?`<p class="small muted">${t('order')} <span class="order-code">${esc(state.orderId)}</span></p>`:''}${p!=='issued'&&event()&&session()?`<p class="status-context">${esc(t(event().titleKey))}<br>${dateText(session())} · ${t('guests')}: ${state.qty}<br>${money(total(state))}${state.seats.length?' · '+esc(seatText(state.seats)):''}</p>`:''}${p==='issued'?ticket():''}<div class="action-row">${action}${['unknown','pending','declined'].includes(p)?link(t('help'),'help'):''}${p==='issued'?link(t('newBooking'),'catalog'):''}</div>${p==='issued'?(window.VPSocialLinks?.render(state.lang,{saveAction:'session'})||''):''}${help()}</div>`;}
+function result(){const p=state.phase;const key={processing:'processing',unknown:'unknown',declined:'declined',security:'security',pending:'pending',issued:'issued',expired:'expired'}[p];const icon={processing:'…',unknown:'?',declined:'!',security:'!',pending:'✓',issued:'✓',expired:'◷'}[p];let action='';if(p==='unknown')action=btn(t('checkPayment'),'check','','yellow');if(p==='pending')action=btn(t('checkTicket'),'issue','','yellow');if(p==='declined')action=btn(t('retry'),'retry','','yellow');if(p==='expired')action=btn(t('renew'),'renew','','yellow');if(p==='security')action=helpButton(state.lang,helpOpen,true);if(p==='issued')action=btn(t('saveTicket'),'download','','yellow')+btn(t('printTicket'),'print','','secondary');return `${journey(['issued','pending'].includes(p)?2:1)}<div class="result"><div class="result-icon ${['issued','pending'].includes(p)?'ok':''}" aria-hidden="true">${icon}</div><h1 tabindex="-1">${t(key+'Title')}</h1><p class="lead" ${p==='processing'?'role="status"':''}>${t(p==='expired'?'expiredMessage':key+'Text')}</p>${state.orderId?`<p class="small muted">${t('order')} <span class="order-code">${esc(state.orderId)}</span></p>`:''}${p!=='issued'&&event()&&session()?`<p class="status-context">${esc(t(event().titleKey))}<br>${dateText(session())} · ${t('guests')}: ${state.qty}<br>${money(total(state))}${state.seats.length?' · '+esc(seatText(state.seats)):''}</p>`:''}${p==='issued'?ticket():''}<div class="action-row">${action}${['unknown','pending','declined','issued'].includes(p)?helpButton(state.lang,helpOpen):''}${additionalLink(record,state)}${p==='issued'?link(t('newBooking'),'catalog'):''}</div>${state.orderId?help():''}${p==='issued'?(window.VPSocialLinks?.render(state.lang,{saveAction:'session'})||''):''}</div>`;}
 function reviewPanel(){return !review?'':`<details class="review-panel" open><summary>${t('review')}</summary><p class="small muted">${t('reviewNote')}</p><div class="review-controls"><label>${t('scenario')}<select id="scenario">${SCENARIOS.map(v=>`<option value="${v}" ${v===state.scenario?'selected':''}>${t(v)}</option>`).join('')}</select></label>${btn(t('applyScenario'),'scenario','','secondary small-btn')}${btn(t('expire'),'expire','','secondary small-btn',!['payment','declined'].includes(state.phase)?'disabled':'')}${btn(t('reset'),'reset','','secondary small-btn')}</div><pre>${esc(JSON.stringify({phase:state.phase,orderId:state.orderId,attempts:state.attempts,actions:state.log.slice(-8)},null,2))}</pre></details>`;}
 function render(focus=false){if(mutating){needsRender=true;renderFocus=renderFocus||focus;return;}
  const context=captureRenderContext(root);
@@ -126,7 +141,7 @@ function render(focus=false){if(mutating){needsRender=true;renderFocus=renderFoc
  mobileActions.mount();updateClock();
 }
 function updateClock(){if(!state.holdUntil)return;const seconds=Math.max(0,Math.ceil((state.holdUntil-Date.now())/1000));const time=`${Math.floor(seconds/60)}:${String(seconds%60).padStart(2,'0')}`;document.querySelectorAll('[data-hold]').forEach(el=>el.textContent=t('hold',{time}));}
-function downloadTicket(){const frozen=record?.orders.find(o=>o.id===state.orderId);const rows=[t('invalidTicket'),'VICTORY PARK',frozen?.eventTitle?.[state.lang]||t(event().titleKey),dateText(frozen?.sessionAt?{at:frozen.sessionAt}:session())+' · '+t('yerevanTime'),`${t('guests')}: ${state.qty}`,state.seats.length?seatText(state.seats):t('capacity'),`${t('total')}: ${money(frozen?.amount??total(state))}`,`${t('order')}: ${state.orderId}`,t('ticketBody'),t('noEmailSent')];const blob=new Blob(['\uFEFF'+rows.join('\n\n')],{type:'text/plain;charset=utf-8'});const href=URL.createObjectURL(blob);const a=document.createElement('a');a.href=href;a.download=state.orderId+'-DEMO.txt';a.click();setTimeout(()=>URL.revokeObjectURL(href),1000);}
+function downloadTicket(){downloadTicketText(ticketInfo(),t);}
 function pay(){
  if(!['select','payment','declined'].includes(state.phase))return;
  if(state.phase==='declined')update({type:'RETRY'});
@@ -146,7 +161,7 @@ root.addEventListener('click',e=>{
  const button=e.target.closest('[data-action]');if(!button||button.disabled)return;
  const action=button.dataset.action,value=button.dataset.value;
  if(action==='pay')return;
- e.preventDefault();const scenarioValue=document.querySelector('#scenario')?.value;if(action==='copy'){navigator.clipboard.writeText(state.orderId).then(()=>{copied=true;render();}).catch(()=>{});return;}run(()=>{if(readOnly&&!['lang','help','download','print'].includes(action))return;
+ e.preventDefault();const scenarioValue=document.querySelector('#scenario')?.value;if(action==='copy'){const id=state.orderId;copyOrderNumber(id).then(result=>{if(state.orderId===id){copied=result;render();}});return;}run(()=>{if(readOnly&&!['lang','help','download','print'].includes(action))return;
  switch(action){
  case 'lang':update({type:'LANG',value});finish({focus:false});break;
  case 'catalog':if(locked()&&state.phase!=='issued')break;resumeId=null;const keepQuantity=ui.qtyKnown&&state.phase!=='issued';release();update({type:'NEW'});ui={view:'events',qtyKnown:keepQuantity};mapSnapshot=null;helpOpen=false;finish({push:true});break;
@@ -166,13 +181,13 @@ root.addEventListener('click',e=>{
  case 'issue':update({type:'ISSUE'});finish();break;
  case 'retry':pay();break;
  case 'renew':update({type:'RENEW'});ui.view='checkout';prepare();finish();break;
- case 'help':helpOpen=!helpOpen;render();break;
+ case 'help':helpOpen=!helpOpen;copied=false;render();break;
  
  case 'download':downloadTicket();break;
  case 'print':window.print();break;
- case 'scenario':if(review&&!BUSY.includes(state.phase)){const scenario=scenarioValue;const {lang,eventId,qty,email}=state,quantityKnown=ui.qtyKnown;const orderSeq=state.orderSeq;state=defaultState();state.orderSeq=orderSeq;state.lang=lang;state.qty=qty;state.email=email;update({type:'EVENT',value:eventId||'show'});update({type:'SESSION',value:(eventId||'show')+'-1'});update({type:'SCENARIO',value:scenario});ui={view:quantityKnown?'checkout':'group',qtyKnown:quantityKnown};mapOpen=false;mapSnapshot=null;helpOpen=false;prepare();finish({push:true});}break;
+ case 'scenario':if(review&&!BUSY.includes(state.phase)){const scenario=scenarioValue;const {lang,eventId,qty,email}=state,quantityKnown=ui.qtyKnown;const orderSeq=state.orderSeq;state=attachInventory(defaultState(),record.orders);state.orderSeq=orderSeq;state.lang=lang;state.qty=qty;state.email=email;update({type:'EVENT',value:eventId||'show'});update({type:'SESSION',value:upcomingSessions().find(s=>s.eventId===(eventId||'show')&&s.slot===1).id});update({type:'SCENARIO',value:scenario});ui={view:quantityKnown?'checkout':'group',qtyKnown:quantityKnown};mapOpen=false;mapSnapshot=null;helpOpen=false;prepare();finish({push:true});}break;
  case 'expire':if(review){update({type:'EXPIRE'});finish();}break;
- case 'reset':if(review&&!BUSY.includes(state.phase)){clearTimeout(responseTimer);state={...defaultState(),lang:state.lang,orderSeq:state.orderSeq};resumeId=null;readOnly=false;ui={view:'events',qtyKnown:false};applyLocation(initialQuery,{fresh:true});mapOpen=false;mapSnapshot=null;lastIssued=null;helpOpen=false;finish();}break;
+ case 'reset':if(review&&!BUSY.includes(state.phase)){clearTimeout(responseTimer);state=attachInventory({...defaultState(),lang:state.lang,orderSeq:state.orderSeq},record.orders);resumeId=null;readOnly=false;ui={view:'events',qtyKnown:false};applyLocation(initialQuery,{fresh:true});mapOpen=false;mapSnapshot=null;lastIssued=null;helpOpen=false;finish();}break;
  }
 });});
 window.addEventListener('popstate',()=>run(()=>{
@@ -193,7 +208,7 @@ window.addEventListener('popstate',()=>run(()=>{
 
 let record=null,readOnly=false,resumeMissing=false,resumeId=new URLSearchParams(location.search).get('resume'),mutating=false,needsRender=false,renderFocus=false,queue=Promise.resolve(),storageFailed=false;
 function loadRecord(saved){
- record=saved;const view=selectResume(saved,resumeId);state=structuredClone(view.state);readOnly=view.readonly;resumeMissing=view.missing;if(readOnly){const lang=new URLSearchParams(location.search).get('lang');if(['ru','hy','en'].includes(lang))state.lang=lang;}
+ record=saved;const view=selectResume(saved,resumeId);state=attachInventory(structuredClone(view.state),saved.orders);readOnly=view.readonly;resumeMissing=view.missing;if(readOnly){const lang=new URLSearchParams(location.search).get('lang');if(['ru','hy','en'].includes(lang))state.lang=lang;}
  lastIssued=issuedSnapshot([...saved.orders].reverse().find(o=>o.phase==='issued')?.snapshot);
  ui={view:saved.ui?.view||(!state.eventId?'events':!state.sessionId?'sessions':saved.qtyKnown?'checkout':'group'),qtyKnown:saved.qtyKnown===true};mapSnapshot=mapSnapshotFor(saved.mapSnapshot,state);
 }
@@ -202,7 +217,7 @@ function exportRecord(){
  // Editing the active order can release its ID. Keep following the editable
  // draft instead of reopening its previous snapshot as a read-only archive.
  if(resumeId&&resumeId!==state.orderId){resumeId=null;url();}
- state.orderSeq=Math.max(state.orderSeq,record.orderSeq||0);captureOrder(record,state,'quiz');record.state=structuredClone(state);record.qtyKnown=ui.qtyKnown;record.ui={...ui};record.mapSnapshot=mapSnapshot;
+ state.orderSeq=Math.max(state.orderSeq,record.orderSeq||0);captureOrder(record,state,'quiz');record.state=storedState(state);record.qtyKnown=ui.qtyKnown;record.ui={...ui};record.mapSnapshot=mapSnapshot ? storedState(mapSnapshot) : null;
  return record;
 }
 function fatal(error){storageFailed=true;root.innerHTML=siteHeader(state,'quiz',ui.qtyKnown,resumeId)+`<main id="main" class="wrap"><p class="notice error" role="alert">${label(state.lang,'storage')}</p></main>`+siteFooter(state);mobileActions.mount();console.error('Session persistence failed',error?.name||'Error');}
