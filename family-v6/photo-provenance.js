@@ -49,10 +49,10 @@
   const frames = new Map();
   let sequence = 0, pending = 0;
 
-  function words() {
+  function locale() {
     const path = location.pathname.match(/\/(ru|en|hy)\//);
-    return labels[new URLSearchParams(location.search).get('lang')] ||
-      labels[path?.[1]] || labels[document.documentElement.lang] || labels.ru;
+    const lang = new URLSearchParams(location.search).get('lang') || path?.[1] || document.documentElement.lang;
+    return Object.hasOwn(labels, lang) ? lang : 'ru';
   }
   function scene(img) {
     const src = img.dataset.lz || img.getAttribute('src') || img.getAttribute('poster') || '';
@@ -91,32 +91,42 @@
     group.firstElementChild.setAttribute('aria-expanded', 'false');
     if (focus) group.firstElementChild.focus({preventScroll: true});
   }
-  function makeGroup(img, key) {
-    const copy = words();
-    const name = img.alt || img.closest('article')?.querySelector('h2,h3')?.textContent;
+  function labelPhoto(img, key, group) {
+    const lang = locale(), copy = labels[lang];
+    const item = img.closest('article,li,button,label,figure,.choice-context');
+    const title = item?.querySelector('.guest-ride-name,.context-name,.event-answer-copy strong,.event-body h2,.r-content h2,.sp-card-title h2,h2,h3,.sp-plan-name');
+    const ride = window.VPSharedCatalog?.entries.find(entry => entry.slug === key);
+    const text = title?.textContent?.trim() || ride?.names[lang] || img.alt ||
+      item?.querySelector('a,strong')?.textContent?.trim() || img.getAttribute('aria-label') || '';
+    const name = window.VPI18n?.translate(text, lang) || text;
     const label = name ? copy[0] + ' · ' + name : copy[0];
+    if (group.getAttribute('aria-label') === label) return;
+    group.setAttribute('aria-label', label);
+    group.firstElementChild.setAttribute('aria-label', label);
+    group.firstElementChild.title = label;
+    group.querySelectorAll('[data-mood]').forEach((button, index) => {
+      button.title = copy[index + 1];
+      button.setAttribute('aria-label', name ? copy[index + 1] + ' · ' + name : copy[index + 1]);
+    });
+  }
+  function makeGroup(img, key) {
     const group = document.createElement('div');
     group.className = 'vp-photo-reactions';
     group.dataset.photoReactions = key;
     group.dataset.i18nSkip = '';
     group.setAttribute('role', 'group');
-    group.setAttribute('aria-label', label);
     const trigger = document.createElement('button');
     trigger.type = 'button';
     trigger.className = 'vp-reaction-trigger';
-    trigger.title = label;
-    trigger.setAttribute('aria-label', label);
     const palette = document.createElement('div');
     palette.className = 'vp-reaction-palette';
     palette.id = 'vp-photo-reactions-' + (++sequence);
     trigger.setAttribute('aria-controls', palette.id);
-    choices.forEach(([id, icon], index) => {
+    choices.forEach(([id, icon]) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.mood = id;
       button.textContent = icon;
-      button.title = copy[index + 1];
-      button.setAttribute('aria-label', copy[index + 1]);
       palette.append(button);
     });
     // A reaction and a swipe/save/open are separate interactions.
@@ -144,6 +154,8 @@
       if (group.hasAttribute('data-compact')) closePalette(group, true);
     });
     group.append(trigger, palette);
+    labelPhoto(img, key, group);
+    group.addEventListener('focusin', () => labelPhoto(img, key, group));
     update(group);
     return group;
   }
@@ -173,6 +185,7 @@
         frames.delete(img);
         continue;
       }
+      labelPhoto(img, group.dataset.photoReactions, group);
       const box = img.getBoundingClientRect();
       group.hidden = !box.width || !box.height || img.hidden;
       if (group.hidden) continue;
@@ -186,10 +199,26 @@
       }
       const parent = host.getBoundingClientRect();
       const inset = compact ? 2 : 8;
-      let y = Math.max(0, box.height - group.offsetHeight - inset);
+      let x = inset, y = Math.max(0, box.height - group.offsetHeight - inset);
       if (img.closest('.plans-picture,.home-media,.photo-break,.photo-main,.photo-small,.tile,.experience,.ride-media,.card[data-card]')) y = inset;
-      if (img.closest('.r-photo,.sp-photo')) y = Math.max(inset, box.height * 0.43);
-      group.style.left = Math.round(box.left - parent.left - host.clientLeft + host.scrollLeft + inset) + 'px';
+      const summary = img.closest('.guest-ride summary');
+      if (summary) {
+        // The summary reserves a grid column between the thumbnail and its title.
+        const gap = parseFloat(getComputedStyle(summary).columnGap) || 0;
+        x = box.width + gap + Math.max(0, (40 - group.offsetWidth) / 2);
+        y = Math.max(0, (box.height - group.offsetHeight) / 2);
+      }
+      const card = img.closest('.r-photo,.sp-photo')?.parentElement;
+      const caption = card?.querySelector('.r-content,.sp-card-body');
+      if (caption) {
+        const text = caption.querySelector('h2') || caption;
+        const start = text.getBoundingClientRect();
+        x = Math.max(inset, start.left - box.left);
+        // On short portrait screens the left edge of this band still cuts into faces.
+        if (box.height < 620 && box.width < 500) x = Math.max(inset, box.width - group.offsetWidth - 16);
+        y = Math.max(inset, Math.min(box.height, start.top - box.top) - group.offsetHeight - 5);
+      }
+      group.style.left = Math.round(box.left - parent.left - host.clientLeft + host.scrollLeft + x) + 'px';
       group.style.top = Math.round(box.top - parent.top - host.clientTop + host.scrollTop + y) + 'px';
     }
   }
@@ -208,7 +237,9 @@
       let changed = false;
       for (const change of changes) {
         if (change.target.closest?.('.vp-photo-reactions')) continue;
-        if (change.type === 'attributes') {
+        if (change.type === 'characterData') {
+          if (change.target.parentElement?.closest('h2,h3,.guest-ride-name,.context-name,.event-answer-copy strong')) changed = true;
+        } else if (change.type === 'attributes') {
           if (change.target.matches('img')) attach(change.target);
           changed = true;
         } else {
@@ -217,7 +248,7 @@
         }
       }
       if (changed) schedule();
-    }).observe(document.body, {childList: true, subtree: true, attributes: true, attributeFilter: ['src','data-lz','hidden','open']});
+    }).observe(document.body, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['src','alt','data-lz','hidden','open']});
     window.addEventListener('storage', event => {
       if (event.key === null || event.key.startsWith(prefix)) {
         for (const item of frames.values()) update(item.group);

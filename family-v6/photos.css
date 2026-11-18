@@ -48,3 +48,9 @@ img[src*="photos-r17/pendulum-"]{object-position:70% center}
 }
 .vp-photo-reactions[data-compact] .vp-reaction-palette { position: fixed; inset: auto; }
 .vp-photo-reactions[data-compact] .vp-reaction-palette button { width: 42px; height: 40px; }
+
+/* Give the independent reaction control its own column beside a status photo. */
+.guest-ride:has(> .vp-photo-reactions) > details > summary {
+  grid-template-columns: 56px 40px minmax(0, 1fr) 16px;
+}
+.guest-ride:has(> .vp-photo-reactions) .guest-ride-copy { grid-column: 3; }
