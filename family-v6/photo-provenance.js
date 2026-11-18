@@ -39,9 +39,26 @@
 (function () {
   'use strict';
   const labels = {
-    ru: ['Реакция на фото', 'Нравится', 'Огонь', 'Бриллиант'],
-    en: ['React to photo', 'Love it', 'Fire', 'A gem'],
-    hy: ['Արձագանքել լուսանկարին', 'Հավանում եմ', 'Կրակ', 'Գոհար']
+    ru: ['Реакция на фото', 'Нравится', 'Огонь', 'Бриллиант', 'Демоданные'],
+    en: ['React to photo', 'Love it', 'Fire', 'A gem', 'Demo counts'],
+    hy: ['Արձագանքել լուսանկարին', 'Հավանում եմ', 'Կրակ', 'Գոհար', 'Դեմո թվեր']
+  };
+  // Fixed illustration data, not visitor telemetry. The bumper-car values come from the design.
+  const demoCounts = {
+    'arbuz':[82,105,36], 'autodrom':[306,535,335], 'avtomaty':[215,184,93],
+    'avtoralli':[226,307,148], 'bashnya':[308,442,157], 'batuty':[194,213,75],
+    'begemot':[164,97,106], 'carousel':[218,142,156], 'cep':[313,361,247],
+    'dark-vr':[141,219,108], 'dino':[237,172,109], 'events':[116,154,92],
+    'food':[202,97,128], 'gorki':[375,497,223], 'kapik':[127,146,58],
+    'kobra':[283,456,179], 'koleso':[389,214,317], 'labirint':[147,229,103],
+    'labirint-detskiy':[221,172,108], 'lebedi':[206,118,137], 'mars':[245,304,102],
+    'moto':[287,364,173], 'orbita':[185,236,118], 'park-overview':[253,174,199],
+    'pendulum':[302,418,196], 'pirat':[257,340,182], 'planeta':[174,257,128],
+    'poezd':[261,148,157], 'raketa':[193,213,98], 'shary':[177,163,96],
+    'sloniki':[208,126,142], 'solnyshko':[194,145,119], 'svetofor':[139,114,80],
+    'syurpriz':[178,193,85], 'teacups':[238,151,174], 'tir':[126,174,69],
+    'tornado':[256,378,169], 'vodnye-lebedi':[285,166,213], 'vr-2':[159,247,107],
+    'vr-cinema':[182,235,134], 'zamok':[213,186,149], 'zoo':[291,157,206]
   };
   const choices = [['heart', '❤️'], ['fire', '🔥'], ['gem', '💎']];
   const prefix = 'vp.family.v6.photo-reaction.';
@@ -55,8 +72,8 @@
     return Object.hasOwn(labels, lang) ? lang : 'ru';
   }
   function scene(img) {
-    const src = img.dataset.lz || img.getAttribute('src') || img.getAttribute('poster') || '';
-    if (img.matches('video[data-home-video]')) return 'hero-visitors';
+    if (img.closest('video,.home-media') || img.matches('.home-media-poster')) return;
+    const src = img.dataset.lz || img.getAttribute('src') || '';
     return src.match(/\/photos-(?:r\d+|portrait)\/([a-z0-9-]+)-(?:390|780|1440)\.webp(?:[?#]|$)/)?.[1];
   }
   function selected(key) {
@@ -66,9 +83,15 @@
   function update(group) {
     const key = group.dataset.photoReactions;
     const value = selected(key);
-    for (const button of group.querySelectorAll('[data-mood]')) {
-      button.setAttribute('aria-pressed', String(button.dataset.mood === value));
-    }
+    const counts = demoCounts[key] || [0, 0, 0];
+    const buttons = group.querySelectorAll('[data-mood]');
+    buttons.forEach((button, index) => {
+      const pressed = button.dataset.mood === value;
+      const count = counts[index] + Number(pressed);
+      button.setAttribute('aria-pressed', String(pressed));
+      button.querySelector('.vp-reaction-count').textContent = String(count);
+      button.setAttribute('aria-label', button.title + ' · ' + count);
+    });
     const trigger = group.firstElementChild;
     trigger.textContent = choices.find(choice => choice[0] === value)?.[1] || '☺';
     trigger.classList.toggle('vp-reaction-chosen', Boolean(value));
@@ -104,9 +127,10 @@
     group.setAttribute('aria-label', label);
     group.firstElementChild.setAttribute('aria-label', label);
     group.firstElementChild.title = label;
+    group.querySelector('.vp-reaction-note').textContent = copy[4];
     group.querySelectorAll('[data-mood]').forEach((button, index) => {
-      button.title = copy[index + 1];
-      button.setAttribute('aria-label', name ? copy[index + 1] + ' · ' + name : copy[index + 1]);
+      button.title = name ? copy[index + 1] + ' · ' + name : copy[index + 1];
+      button.setAttribute('aria-label', button.title + ' · ' + button.querySelector('.vp-reaction-count').textContent);
     });
   }
   function makeGroup(img, key) {
@@ -122,11 +146,21 @@
     palette.className = 'vp-reaction-palette';
     palette.id = 'vp-photo-reactions-' + (++sequence);
     trigger.setAttribute('aria-controls', palette.id);
+    const note = document.createElement('span');
+    note.className = 'vp-reaction-note';
+    note.id = palette.id + '-note';
+    group.setAttribute('aria-describedby', note.id);
+    palette.append(note);
     choices.forEach(([id, icon]) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.mood = id;
-      button.textContent = icon;
+      const count = document.createElement('span');
+      count.className = 'vp-reaction-count';
+      const emoji = document.createElement('span');
+      emoji.setAttribute('aria-hidden', 'true');
+      emoji.textContent = icon;
+      button.append(count, emoji);
       palette.append(button);
     });
     // A reaction and a swipe/save/open are separate interactions.
@@ -136,11 +170,14 @@
     trigger.addEventListener('click', () => {
       if (palette.matches(':popover-open')) { closePalette(group, false); return; }
       const box = trigger.getBoundingClientRect();
-      palette.style.left = Math.max(4, Math.min(box.left, document.documentElement.clientWidth - 148)) + 'px';
-      palette.style.top = (box.bottom + 52 <= window.innerHeight ? box.bottom + 3 : Math.max(3, box.top - 46)) + 'px';
       palette.showPopover();
+      const size = palette.getBoundingClientRect();
+      const maxLeft = document.documentElement.clientWidth - size.width - 4;
+      palette.style.left = Math.max(4, Math.min(box.left, maxLeft)) + 'px';
+      const below = box.bottom + size.height + 4 <= window.innerHeight;
+      palette.style.top = (below ? box.bottom + 3 : Math.max(3, box.top - size.height - 3)) + 'px';
       trigger.setAttribute('aria-expanded', 'true');
-      const first = palette.querySelector('[aria-pressed="true"]') || palette.firstElementChild;
+      const first = palette.querySelector('[aria-pressed="true"]') || palette.querySelector('[data-mood]');
       first.focus({preventScroll: true});
     });
     palette.addEventListener('toggle', () => {
@@ -189,7 +226,7 @@
       const box = img.getBoundingClientRect();
       group.hidden = !box.width || !box.height || img.hidden;
       if (group.hidden) continue;
-      const compact = box.width < 154 || box.height < 70;
+      const compact = box.width < 205 || box.height < 90;
       const palette = group.lastElementChild;
       if (compact !== group.hasAttribute('data-compact')) {
         if (!compact) closePalette(group, false);
@@ -200,7 +237,7 @@
       const parent = host.getBoundingClientRect();
       const inset = compact ? 2 : 8;
       let x = inset, y = Math.max(0, box.height - group.offsetHeight - inset);
-      if (img.closest('.plans-picture,.home-media,.photo-break,.photo-main,.photo-small,.tile,.experience,.ride-media,.card[data-card]')) y = inset;
+      if (img.closest('.plans-picture,.photo-break,.photo-main,.photo-small,.tile,.experience,.ride-media,.card[data-card]')) y = inset;
       const summary = img.closest('.guest-ride summary');
       if (summary) {
         // The summary reserves a grid column between the thumbnail and its title.
@@ -227,8 +264,8 @@
   }
   function scan(node) {
     if (node.nodeType !== 1) return;
-    if (node.matches('img,video[data-home-video]')) attach(node);
-    for (const img of node.querySelectorAll('img,video[data-home-video]')) attach(img);
+    if (node.matches('img')) attach(node);
+    for (const img of node.querySelectorAll('img')) attach(img);
   }
   const sizes = new ResizeObserver(schedule);
   function boot() {
