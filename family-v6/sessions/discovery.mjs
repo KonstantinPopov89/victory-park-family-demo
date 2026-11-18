@@ -154,6 +154,7 @@ function renderProgramme() {
     if (detail) {
       detail.textContent = t.details;
       const url = new URL(detail.href);
+      url.searchParams.set('from','discovery');
       if (party) url.searchParams.set('qty',party); else url.searchParams.delete('qty');
       if (day || hour) url.searchParams.set('session',sessions[0].id); else url.searchParams.delete('session');
       detail.href = url.href;

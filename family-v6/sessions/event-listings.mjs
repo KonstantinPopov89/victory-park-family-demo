@@ -48,6 +48,7 @@ function setupPicker(form) {
   let initialized = false;
   // Quantity and review options may accompany a guest returning from checkout.
   for (const key of ['qty', 'review', 'single']) {
+    if (form.elements.namedItem(key)) continue;
     const value = params.get(key);
     if (!(key === 'qty' ? /^[1-8]$/.test(value || '') : value === '1')) continue;
     const hidden = document.createElement('input');
