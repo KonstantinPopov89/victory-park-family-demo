@@ -15,22 +15,22 @@
       symbol: symbol, rules: min === null ? null : { min: min, max: max, soloMin: soloMin, companionMin: 140, companionMax: 210, companionRatio: 1 }, operation: 'open', fictional: true };
   }
   var demoRides = freeze([
-    demo('demo-calm', 'Детский паровозик', 900, 'calm', [4, 12], '○', 90, 210, 120, '/victory-park-family-demo/family-v6/assets/photos-r17/poezd-780.webp'),
-    demo('demo-thrill', 'Американские горки', 1400, 'exciting', [9, 17], '↗', 130, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/gorki-780.webp'),
-    demo('demo-together', 'Чайные чашки', 1100, 'calm', [5, 14], '∞', 100, 210, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/teacups-780.webp'),
-    demo('demo-small', 'Детская карусель', 600, 'calm', [3, 8], '◒', 80, 125, 80, '/victory-park-family-demo/family-v6/assets/photos-r17/carousel-780.webp'),
-    demo('demo-unknown', 'Цепочная карусель', 700, 'exciting', null, '?', null, null, null, '/victory-park-family-demo/family-v6/assets/photos-r17/cep-780.webp'),
+    demo('demo-calm', 'Детский паровозик', 900, 'calm', [4, 12], '○', 90, 210, 120, '/victory-park-family-demo/family-v6/assets/photos-r17/poezd-780.webp?vpimg=49'),
+    demo('demo-thrill', 'Американские горки', 1400, 'exciting', [9, 17], '↗', 130, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/gorki-780.webp?vpimg=49'),
+    demo('demo-together', 'Чайные чашки', 1100, 'calm', [5, 14], '∞', 100, 210, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/teacups-780.webp?vpimg=49'),
+    demo('demo-small', 'Детская карусель', 600, 'calm', [3, 8], '◒', 80, 125, 80, '/victory-park-family-demo/family-v6/assets/photos-r17/carousel-780.webp?vpimg=49'),
+    demo('demo-unknown', 'Цепочная карусель', 700, 'exciting', null, '?', null, null, null, '/victory-park-family-demo/family-v6/assets/photos-r17/cep-780.webp?vpimg=49'),
     // Names and AI-generated images illustrate the picker; every condition and price is fictional.
-    demo('demo-water-swan', 'Плавающий лебедь', 1000, 'calm', [4, 12], '○', 90, 210, 130, '/victory-park-family-demo/family-v6/assets/photos-r17/vodnye-lebedi-780.webp'),
-    demo('demo-wheel-of-happiness', 'Колесо счастья', 1200, 'calm', [4, 17], '○', 90, 210, 130, '/victory-park-family-demo/family-v6/assets/photos-r17/koleso-780.webp'),
-    demo('demo-autodrom', 'Автодром', 1400, 'exciting', [8, 17], '↗', 110, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/autodrom-780.webp'),
-    demo('demo-mars-ride', 'Полет на Марс', 1700, 'exciting', [10, 17], '↗', 130, 200, 150, '/victory-park-family-demo/family-v6/assets/photos-r17/mars-780.webp'),
-    demo('demo-planet', 'Планета', 1500, 'exciting', [9, 17], '↗', 120, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/planeta-780.webp'),
-    demo('demo-moto-ufo', 'Мощный НЛО', 1500, 'exciting', [9, 17], '↗', 120, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/moto-780.webp'),
-    demo('demo-pendulum', 'Метроном', 1800, 'exciting', [12, 17], '↗', 140, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/pendulum-780.webp'),
-    demo('demo-rotating-tower', 'Вращающаяся башня', 1300, 'exciting', [7, 17], '↗', 110, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/bashnya-780.webp'),
-    demo('demo-rocket', 'Космический корабль', 1500, 'exciting', [9, 17], '↗', 120, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/raketa-780.webp'),
-    demo('demo-vr-cinema', 'Виртуальная реальность', 1100, 'exciting', [7, 17], '↗', 100, 210, 120, '/victory-park-family-demo/family-v6/assets/photos-r17/vr-cinema-780.webp')
+    demo('demo-water-swan', 'Плавающий лебедь', 1000, 'calm', [4, 12], '○', 90, 210, 130, '/victory-park-family-demo/family-v6/assets/photos-r17/vodnye-lebedi-780.webp?vpimg=49'),
+    demo('demo-wheel-of-happiness', 'Колесо счастья', 1200, 'calm', [4, 17], '○', 90, 210, 130, '/victory-park-family-demo/family-v6/assets/photos-r17/koleso-780.webp?vpimg=49'),
+    demo('demo-autodrom', 'Автодром', 1400, 'exciting', [8, 17], '↗', 110, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/autodrom-780.webp?vpimg=49'),
+    demo('demo-mars-ride', 'Полет на Марс', 1700, 'exciting', [10, 17], '↗', 130, 200, 150, '/victory-park-family-demo/family-v6/assets/photos-r17/mars-780.webp?vpimg=49'),
+    demo('demo-planet', 'Планета', 1500, 'exciting', [9, 17], '↗', 120, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/planeta-780.webp?vpimg=49'),
+    demo('demo-moto-ufo', 'Мощный НЛО', 1500, 'exciting', [9, 17], '↗', 120, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/moto-780.webp?vpimg=49'),
+    demo('demo-pendulum', 'Метроном', 1800, 'exciting', [12, 17], '↗', 140, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/pendulum-780.webp?vpimg=49'),
+    demo('demo-rotating-tower', 'Вращающаяся башня', 1300, 'exciting', [7, 17], '↗', 110, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/bashnya-780.webp?vpimg=49'),
+    demo('demo-rocket', 'Космический корабль', 1500, 'exciting', [9, 17], '↗', 120, 200, 140, '/victory-park-family-demo/family-v6/assets/photos-r17/raketa-780.webp?vpimg=49'),
+    demo('demo-vr-cinema', 'Виртуальная реальность', 1100, 'exciting', [7, 17], '↗', 100, 210, 120, '/victory-park-family-demo/family-v6/assets/photos-r17/vr-cinema-780.webp?vpimg=49')
   ]);
   var legacyDemoRides = demoRides.slice(0, 5);
   var MAX_QUANTITY = 20;

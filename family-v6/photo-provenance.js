@@ -15,14 +15,14 @@
     var lang = query || (path && path[1]) || saved;
     return notes[lang] ? lang : 'ru';
   }
-  function url(slug, size) { return root+slug+'-'+(size||780)+'.webp'; }
+  function url(slug, size) { return root+slug+'-'+(size||780)+'.webp?vpimg=49'; }
   function slug(photo) { return String(photo||'').match(/photos-r17\/([a-z0-9-]+)-(?:390|780|1440)\.webp/)?.[1]; }
   function srcset(photo) { var name=slug(photo);return name?[390,780,1440].map(function(size){return url(name,size)+' '+size+'w';}).join(', '):''; }
   var portraitRoot = '/victory-park-family-demo/family-v6/assets/photos-portrait/';
   var portraitNames = ['moto','tornado'];
-  var focalPoints = {"koleso":50,"kobra":67.6,"autodrom":18,"gorki":56.4,"pendulum":88.4,"orbita":26,"lebedi":54.8,"pirat":42,"arbuz":50,"bashnya":50,"shary":50,"planeta":42,"cep":74,"raketa":58,"avtoralli":51.6,"mars":50,"syurpriz":46.8,"zamok":50,"vodnye-lebedi":56.4,"solnyshko":50,"begemot":34,"sloniki":70.8,"labirint-detskiy":75.6,"svetofor":56.4,"batuty":37.2,"poezd":85.2,"kapik":40.4,"labirint":50,"vr-cinema":93.2,"vr-2":26,"dark-vr":50,"tir":50,"avtomaty":22.8};
-  function discovery(photo) { var name=slug(photo);return portraitNames.includes(name)?portraitRoot+name+'-780.webp':photo; }
-  function discoverySrcset(photo) { var name=slug(photo);return portraitNames.includes(name)?[390,780,1440].map(function(w){return portraitRoot+name+'-'+w+'.webp '+w+'w';}).join(', '):srcset(photo); }
+  var focalPoints = {"arbuz":49,"autodrom":29,"avtomaty":54,"avtoralli":33,"bashnya":48,"batuty":35,"begemot":17,"carousel":37,"cep":40,"dark-vr":50,"dino":87,"events":52,"food":53,"gorki":50,"kapik":66,"kobra":52,"koleso":53,"labirint":42,"labirint-detskiy":74,"lebedi":56,"mars":48,"moto":52,"orbita":47,"park-overview":45,"pendulum":41,"pirat":57,"planeta":63,"poezd":25,"raketa":51,"shary":46,"sloniki":63,"solnyshko":51,"svetofor":53,"syurpriz":52,"teacups":51,"tir":50,"tornado":52,"vodnye-lebedi":40,"vr-2":30,"vr-cinema":62,"zamok":38,"zoo":77};
+  function discovery(photo) { var name=slug(photo);return portraitNames.includes(name)?portraitRoot+name+'-780.webp?vpimg=49':photo; }
+  function discoverySrcset(photo) { var name=slug(photo);return portraitNames.includes(name)?[390,780,1440].map(function(w){return portraitRoot+name+'-'+w+'.webp?vpimg=49 '+w+'w';}).join(', '):srcset(photo); }
   function focal(photo) { var name=slug(photo);return (focalPoints[name]??50)+'% 50%'; }
   window.VPPhoto = Object.freeze({
     provenance:'ai-generated-demo', url:url, slug:slug, srcset:srcset, discovery:discovery, discoverySrcset:discoverySrcset, focal:focal,
@@ -33,4 +33,230 @@
     document.querySelectorAll('[data-photo-note]').forEach(function(node){node.textContent=captions[language()];});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',ready);else ready();
+}());
+
+/* A guest can react to the same scene wherever it appears in the prototype. */
+(function () {
+  'use strict';
+  const labels = {
+    ru: ['Реакция на фото', 'Нравится', 'Огонь', 'Бриллиант'],
+    en: ['React to photo', 'Love it', 'Fire', 'A gem'],
+    hy: ['Արձագանքել լուսանկարին', 'Հավանում եմ', 'Կրակ', 'Գոհար']
+  };
+  const choices = [['heart', '❤️'], ['fire', '🔥'], ['gem', '💎']];
+  const prefix = 'vp.family.v6.photo-reaction.';
+  const memory = new Map();
+  const frames = new Map();
+  let sequence = 0, pending = 0;
+
+  function locale() {
+    const path = location.pathname.match(/\/(ru|en|hy)\//);
+    const lang = new URLSearchParams(location.search).get('lang') || path?.[1] || document.documentElement.lang;
+    return Object.hasOwn(labels, lang) ? lang : 'ru';
+  }
+  function scene(img) {
+    const src = img.dataset.lz || img.getAttribute('src') || img.getAttribute('poster') || '';
+    if (img.matches('video[data-home-video]')) return 'hero-visitors';
+    return src.match(/\/photos-(?:r\d+|portrait)\/([a-z0-9-]+)-(?:390|780|1440)\.webp(?:[?#]|$)/)?.[1];
+  }
+  function selected(key) {
+    if (memory.has(key)) return memory.get(key);
+    try { return localStorage.getItem(prefix + key) || ''; } catch { return ''; }
+  }
+  function update(group) {
+    const key = group.dataset.photoReactions;
+    const value = selected(key);
+    for (const button of group.querySelectorAll('[data-mood]')) {
+      button.setAttribute('aria-pressed', String(button.dataset.mood === value));
+    }
+    const trigger = group.firstElementChild;
+    trigger.textContent = choices.find(choice => choice[0] === value)?.[1] || '☺';
+    trigger.classList.toggle('vp-reaction-chosen', Boolean(value));
+  }
+  function respond(group, mood) {
+    const key = group.dataset.photoReactions;
+    const next = selected(key) === mood ? '' : mood;
+    try {
+      if (next) localStorage.setItem(prefix + key, next);
+      else localStorage.removeItem(prefix + key);
+      memory.delete(key);
+    } catch { memory.set(key, next); }
+    for (const item of frames.values()) {
+      if (item.group.dataset.photoReactions === key) update(item.group);
+    }
+  }
+  function closePalette(group, focus) {
+    const palette = group.lastElementChild;
+    if (palette.matches(':popover-open')) palette.hidePopover();
+    group.firstElementChild.setAttribute('aria-expanded', 'false');
+    if (focus) group.firstElementChild.focus({preventScroll: true});
+  }
+  function labelPhoto(img, key, group) {
+    const lang = locale(), copy = labels[lang];
+    const item = img.closest('article,li,button,label,figure,.choice-context');
+    const title = item?.querySelector('.guest-ride-name,.context-name,.event-answer-copy strong,.event-body h2,.r-content h2,.sp-card-title h2,h2,h3,.sp-plan-name');
+    const ride = window.VPSharedCatalog?.entries.find(entry => entry.slug === key);
+    const text = title?.textContent?.trim() || ride?.names[lang] || img.alt ||
+      item?.querySelector('a,strong')?.textContent?.trim() || img.getAttribute('aria-label') || '';
+    const name = window.VPI18n?.translate(text, lang) || text;
+    const label = name ? copy[0] + ' · ' + name : copy[0];
+    if (group.getAttribute('aria-label') === label) return;
+    group.setAttribute('aria-label', label);
+    group.firstElementChild.setAttribute('aria-label', label);
+    group.firstElementChild.title = label;
+    group.querySelectorAll('[data-mood]').forEach((button, index) => {
+      button.title = copy[index + 1];
+      button.setAttribute('aria-label', name ? copy[index + 1] + ' · ' + name : copy[index + 1]);
+    });
+  }
+  function makeGroup(img, key) {
+    const group = document.createElement('div');
+    group.className = 'vp-photo-reactions';
+    group.dataset.photoReactions = key;
+    group.dataset.i18nSkip = '';
+    group.setAttribute('role', 'group');
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'vp-reaction-trigger';
+    const palette = document.createElement('div');
+    palette.className = 'vp-reaction-palette';
+    palette.id = 'vp-photo-reactions-' + (++sequence);
+    trigger.setAttribute('aria-controls', palette.id);
+    choices.forEach(([id, icon]) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.mood = id;
+      button.textContent = icon;
+      palette.append(button);
+    });
+    // A reaction and a swipe/save/open are separate interactions.
+    for (const type of ['pointerdown','pointerup','touchstart','touchend','dblclick','keydown','keyup']) {
+      group.addEventListener(type, event => event.stopPropagation());
+    }
+    trigger.addEventListener('click', () => {
+      if (palette.matches(':popover-open')) { closePalette(group, false); return; }
+      const box = trigger.getBoundingClientRect();
+      palette.style.left = Math.max(4, Math.min(box.left, document.documentElement.clientWidth - 148)) + 'px';
+      palette.style.top = (box.bottom + 52 <= window.innerHeight ? box.bottom + 3 : Math.max(3, box.top - 46)) + 'px';
+      palette.showPopover();
+      trigger.setAttribute('aria-expanded', 'true');
+      const first = palette.querySelector('[aria-pressed="true"]') || palette.firstElementChild;
+      first.focus({preventScroll: true});
+    });
+    palette.addEventListener('toggle', () => {
+      if (palette.hasAttribute('popover')) trigger.setAttribute('aria-expanded', String(palette.matches(':popover-open')));
+    });
+    group.addEventListener('click', event => {
+      event.stopPropagation();
+      const button = event.target.closest('[data-mood]');
+      if (!button) return;
+      respond(group, button.dataset.mood);
+      if (group.hasAttribute('data-compact')) closePalette(group, true);
+    });
+    group.append(trigger, palette);
+    labelPhoto(img, key, group);
+    group.addEventListener('focusin', () => labelPhoto(img, key, group));
+    update(group);
+    return group;
+  }
+  function attach(img) {
+    const key = scene(img);
+    const old = frames.get(img);
+    if (old && old.group.dataset.photoReactions === key && old.group.isConnected) return;
+    if (old) { old.group.remove(); frames.delete(img); }
+    if (!key || img.closest('noscript')) return;
+    // Keep the controls outside links, disclosure summaries and gallery buttons.
+    const interactive = img.closest('a,button,summary,label');
+    let host = interactive ? interactive.parentElement : (img.closest('picture') || img).parentElement;
+    if (interactive?.matches('summary') && host.matches('details')) host = host.parentElement;
+    if (getComputedStyle(host).position === 'static') host.classList.add('vp-reaction-host');
+    const group = makeGroup(img, key);
+    host.append(group);
+    frames.set(img, {host, group});
+    sizes.observe(img);
+    sizes.observe(host);
+  }
+  function place() {
+    pending = 0;
+    for (const [img, {host, group}] of frames) {
+      if (!img.isConnected || !group.isConnected) {
+        sizes.unobserve(img);
+        group.remove();
+        frames.delete(img);
+        continue;
+      }
+      labelPhoto(img, group.dataset.photoReactions, group);
+      const box = img.getBoundingClientRect();
+      group.hidden = !box.width || !box.height || img.hidden;
+      if (group.hidden) continue;
+      const compact = box.width < 154 || box.height < 70;
+      const palette = group.lastElementChild;
+      if (compact !== group.hasAttribute('data-compact')) {
+        if (!compact) closePalette(group, false);
+        group.toggleAttribute('data-compact', compact);
+        palette.toggleAttribute('popover', compact);
+        group.firstElementChild.setAttribute('aria-expanded', 'false');
+      }
+      const parent = host.getBoundingClientRect();
+      const inset = compact ? 2 : 8;
+      let x = inset, y = Math.max(0, box.height - group.offsetHeight - inset);
+      if (img.closest('.plans-picture,.home-media,.photo-break,.photo-main,.photo-small,.tile,.experience,.ride-media,.card[data-card]')) y = inset;
+      const summary = img.closest('.guest-ride summary');
+      if (summary) {
+        // The summary reserves a grid column between the thumbnail and its title.
+        const gap = parseFloat(getComputedStyle(summary).columnGap) || 0;
+        x = box.width + gap + Math.max(0, (40 - group.offsetWidth) / 2);
+        y = Math.max(0, (box.height - group.offsetHeight) / 2);
+      }
+      const card = img.closest('.r-photo,.sp-photo')?.parentElement;
+      const caption = card?.querySelector('.r-content,.sp-card-body');
+      if (caption) {
+        const text = caption.querySelector('h2') || caption;
+        const start = text.getBoundingClientRect();
+        x = Math.max(inset, start.left - box.left);
+        // On short portrait screens the left edge of this band still cuts into faces.
+        if (box.height < 620 && box.width < 500) x = Math.max(inset, box.width - group.offsetWidth - 16);
+        y = Math.max(inset, Math.min(box.height, start.top - box.top) - group.offsetHeight - 5);
+      }
+      group.style.left = Math.round(box.left - parent.left - host.clientLeft + host.scrollLeft + x) + 'px';
+      group.style.top = Math.round(box.top - parent.top - host.clientTop + host.scrollTop + y) + 'px';
+    }
+  }
+  function schedule() {
+    if (!pending) pending = requestAnimationFrame(place);
+  }
+  function scan(node) {
+    if (node.nodeType !== 1) return;
+    if (node.matches('img,video[data-home-video]')) attach(node);
+    for (const img of node.querySelectorAll('img,video[data-home-video]')) attach(img);
+  }
+  const sizes = new ResizeObserver(schedule);
+  function boot() {
+    scan(document.body);
+    new MutationObserver(changes => {
+      let changed = false;
+      for (const change of changes) {
+        if (change.target.closest?.('.vp-photo-reactions')) continue;
+        if (change.type === 'characterData') {
+          if (change.target.parentElement?.closest('h2,h3,.guest-ride-name,.context-name,.event-answer-copy strong')) changed = true;
+        } else if (change.type === 'attributes') {
+          if (change.target.matches('img')) attach(change.target);
+          changed = true;
+        } else {
+          for (const node of change.addedNodes) scan(node);
+          if (change.addedNodes.length || change.removedNodes.length) changed = true;
+        }
+      }
+      if (changed) schedule();
+    }).observe(document.body, {childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['src','alt','data-lz','hidden','open']});
+    window.addEventListener('storage', event => {
+      if (event.key === null || event.key.startsWith(prefix)) {
+        for (const item of frames.values()) update(item.group);
+      }
+    });
+    window.addEventListener('resize', schedule);
+    schedule();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 }());

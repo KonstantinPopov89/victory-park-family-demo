@@ -1,5 +1,5 @@
 import {translate} from './i18n.mjs?vpv=e639e1ea8ee01408';
-import {EVENTS,SESSIONS,defaultState,restore,total} from './engine.mjs?vpv=53adea77955e4349';
+import {EVENTS,SESSIONS,defaultState,restore,total} from './engine.mjs?vpv=a2d6096778ec3035';
 export const STORAGE='vp.family.v6.sessions.v1';
 export const BUSY=['processing','unknown','pending','security'];
 export function emptyRecord(){return {version:1,revision:0,state:defaultState(),qtyKnown:false,ui:{view:'events'},mapSnapshot:null,orders:[],orderSeq:0};}

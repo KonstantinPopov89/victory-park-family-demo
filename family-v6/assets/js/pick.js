@@ -82,7 +82,7 @@
   function side() {
     var ul = D.querySelector("[data-dk-list]"); if (!ul) return;
     var chosen = list().map(function (slug) { return BY[slug]; }).filter(Boolean);
-    ul.innerHTML = chosen.length ? chosen.map(function (a) { return '<li>' + (a.img ? '<img src="' + R + 'assets/photos-r17/' + a.img + '-390.webp" width="72" height="54" alt="" loading="lazy">' : '') + '<a href="' + url('attractions/' + a.slug) + '">' + nm(a) + '</a></li>'; }).join('') : '<li class="unified-list-empty">' + h('list_preview_empty') + '</li>';
+    ul.innerHTML = chosen.length ? chosen.map(function (a) { return '<li>' + (a.img ? '<img src="' + R + 'assets/photos-r17/' + a.img + '-390.webp?vpimg=49" width="72" height="54" alt="" loading="lazy">' : '') + '<a href="' + url('attractions/' + a.slug) + '">' + nm(a) + '</a></li>'; }).join('') : '<li class="unified-list-empty">' + h('list_preview_empty') + '</li>';
   }
 
   function add(s, src) { var l = list(); if (l.indexOf(s) < 0) { l.push(s); C.setList(l); } C.log("deck_add", { slug: s, source: src || "", list_n: l.length }); }
@@ -228,7 +228,7 @@
   function cardHtml(a, eager) {
     var PH = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 390 293'/%3E";
     /* R08 п. 4: карточки ниже первой грузятся по мере прокрутки (data-lz, VPCORE.lazy) */
-    var img = a.img ? '<img ' + (eager ? "" : 'data-lz="' + R + "assets/photos-r17/" + a.img + '-390.webp" ') + 'src="' + (eager ? R + "assets/photos-r17/" + a.img + '-390.webp' : PH) + '" ' + (eager ? "" : "data-") + 'srcset="' + R + "assets/photos-r17/" + a.img + "-390.webp 390w, " + R + "assets/photos-r17/" + a.img + '-780.webp 780w" sizes="(min-width:600px) 560px, 100vw" width="390" height="293" alt="" ' + (eager ? 'fetchpriority="high"' : 'decoding="async"') + ' draggable="false">' : noph(a, "band");
+    var img = a.img ? '<img ' + (eager ? "" : 'data-lz="' + R + "assets/photos-r17/" + a.img + '-390.webp?vpimg=49" ') + 'src="' + (eager ? R + "assets/photos-r17/" + a.img + '-390.webp?vpimg=49' : PH) + '" ' + (eager ? "" : "data-") + 'srcset="' + R + "assets/photos-r17/" + a.img + "-390.webp?vpimg=49 390w, " + R + "assets/photos-r17/" + a.img + '-780.webp?vpimg=49 780w" sizes="(min-width:600px) 560px, 100vw" width="390" height="293" alt="" ' + (eager ? 'fetchpriority="high"' : 'decoding="async"') + ' draggable="false">' : noph(a, "band");
     return '<article class="card" data-card="' + a.slug + '">' + img + '<div class="tx">' + (a.img ? '<p class="photo-note">' + unc("illus_price") + "</p>" : "") +
       '<h2 class="disp">' + nm(a) + '</h2><p class="meta"><span>' + h(CAT[a.cat]) + "</span>" + flags(a) + '</p><p class="meta"><b class="num">' + amd(a.price) + "</b> " + h("by_cash") + (a.img ? "" : " " + unc()) + '</p><p class="meta">' + stHtml(a.slug) + ' <span class="demo">' + h("demo") + "</span></p>" +
       '<p><a class="link" href="' + url("attractions/" + a.slug) + '" data-attr="' + a.slug + '">' + h("more") + " →</a></p></div></article>";
@@ -284,7 +284,7 @@
     preload();
   }
   function preload() {
-    var go = function () { for (var k = idx + 1, n = 0; k < items.length && n < 2; k++) { if (items[k].a && items[k].a.img) { var im = new Image(); im.src = R + "assets/photos-r17/" + items[k].a.img + "-390.webp"; n++; } } };
+    var go = function () { for (var k = idx + 1, n = 0; k < items.length && n < 2; k++) { if (items[k].a && items[k].a.img) { var im = new Image(); im.src = R + "assets/photos-r17/" + items[k].a.img + "-390.webp?vpimg=49"; n++; } } };
     if (D.readyState === "complete") go(); else window.addEventListener("load", go, { once: true });
   }
   function decide(yes, slug) {

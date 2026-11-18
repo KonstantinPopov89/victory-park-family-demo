@@ -1,9 +1,9 @@
 import {createMobileActions,mobileCopy} from './mobile-actions.mjs?vpv=dd56988a22bce250';
-import {STORAGE,transact,read,captureOrder,selectResume,BUSY} from './store.mjs?vpv=097a322fb7927885';
+import {STORAGE,transact,read,captureOrder,selectResume,BUSY} from './store.mjs?vpv=bd95a8bc415ff785';
 import {header as siteHeader,footer as siteFooter,decorate,label} from './chrome.mjs?vpv=ec7447b7015510f5';
-import {EVENTS, SESSIONS, SEATS, SCENARIOS, defaultState, availability, total, reduce, restore, tick, canHold, isClosed} from './engine.mjs?vpv=53adea77955e4349';
+import {EVENTS, SESSIONS, SEATS, SCENARIOS, defaultState, availability, total, reduce, restore, tick, canHold, isClosed} from './engine.mjs?vpv=a2d6096778ec3035';
 import {translate} from './i18n.mjs?vpv=e639e1ea8ee01408';
-import {issuedSnapshot, startsNewBooking, sessionChoice, chooseFormSession, payForm} from './form-journey.mjs?vpv=4a62a5999cc979c4';
+import {issuedSnapshot, startsNewBooking, sessionChoice, chooseFormSession, payForm} from './form-journey.mjs?vpv=b4e8eb8dae13de70';
 import {captureRenderContext,restoreRenderContext} from './render-context.mjs?vpv=891cdaf7121a8baf';
 
 

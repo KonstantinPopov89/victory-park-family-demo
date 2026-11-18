@@ -1,7 +1,7 @@
 // Local demonstration only. This engine does not reserve inventory or charge money.
 export const EVENTS = Object.freeze([
-  Object.freeze({ id: 'show', mode: 'seated', titleKey: 'showTitle', descriptionKey: 'showDesc', duration: 50, price: 3500, image: 'events-780.webp' }),
-  Object.freeze({ id: 'garden', mode: 'capacity', titleKey: 'gardenTitle', descriptionKey: 'gardenDesc', duration: 60, price: 2500, image: 'koleso-780.webp' }),
+  Object.freeze({ id: 'show', mode: 'seated', titleKey: 'showTitle', descriptionKey: 'showDesc', duration: 50, price: 3500, image: 'events-780.webp?vpimg=49' }),
+  Object.freeze({ id: 'garden', mode: 'capacity', titleKey: 'gardenTitle', descriptionKey: 'gardenDesc', duration: 60, price: 2500, image: 'koleso-780.webp?vpimg=49' }),
 ]);
 export const SESSIONS = Object.freeze([
   Object.freeze({ id: 'show-1', eventId: 'show', at: '2026-10-24T17:00:00+04:00', capacity: 48 }),

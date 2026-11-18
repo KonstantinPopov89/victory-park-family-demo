@@ -16,3 +16,41 @@ img[src*="photos-r17/pendulum-"]{object-position:70% center}
 .hero-art .photo-small{height:auto;bottom:45px;background:white}
 @media(max-width:900px){.hero-art{height:360px!important}.hero-art .photo-main{top:0}.hero-art .photo-small{bottom:14px}}
 @media(max-width:500px){.hero-art{height:290px!important}.hero-art .photo-small{bottom:0}}
+
+/* Guest reactions are siblings of photo links, so the photo remains navigable. */
+.vp-reaction-host { position: relative; }
+.vp-photo-reactions {
+  position: absolute; z-index: 4; width: max-content; pointer-events: auto;
+  margin: 0; padding: 0; line-height: 1; text-align: left;
+}
+.vp-photo-reactions[hidden] { display: none !important; }
+.vp-photo-reactions .vp-reaction-palette {
+  display: inline-flex; align-items: center; gap: 2px; width: max-content;
+  margin: 0; padding: 2px; border: 1px solid #2f2e7d36; border-radius: 22px;
+  background: #fff; box-shadow: 0 2px 7px #15133430;
+}
+.vp-photo-reactions button:is([data-mood],.vp-reaction-trigger) {
+  position: static; display: inline-grid; place-items: center; flex: none;
+  box-sizing: border-box; width: 36px; height: 34px; min-width: 0; min-height: 0;
+  margin: 0; padding: 0; border: 2px solid transparent; border-radius: 20px;
+  background: white; color: #2f2e7d; font: 18px/1 system-ui,sans-serif;
+  box-shadow: none; cursor: pointer; touch-action: manipulation; transform: none;
+}
+.vp-photo-reactions button[data-mood][aria-pressed=true],
+.vp-photo-reactions button.vp-reaction-chosen { border-color: #312f7f; background: #f0eef9; }
+.vp-photo-reactions button:is([data-mood],.vp-reaction-trigger):focus-visible {
+  outline: 3px solid #2f2e7d; outline-offset: 1px;
+}
+.vp-photo-reactions:not([data-compact]) button.vp-reaction-trigger,
+.vp-photo-reactions[data-compact] .vp-reaction-palette:not(:popover-open) { display: none; }
+.vp-photo-reactions[data-compact] button.vp-reaction-trigger {
+  width: 32px; height: 32px; border: 1px solid #625e76; font-size: 20px;
+}
+.vp-photo-reactions[data-compact] .vp-reaction-palette { position: fixed; inset: auto; }
+.vp-photo-reactions[data-compact] .vp-reaction-palette button { width: 42px; height: 40px; }
+
+/* Give the independent reaction control its own column beside a status photo. */
+.guest-ride:has(> .vp-photo-reactions) > details > summary {
+  grid-template-columns: 56px 40px minmax(0, 1fr) 16px;
+}
+.guest-ride:has(> .vp-photo-reactions) .guest-ride-copy { grid-column: 3; }
