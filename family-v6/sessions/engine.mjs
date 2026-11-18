@@ -1,4 +1,4 @@
-import {upcomingSessions, resolveSession} from './schedule.mjs?vpv=4dfe2511c10be51a';
+import {upcomingSessions, resolveSession} from './schedule.mjs?vpv=64dfbdf9e92c38b1';
 // Local demonstration only. This engine does not reserve inventory or charge money.
 export const EVENTS = Object.freeze([
   Object.freeze({ id: 'show', mode: 'seated', titleKey: 'showTitle', descriptionKey: 'showDesc', duration: 50, price: 3500, image: 'events-780.webp?vpimg=49' }),

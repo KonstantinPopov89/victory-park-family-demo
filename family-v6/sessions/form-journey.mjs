@@ -1,6 +1,6 @@
-import {availability, isClosed, reduce, restore, canContinue} from './engine.mjs?vpv=d11e87ba56ace9f9';
+import {availability, isClosed, reduce, restore, canContinue} from './engine.mjs?vpv=b14dea083c7a7f8f';
 export function issuedSnapshot(raw,now=Date.now()) {const state=restore(raw,now);return state.phase==='issued'?structuredClone(state):null;}
-export {startsNewBooking} from './journey.mjs?vpv=2cfc2f0a85bf8e96';
+export {startsNewBooking} from './journey.mjs?vpv=330db0bbd3ebdcd3';
 export function sessionChoice(state,qtyKnown,now=Date.now()) {
  const stock=availability(state),closed=isClosed(state,now);
  return {...stock,closed,canEnter:!closed&&stock.remaining>=(qtyKnown?state.qty:1)};

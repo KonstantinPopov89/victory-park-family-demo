@@ -1,6 +1,6 @@
-import {resolveBookingSession, resolveSession} from './schedule.mjs?vpv=4dfe2511c10be51a';
-import {attachInventory} from './store.mjs?vpv=f412d5f2c8f90026';
-import {EVENTS, availability, reduce, restore} from './engine.mjs?vpv=d11e87ba56ace9f9';
+import {resolveBookingSession, resolveSession, scheduleAnchor} from './schedule.mjs?vpv=64dfbdf9e92c38b1';
+import {attachInventory} from './store.mjs?vpv=d98d64a94388964b';
+import {EVENTS, availability, reduce, restore} from './engine.mjs?vpv=b14dea083c7a7f8f';
 
 // A completed ticket is a separate immutable snapshot, never the editable order.
 export function issuedSnapshot(raw, now = Date.now()) {
@@ -10,7 +10,9 @@ export function issuedSnapshot(raw, now = Date.now()) {
 
 export function bookingQuery(query) {
   const result = new URLSearchParams(query);
-  const id = result.get('session'), session = resolveBookingSession(id);
+  const id = result.get('session');
+  const session = resolveBookingSession(id, scheduleAnchor(result.get('asof')));
+  result.delete('asof');
   if (session && session.id !== id) result.set('session', session.id);
   return result;
 }

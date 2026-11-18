@@ -38,9 +38,15 @@ export function resolveSession(id) {
 }
 
 // Native forms can be submitted before the calendar script has loaded.
-// Resolve their weekday/time aliases once at entry and store the dated ID.
-export function resolveBookingSession(id, now = Date.now()) {
+// A relative slot means the occurrence visible when the native form was rendered.
+export function scheduleAnchor(value, now = Date.now()) {
+  const anchor = Number(value);
+  return /^\d{1,13}$/.test(String(value)) && anchor > 0 && anchor <= now ? anchor : null;
+}
+
+export function resolveBookingSession(id, anchor) {
   const next = /^next-(show|garden)-([123])$/.exec(id || '');
   if (!next) return resolveSession(id);
-  return upcomingSessions(now).find(item => item.eventId === next[1] && item.slot === Number(next[2])) || null;
+  if (!Number.isSafeInteger(anchor) || anchor <= 0) return null;
+  return upcomingSessions(anchor).find(item => item.eventId === next[1] && item.slot === Number(next[2])) || null;
 }

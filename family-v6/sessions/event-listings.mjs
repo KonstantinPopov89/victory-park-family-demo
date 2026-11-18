@@ -1,4 +1,4 @@
-import {upcomingSessions, resolveBookingSession} from './schedule.mjs?vpv=4dfe2511c10be51a';
+import {upcomingSessions, resolveBookingSession, scheduleAnchor} from './schedule.mjs?vpv=64dfbdf9e92c38b1';
 
 const copy = {
   ru: {next: 'Ближайший сеанс', buy: 'Купить билеты', on: 'Купить билеты на', closed: 'Этот сеанс недоступен. Выберите другую дату.'},
@@ -42,6 +42,7 @@ function setupPicker(form) {
   const message = form.querySelector('[data-unavailable]');
   const params = new URLSearchParams(location.search);
   const requested = params.get('session');
+  const renderedAt = scheduleAnchor(form.elements.asof.value);
   let initialized = false;
   // Quantity and review options may accompany a guest returning from checkout.
   for (const key of ['qty', 'review', 'single']) {
@@ -53,7 +54,7 @@ function setupPicker(form) {
   }
   function label() {
     const selected = choices.querySelector('input:checked');
-    const session = selected && resolveBookingSession(selected.value);
+    const session = selected && resolveBookingSession(selected.value, renderedAt);
     submit.textContent = session ? words.on + ' ' + when(session) : words.buy;
   }
   choices.addEventListener('change', () => {
@@ -66,12 +67,12 @@ function setupPicker(form) {
   return function update(sessions) {
     const previous = choices.querySelector('input:checked');
     // Preserve an early native choice or the exact date the guest last saw.
-    const previousChoice = previous && resolveBookingSession(previous.value)?.id;
+    const previousChoice = previous && resolveBookingSession(previous.value, renderedAt)?.id;
     const manualChoice = previous && !previous.defaultChecked;
     let items = sessions.filter(item => item.eventId === form.dataset.sessionEvent);
     if (params.get('single') === '1') items = items.slice(0, 1);
-    const request = initialized || manualChoice ? previousChoice : requested ? resolveBookingSession(requested)?.id : null;
-    const wanted = request || (!initialized && !requested ? (manualChoice ? previousChoice : items[0]?.id) : null);
+    const request = initialized || manualChoice ? previousChoice : requested ? resolveBookingSession(requested, scheduleAnchor(params.get('asof')))?.id : null;
+    const wanted = request || (!initialized && !requested && !manualChoice ? items[0]?.id : null);
     for (const input of buttons.values()) {
       input.checked = false;
       input.disabled = true;
